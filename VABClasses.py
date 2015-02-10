@@ -1,5 +1,5 @@
-# VABSystemExpGrowth.py
-""" System class for simulation of exponential growth.
+# VABClasses.py
+""" Set of classes for VAB objects.
 """
 
 import math
