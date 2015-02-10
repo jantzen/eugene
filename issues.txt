@@ -1,0 +1,2 @@
+1. How do we allow for sensors with richer representations?
+2. How do we allow for actuators that require complex instruction?
