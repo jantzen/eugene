@@ -81,11 +81,10 @@ class VABSystemInterface( object ):
     """
 
     def __init__(self, sensors, actuators, system = None):
-    """ sensors is a dictionary of sensor objects, actuators is a dictionary of
-    actuator objects, system is either null (for real physical systems) or a
-    system object for theoretica systems
-    """
-
+    # sensors is a dictionary of sensor objects, actuators is a dictionary of
+    # actuator objects, system is either null (for real physical systems) or a
+    # system object for theoretical systems.
+    
         self._system = system
 
 
