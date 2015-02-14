@@ -86,23 +86,25 @@ class VABSystemInterface( object ):
     # system object for theoretical systems.
     
         self._system = system
+        self._sensors = sensors
+        self._actuators = actuators
 
 
-    def read_sensor(id):
+    def read_sensor(self, id):
         # pull the correct sensor
-        s = sensors[id]
+        s = self._sensors[id]
         # test whether system is null
-        if system == None:
+        if self._system == None:
             return s.read()
         else:
             return s.read(self._system)
 
 
-    def set_actuator(id, value):
+    def set_actuator(self, id, value):
         # pull the correct actuator
-        a = actuators[id]
+        a = self._actuators[id]
         # test whether system is null
-        if system == None:
+        if self._system == None:
             a.set(value)
         else:
             a.set(self._system, value)
