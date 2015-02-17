@@ -24,12 +24,12 @@ def test_actuators():
    
    
 def test_growth_model():   
-    sys1 = VABSystemExpGrowth(1, 0.2)
-    sys2 = VABSystemExpGrowth(5, 0.2)
+    sys1 = VABSystemExpGrowth(1, 2)
+    sys2 = VABSystemExpGrowth(5, 2)
 
     psensor = VABPopulationSensor()
 
-    time.sleep(5)
+    time.sleep(0.5)
  
     p1 = psensor.read(sys1)
     p2 = psensor.read(sys2)
