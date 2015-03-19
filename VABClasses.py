@@ -84,7 +84,7 @@ class VABSigmoidSystem( object ):
         self._steepness = steepness
         
     def update(self, x):
-        return self._limit/(1+pow(e, 0-(self.steepness*(x - self._midpoint))))
+        return self._limit/(1+pow(math.e, 0-(self.steepness*(x - self._midpoint))))
         
 
 class VABSystemInterface( object ):
@@ -121,3 +121,80 @@ class VABSystemInterface( object ):
         else:
             a.set(self._system, value)
 
+    
+class Range( object ):
+    """Specifies both the start and the end of a range of numbers
+    """
+    def __init__(self, start, end):
+        self._start = start
+        self._end = end
+        
+        
+class Function( object ):
+    """ Contains a function that can be added, multiplied by, and raised to the
+        power of another function.
+        The function is stored as a string.  The function f(x) = kx would be
+        stored as the string "c[0]x
+    """
+    def __init__(self, func, const_count, var_count):
+        self._function = func
+        self._const_count = const_count
+        self._var_count = var_count
+        self._constants = [0] * const_count
+        
+    def SetConstants(self, constants):
+        """Sets the constants in the function
+        """
+        self._constants = constants
+        
+    def EvaluateAt(self, v):
+        """ Evaluates the function when the variables v1, v2, v3, ...
+            are at v[0], v[1], v[2], ...
+        """
+        c = self._constants
+        return eval(self._function)
+        
+    def Multiply(self, factor):
+        """Multiplies this function by another
+        """
+        factor.IncrementConstantsAndVariables(self._const_count, self._var_count)
+        self._const_count += factor._const_count
+        self._function = '(' + self._function + ') * (' + factor._function + ')'
+        
+    def Add(self, addend):
+        """Adds this function to another
+        """
+        
+        addend.IncrementConstantsAndVariables(self._const_count, self._var_count)
+        self._const_count += addend._const_count
+        self._function = '(' + self._function + ') + (' + addend._function + ')'
+        
+    def Power(self, power):
+        """Raises the function to a power
+        """
+        
+        power.IncrementConstantsAndVariables(self._const_count, self._var_count)
+        self._const_count += power._const_count
+        self._function = 'pow(' + self._function + ', ' + power._function + ')' 
+        
+    def IncrementConstantsAndVariables(self, numConsts, numVars):
+        """ Increments the indexes of the constants and variables by the amount
+            given by the parameters
+        """
+        Digits = '0123456789';
+        descriptorIndex = -2
+        num = ''
+        updatedFunction = ''
+        for c in self._function:
+            if c in Digits:
+                num += c
+            else:
+                if num != '' and self._function[descriptorIndex] == 'c':
+                    updatedFunction += ((int(num)) + numConsts)
+                    num = ''
+                elif num != '' and self._function[descriptorIndex] == 'v':
+                    updatedFunction += ((int(num)) + numVars)
+                    num = ''
+                updatedFunction += c
+            descriptorIndex += 1
+        self._function = updatedFunction

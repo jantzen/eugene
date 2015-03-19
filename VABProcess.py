@@ -78,14 +78,3 @@ def GenerateSymmetries(interface, seed_func, time_var, intervention_var, toleran
     """Generate functions that can act as symmetry structures in relation to the
        evolution of the system.
     """
-class Range( object ):
-    """Specifies both the start and the end of a range of numbers
-    """
-    def __init__(self, start, end):
-        self._start = start
-        self._end = end
-        
-        
-class Function( object ):
-    def __init__(self, func):
-        
