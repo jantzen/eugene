@@ -75,6 +75,18 @@ class VABSystemExpGrowth(object):
         
         return self._time
 
+class VABSigmoidSystem( object ):
+    """ A system that simulates the logistic equation
+    """
+    def __init__(self, limit, midpoint, steepness):
+        self._limit = limit
+        self._midpoint = midpoint
+        self._steepness = steepness
+        
+    def update(self, x):
+        return self._limit/(1+pow(e, 0-(self.steepness*(x - self._midpoint))))
+        
+
 class VABSystemInterface( object ):
     """ This is a generic class. Interface objects are what the 'process' will
     operate on directly.

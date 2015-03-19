@@ -2,6 +2,7 @@
 
 import time
 import math
+import random
 
 def SameState(state1, state2, tolerance):
     if abs(state1 - state2) < tolerance:
@@ -51,3 +52,40 @@ def SymFunc(interface, func, time_var, intervention_var, tolerance, inductive_th
     
     # COMPARE THE FINAL STATES
     return SameState(v1, v2, tolerance)
+
+def SymmetryGroup(interface, func, time_var, intervention_var, tolerance, inductive_threshold, time_interval, trials, const_ranges):
+    """ Tests to see if several variations of func are symmetries.  
+        If every variation of constants is a symmetry,returns true.
+        This is the fitness function for the GA
+        const_ranges: A list containing the ranges in which each constant in the function must reside
+        trials: The number of different random variations of constants to test
+    """ 
+    symmetry = True
+    for x in range(0, trials):
+        constants = [];
+        
+        #Generate a list of constants
+        for y in const_ranges:
+            constants.append(random.uniform(y._start, y._end))
+        func.set_constants(constants)
+        
+        #Test whether func with the generated constants is a symmetry
+        symmetry = symmetry and SymFunc(interface, func, time_var, intervention_var, tolerance, inductive_threshold, time_interval)
+        
+    return symmetry
+    
+def GenerateSymmetries(interface, seed_func, time_var, intervention_var, tolerance, inductive_threshold, time_interval, trials, const_ranges):
+    """Generate functions that can act as symmetry structures in relation to the
+       evolution of the system.
+    """
+class Range( object ):
+    """Specifies both the start and the end of a range of numbers
+    """
+    def __init__(self, start, end):
+        self._start = start
+        self._end = end
+        
+        
+class Function( object ):
+    def __init__(self, func):
+        
