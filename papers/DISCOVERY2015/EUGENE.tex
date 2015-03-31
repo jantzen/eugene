@@ -10,22 +10,14 @@
 %\usepackage{amscd} %for commutation diagrams
 %\usepackage{setspace} %temporary for getting double-spacing
 
-%%%Set database for BibLaTex to use
-\addbibresource{discovery2015.bib}
-
-%%%Tweak TeXcount to work (approximately) with BibLaTex
-%TC:incbib
-%TC:subst \printbibliography \bibliography
-%TC:macro \field [0,1]
-%TC:macro \name [0,0,0,1]
-%TC:macro \list [0,0,1]
-
-%%% Set graphics path for figures.
+%% Set graphics path for figures.
 %\graphicspath{ {./Figures/} }
 
-\title{}
+\bibliographystyle{splncs}
+
+\title{Automated discovery and functional characterization of causal networks} % This title is tentative
 \author{}
-\date{} % Activate to display a given date or no date (if empty),
+%\date{} % Activate to display a given date or no date (if empty),
          % otherwise the current date is printed 
 
 %\doublespacing %temporary for proofing - must include setspace package to use
@@ -38,9 +30,8 @@
 
 
 
-\newpage
-%%%Uncomment the fpllowing line to number the bibliography separately
-%\pagenumbering{arabic}
-\printbibliography %command for BibLaTex
+\begin{thebibliography}{} %command for placing the bibliography (using built-in Latex methods)
+
+\end{thebibliography}
 
 \end{document}
