@@ -157,7 +157,7 @@ class Function( object ):
     def Multiply(self, factor):
         """Multiplies this function by another
         """
-        factor.IncrementConstantsAndVariables(self._const_count, self._var_count)
+        factor.IncrementConstants(self._const_count, self._var_count)
         self._const_count += factor._const_count
         self._function = '(' + self._function + ') * (' + factor._function + ')'
         
@@ -165,7 +165,7 @@ class Function( object ):
         """Adds this function to another
         """
         
-        addend.IncrementConstantsAndVariables(self._const_count, self._var_count)
+        addend.IncrementConstants(self._const_count, self._var_count)
         self._const_count += addend._const_count
         self._function = '(' + self._function + ') + (' + addend._function + ')'
         
@@ -173,7 +173,7 @@ class Function( object ):
         """Raises the function to a power
         """
         
-        power.IncrementConstantsAndVariables(self._const_count, self._var_count)
+        power.IncrementConstants(self._const_count, self._var_count)
         self._const_count += power._const_count
         self._function = 'pow(' + self._function + ', ' + power._function + ')' 
         
@@ -198,3 +198,25 @@ class Function( object ):
                 updatedFunction += c
             descriptorIndex += 1
         self._function = updatedFunction
+    
+    def IncrementConstants(self, numConsts):
+        """ Increments the indexes of the constants by the amount
+            given by the parameters
+        """
+        Digits = '0123456789';
+        descriptorIndex = -2
+        num = ''
+        updatedFunction = ''
+        for c in self._function:
+            if c in Digits:
+                num += c
+            else:
+                if num != '' and self._function[descriptorIndex] == 'c':
+                    updatedFunction += ((int(num)) + numConsts)
+                    num = ''
+                updatedFunction += c
+            descriptorIndex += 1
+        self._function = updatedFunction
+    
+    def Substitute(self, expression, placeholder):
+        self._function.replace(placeholder, expression)
