@@ -164,7 +164,6 @@ class Function( object ):
     def Add(self, addend):
         """Adds this function to another
         """
-        
         addend.IncrementConstants(self._const_count, self._var_count)
         self._const_count += addend._const_count
         self._function = '(' + self._function + ') + (' + addend._function + ')'
@@ -172,7 +171,6 @@ class Function( object ):
     def Power(self, power):
         """Raises the function to a power
         """
-        
         power.IncrementConstants(self._const_count, self._var_count)
         self._const_count += power._const_count
         self._function = 'pow(' + self._function + ', ' + power._function + ')' 

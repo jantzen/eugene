@@ -137,6 +137,7 @@ def BranchAndBound(interface, seed_func, time_var, intervention_var, inductive_t
                 possibleSymmetries.append(modifiedFuncs)
     return possibleSymmetries
     
+    
 def allOperations(function1, function2):
     """Returns the result of each possible combination of functions 1 and 2
     """
