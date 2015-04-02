@@ -25,11 +25,12 @@
 
 # $Id$
 
+# The following line was added by Jantzen
+from __future__ import print_function
+
 import sys
 import time
 import spiagent
-# The following line was added by Jantzen
-from __future__ import print_function
 
 print('\nRaspberry Pi LPC1114 I/O Processor Expansion Board Analog Input Test\n')
 
