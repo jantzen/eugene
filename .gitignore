@@ -1,3 +1,13 @@
 *.swp
 
 *.swo
+
+*blx.bib
+
+*.aux
+
+*.log
+
+*.pdf
+
+*.xml
