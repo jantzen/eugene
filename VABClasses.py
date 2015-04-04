@@ -145,13 +145,18 @@ class Function( object ):
     def SetConstants(self, constants):
         """Sets the constants in the function
         """
-        self._constants = constants
+        if len(constants) == len(self._constants): 
+            self._constants = constants
+        else:
+            raise ValueError
         
     def EvaluateAt(self, v):
         """ Evaluates the function when the variables v1, v2, v3, ...
             are at v[0], v[1], v[2], ...
         """
         c = self._constants
+        #FIX: WHAT IS THE POINT OF THE PREVIOUS ASSIGNMENT?
+
         return eval(self._function)
         
     def Multiply(self, factor):
