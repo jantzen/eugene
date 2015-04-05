@@ -73,18 +73,33 @@ def test_Function_EvaluateAt():
     assert func.EvaluateAt([1]) == 2
 
 
-def test_IncrementConstants():
+def test_IncrementIndices():
     """The purpose of the function being tested is to change the constant indices
     in one function so that they do not comflict with those
     in another with which it is being combined.
     """
-    func = Function("c[0]+c[1]+c[2]",3,0)
-    func.IncrementConstants(3)
+    func = Function("c[0]+c[1]+c[2]*v[0]",3,1)
+    func.IncrementIndices(3,1)
 
     assert func._const_count == 3 
-    assert func._function == "c[3]+c[4]+c[5]"
+    assert func._function == "c[3]+c[4]+c[5]*v[1]"
+
+    func.IncrementIndices(10,10)
+    
+    assert func._var_count == 1
+    assert func._function == "c[13]+c[14]+c[15]*v[11]"
 
 
+def test_Function_MultiplyAddPower():
 
-def test_Function_Multiply():
-    pass
+    func1 = Function("v[0]",0,1)
+    func2 = Function("c[0]*v[0]",1,1)
+    func3 = Function("c[0]*v[0]+c[1]",2,1)
+    
+    func1.Multiply(func2)
+    func2.Add(func3)
+    func3.Power(func3)
+
+    assert func1._function == "(v[0])*(c[0]*v[1])"
+    assert func2._function == "(c[0]*v[0])+(c[1]*v[1]+c[2])"
+    assert func3._function == "pow(c[0]*v[0]+c[1],c[2]*v[1]+c[3])"
