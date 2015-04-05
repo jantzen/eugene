@@ -105,6 +105,7 @@ def GeneticAlgorithm(interface, current_generation, generation_average, time_var
                 function._fitness = SymmetryGroup(interface, function, time_var, intervention_var, inductive_threshold, time_interval, const_ranges)
                 if function._fitness > generation_average:
                     nextGeneration.append(function)
+                    #DEAL WITH EMPTY NEXT GENERATION CASE
     for func in nextGeneration:
         fitnessTotal += func._fitness
     if generation > generation_limit:
