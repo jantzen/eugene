@@ -175,43 +175,29 @@ class Function( object ):
         self._const_count += power._const_count
         self._function = 'pow(' + self._function + ', ' + power._function + ')' 
         
-    def IncrementConstantsAndVariables(self, numConsts, numVars):
-        """ Increments the indexes of the constants and variables by the amount
+    def IncrementIndices(self, numConsts, numVars):
+        """ Increments the indices of the constants and variables by the amount
             given by the parameters
         """
         Digits = '0123456789';
         descriptorIndex = -2
+        descriptor = ''
         num = ''
         updatedFunction = ''
         for c in self._function:
             if c in Digits:
                 num += c
+                if descriptor == '':
+                    descriptor = self._function[descriptorIndex]
             else:
-                if num != '' and self._function[descriptorIndex] == 'c':
-                    updatedFunction += ((int(num)) + numConsts)
+                if num != '' and descriptor == 'c':
+                    updatedFunction += str((int(num)) + numConsts)
                     num = ''
-                elif num != '' and self._function[descriptorIndex] == 'v':
-                    updatedFunction += ((int(num)) + numVars)
+                    descriptor = ''
+                elif num != '' and descriptor == 'v':
+                    updatedFunction += str((int(num)) + numVars)
                     num = ''
-                updatedFunction += c
-            descriptorIndex += 1
-        self._function = updatedFunction
-    
-    def IncrementConstants(self, numConsts):
-        """ Increments the indexes of the constants by the amount
-            given by the parameters
-        """
-        Digits = '0123456789';
-        descriptorIndex = -2
-        num = ''
-        updatedFunction = ''
-        for c in self._function:
-            if c in Digits:
-                num += c
-            else:
-                if num != '' and self._function[descriptorIndex] == 'c':
-                    updatedFunction += ((int(num)) + numConsts)
-                    num = ''
+                    descriptor = ''
                 updatedFunction += c
             descriptorIndex += 1
         self._function = updatedFunction
