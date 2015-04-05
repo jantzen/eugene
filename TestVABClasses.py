@@ -68,9 +68,9 @@ def test_Function_SetConstants():
 
 def test_Function_EvaluateAt():
     func = Function("c[0]*v[0]+c[1]",2,1)
-    func.SetConstants([1,1])
+    func.SetConstants([2,1])
 
-    assert func.EvaluateAt([1]) == 2
+    assert func.EvaluateAt([1]) == 3
 
 
 def test_IncrementIndices():
@@ -103,3 +103,4 @@ def test_Function_MultiplyAddPower():
     assert func1._function == "(v[0])*(c[0]*v[1])"
     assert func2._function == "(c[0]*v[0])+(c[1]*v[1]+c[2])"
     assert func3._function == "pow(c[0]*v[0]+c[1],c[2]*v[1]+c[3])"
+

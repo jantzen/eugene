@@ -145,7 +145,7 @@ class Function( object ):
     def SetConstants(self, constants):
         """Sets the constants in the function
         """
-        if len(constants) == len(self._constants): 
+        if len(constants) == self._const_count: 
             self._constants = constants
         else:
             raise ValueError
@@ -155,7 +155,6 @@ class Function( object ):
             are at v[0], v[1], v[2], ...
         """
         c = self._constants
-        #FIX: WHAT IS THE POINT OF THE PREVIOUS ASSIGNMENT?
 
         return eval(self._function)
         
