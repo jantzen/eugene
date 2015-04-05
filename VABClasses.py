@@ -206,7 +206,7 @@ class Function( object ):
         """ Increments the indexes of the constants by the amount
             given by the parameters
         """
-        Digits = '0123456789';
+        Digits = '0123456789'
         descriptorIndex = -2
         num = ''
         updatedFunction = ''
