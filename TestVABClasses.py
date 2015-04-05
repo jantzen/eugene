@@ -73,5 +73,18 @@ def test_Function_EvaluateAt():
     assert func.EvaluateAt([1]) == 2
 
 
+def test_IncrementConstants():
+    """The purpose of the function being tested is to change the constant indices
+    in one function so that they do not comflict with those
+    in another with which it is being combined.
+    """
+    func = Function("c[0]+c[1]+c[2]",3,0)
+    func.IncrementConstants(3)
+
+    assert func._const_count == 3 
+    assert func._function == "c[3]+c[4]+c[5]"
+
+
+
 def test_Function_Multiply():
     pass
