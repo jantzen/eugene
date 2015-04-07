@@ -111,7 +111,8 @@ def GeneticAlgorithm(interface, current_generation, generation_average, time_var
     if generation > generation_limit:
         return nextGeneration
     return GeneticAlgorithm(interface, nextGeneration, fitnessTotal/len(nextGeneration), time_var, intervention_var, inductive_threshold, time_interval, const_ranges, deck, generation_limit, generation + 1)
-    
+
+
 def BranchAndBound(interface, seed_func, time_var, intervention_var, inductive_threshold, time_interval, const_ranges, deck, complexity_limit):
     """ Exaustive search of possible functions generated with expressions from 
         the deck

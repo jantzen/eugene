@@ -51,3 +51,5 @@ def test_SymFunc_negative():
     assert not out
 
 
+def test_GeneticAlgorithm():
+    pass
