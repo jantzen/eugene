@@ -193,5 +193,5 @@ def RandomSelection(deck, num_selected):
     """Returns num_selected number of elements of the list, deck
     """
     random.shuffle(deck)
-    return deck[0:num_selected]
+    return deck[0:(num_selected-1)]
     
