@@ -163,7 +163,7 @@ class Function( object ):
         """
         factor = Function(factor_in._function, factor_in._const_count, factor_in._var_count)
         # This creates a local copy so we don't change the passed function object
-        factor.IncrementIndices(self._const_count, self._var_count)
+        factor.IncrementIndices(self._const_count)
         self._const_count += factor._const_count
         self._function = '(' + self._function + ')*(' + factor._function + ')'
         
@@ -172,7 +172,7 @@ class Function( object ):
         """
         addend = Function(addend_in._function, addend_in._const_count, addend_in._var_count)
         # This creates a local copy so we don't change the passed function object
-        addend.IncrementIndices(self._const_count, self._var_count)
+        addend.IncrementIndices(self._const_count)
         self._const_count += addend._const_count
         self._function = '(' + self._function + ')+(' + addend._function + ')'
         
@@ -181,12 +181,12 @@ class Function( object ):
         """
         power = Function(power_in._function, power_in._const_count, power_in._var_count)
         # This creates a local copy so we don't change the passed function object
-        power.IncrementIndices(self._const_count, self._var_count)
+        power.IncrementIndices(self._const_count)
         self._const_count += power._const_count
         self._function = 'pow(' + self._function + ',' + power._function + ')' 
         
-    def IncrementIndices(self, numConsts, numVars):
-        """ Increments the indices of the constants and variables by the amount
+    def IncrementIndices(self, numConsts):
+        """ Increments the indices of the constants by the amount
             given by the passed parameters
         """
         Digits = '0123456789';
@@ -205,7 +205,7 @@ class Function( object ):
                     num = ''
                     descriptor = ''
                 elif num != '' and descriptor == 'v':
-                    updatedFunction += str((int(num)) + numVars)
+                    updatedFunction += str((int(num)))
                     num = ''
                     descriptor = ''
                 updatedFunction += c

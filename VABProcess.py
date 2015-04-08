@@ -66,7 +66,7 @@ def SymmetryGroup(interface, func, time_var, intervention_var, inductive_thresho
         #Generate a list of constants
         for y in const_ranges:
             constants.append(random.uniform(y._start, y._end))
-        func.set_constants(constants)
+        func.SetConstants(constants)
         
         #Test whether func with the generated constants is a symmetry
         sum += pow(SymFunc(interface, func, time_var, intervention_var, inductive_threshold, time_interval), 2)
@@ -163,7 +163,6 @@ def BranchAndBound(interface, seed_func, time_var, intervention_var, inductive_t
                 possibleSymmetries.append(modifiedFuncs)
     return possibleSymmetries
     
-    
       
 def allOperations(function1, function2):
     """Returns the result of each possible combination of functions 1 and 2
@@ -176,16 +175,18 @@ def allOperations(function1, function2):
     exponentiated.Power(function2)
     return [added, multiplied, exponentiated]
 
+
 def randomOperation(function1, function2):
     """Returns the result of each possible combination of functions 1 and 2
     """
-    operation = random.randomint(0, 2)
+    operation = random.randint(0, 2)
     if operation == 0:
-        return function1.add(function2)
+        return function1.Add(function2)
     elif operation == 2:
         return function1.Multiply(function2)
     else:
         return function1.Exponentiate(function2)
+
 
 def RandomSelection(deck, num_selected):
     """Returns num_selected number of elements of the list, deck

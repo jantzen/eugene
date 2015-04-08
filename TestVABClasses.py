@@ -22,7 +22,6 @@ def test_actuators():
     assert 25 == sys._population
   
    
-   
 def test_growth_model():   
     sys1 = VABSystemExpGrowth(1, 10)
     sys2 = VABSystemExpGrowth(5, 10)
@@ -79,15 +78,15 @@ def test_IncrementIndices():
     in another with which it is being combined.
     """
     func = Function("c[0]+c[1]+c[2]*v[0]",3,1)
-    func.IncrementIndices(3,1)
+    func.IncrementIndices(3)
 
     assert func._const_count == 3 
-    assert func._function == "c[3]+c[4]+c[5]*v[1]"
+    assert func._function == "c[3]+c[4]+c[5]*v[0]"
 
-    func.IncrementIndices(10,10)
+    func.IncrementIndices(10)
     
     assert func._var_count == 1
-    assert func._function == "c[13]+c[14]+c[15]*v[11]"
+    assert func._function == "c[13]+c[14]+c[15]*v[0]"
 
 
 def test_Function_MultiplyAddPower():
@@ -100,7 +99,7 @@ def test_Function_MultiplyAddPower():
     func2.Add(func3)
     func3.Power(func3)
 
-    assert func1._function == "(v[0])*(c[0]*v[1])"
-    assert func2._function == "(c[0]*v[0])+(c[1]*v[1]+c[2])"
-    assert func3._function == "pow(c[0]*v[0]+c[1],c[2]*v[1]+c[3])"
+    assert func1._function == "(v[0])*(c[0]*v[0])"
+    assert func2._function == "(c[0]*v[0])+(c[1]*v[0]+c[2])"
+    assert func3._function == "pow(c[0]*v[0]+c[1],c[2]*v[0]+c[3])"
 

@@ -36,6 +36,10 @@ def test_SymFunc():
     assert out1 < .01 and out2 > .01
 
 
+def test_randomOperation():
+    pass
+
+
 def test_GeneticAlgorithm():
     # set up a system, sensors, and actuators
     sys = VABSystemExpGrowth(1,0.2)
@@ -50,4 +54,17 @@ def test_GeneticAlgorithm():
     # build an interface
     interface = VABSystemInterface(sensors, actuators, sys)
 
+    # build a seed generation
+    func = Function("c[0]",1,1)
+    current_generation = [func]
 
+    # build a simple deck
+    deck = [Function("v[1]",0,1),Function("c[0]",1,0)]
+
+    # create range objects
+    const_range = Range(-100,100)
+
+    # Start the Genetic Algorithm
+    GeneticAlgorithm(interface, current_generation, 0, 1, 10, 0.1, [const_range], deck, 2, 2, 10, 10)
+
+    print current_generation
