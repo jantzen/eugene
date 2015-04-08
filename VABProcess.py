@@ -13,13 +13,8 @@ def SameState(state1, state2, tolerance):
 
 
 def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, time_interval):
-    """ Takes a system interface, a function (explicit, no free params)
-    representing the intervention being tested for symmetry status, a number
-    indicating the variable on which the function is presumed to act, a tolerance (how close
-    states need to be in order to count as the same), and an inductive threshold
-    (how many affirmative instances are required in order to generalize), and a
-    time interval which determines how long to evolve a system and look for
-    differences. Returns a logical truth value.
+    """ Takes a system interface, a function object...
+        FINISH THIS DESCRIPTION 
     """
 
     # EVOLVE AND THEN TRANSFORM
@@ -33,7 +28,7 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
 
     # transform the system
     interface.set_actuator(intervention_var,
-            func.evaluateAt(interface.read_sensor(intervention_var)))
+            func.EvaluateAt([interface.read_sensor(intervention_var)]))
 
     # immediately read the new state of affairs
     v1 = interface.read_sensor(intervention_var)
@@ -42,7 +37,7 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
 
     # get the system back into its initial state and apply the transformation
     # (in a single step)
-    interface.set_actuator(intervention_var, func.evaluateAt(v0))
+    interface.set_actuator(intervention_var, func.EvaluateAt([v0]))
 
     # evolve the system
     time.sleep(time_interval)
@@ -52,7 +47,10 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
 
     
     # COMPARE THE FINAL STATES
-    return abs(v1, v2)/v1
+    return abs(v1 -  v2)/v1
+
+    # NOTE: DOES NOT USE THE INDUCTIVE THRESHOLD
+
 
 def SymmetryGroup(interface, func, time_var, intervention_var, inductive_threshold, time_interval, const_ranges):
     """ Tests to see if several variations of func are symmetries.  
@@ -105,7 +103,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
                 modifiedFunc._fitness = SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_ranges)
                 nextGeneration.append(modifiedFunc)
                         
-         #Remove the functions that will not be passed on to the next generation:
+        #Remove the functions that will not be passed on to the next generation:
                         
         #Sort the next generation by fitness
         comparison = lambda x: x._fitness

@@ -1,2 +1,3 @@
 1. How do we allow for sensors with richer representations?
 2. How do we allow for actuators that require complex instruction?
+3. Our current GA code assumes that all transformation functions of interest affect a single variable at a time. This is not sufficient. We need to be able to consider transformations of the vector of variable values.

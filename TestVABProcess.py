@@ -6,7 +6,7 @@ from VABProcess import *
 
 def test_SymFunc():
     # set up a system, sensors, and actuators
-    sys = VABSystemExpGrowth(1,0.2)
+    sys = VABSystemExpGrowth(1,2)
     tsensor = VABTimeSensor()
     psensor = VABPopulationSensor()
     pact = VABPopulationActuator()
@@ -19,15 +19,24 @@ def test_SymFunc():
     interface = VABSystemInterface(sensors, actuators, sys)
 
     # define the transformation function of interest
-    def sigma(x):
-        return 2*x
+    sigma_1 = Function("c[0]*v[0]",1,1)
+    sigma_1.SetConstants([2])
+ 
+    sigma_2 = Function("c[0]+v[0]",1,1)
+    sigma_2.SetConstants([2])
+
 
     # call SymFunc to test whether sigma is a symmetry
-    out = SymFunc(interface, sigma, 1, 2, 0.5, 1, 1)
+    out1 = SymFunc(interface, sigma_1, 1, 2, 0, 0.5)
+    out2 = SymFunc(interface, sigma_2, 1, 2, 0, 0.5)
 
-    assert out
+    print 'Out 1: {}'.format(out1) 
+    print 'Out 2: {}'.format(out2)
 
-def test_SymFunc_negative():
+    assert out1 < .01 and out2 > .01
+
+
+def test_GeneticAlgorithm():
     # set up a system, sensors, and actuators
     sys = VABSystemExpGrowth(1,0.2)
     tsensor = VABTimeSensor()
@@ -41,15 +50,4 @@ def test_SymFunc_negative():
     # build an interface
     interface = VABSystemInterface(sensors, actuators, sys)
 
-    # define the transformation function of interest
-    def sigma(x):
-        return x+20
 
-    # call SymFunc to test whether sigma is a symmetry
-    out = SymFunc(interface, sigma, 1, 2, 0.5, 1, 1)
-
-    assert not out
-
-
-def test_GeneticAlgorithm():
-    pass
