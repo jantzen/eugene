@@ -3,6 +3,7 @@
 import time
 import math
 import random
+from VABClasses import *
 
 def SameState(state1, state2, tolerance):
     #DEPRECATED
@@ -52,7 +53,7 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
     # NOTE: DOES NOT USE THE INDUCTIVE THRESHOLD
 
 
-def SymmetryGroup(interface, func, time_var, intervention_var, inductive_threshold, time_interval, const_ranges):
+def SymmetryGroup(interface, func, time_var, intervention_var, inductive_threshold, time_interval, const_range):
     """ Tests to see if several variations of func are symmetries.  
         If every variation of constants is a symmetry,returns true.
         This is the fitness function for the GA
@@ -64,8 +65,8 @@ def SymmetryGroup(interface, func, time_var, intervention_var, inductive_thresho
         constants = [];
         
         #Generate a list of constants
-        for y in const_ranges:
-            constants.append(random.uniform(y._start, y._end))
+        for y in range(0,func._const_count):
+            constants.append(random.uniform(const_range._start, const_range._end))
         func.SetConstants(constants)
         
         #Test whether func with the generated constants is a symmetry
@@ -74,7 +75,7 @@ def SymmetryGroup(interface, func, time_var, intervention_var, inductive_thresho
     return (sum/inductive_threshold)
     
 
-def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, inductive_threshold, time_interval, const_ranges, deck, generation_limit, num_mutes, generation_size, percent_guaranteed):
+def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, inductive_threshold, time_interval, const_range, deck, generation_limit, num_mutes, generation_size, percent_guaranteed):
     """ Genetic Algorithm to find functions which are most likely to be symmetries
     
         Parameters:
@@ -100,7 +101,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
                 #Combine the function with the functions in the deck in various ways
                 modifiedFunc = randomOperation(func, func2)
                 #Measure fitness
-                modifiedFunc._fitness = SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_ranges)
+                modifiedFunc._fitness = SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range)
                 nextGeneration.append(modifiedFunc)
                         
         #Remove the functions that will not be passed on to the next generation:
@@ -135,6 +136,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
             current_generation = reducedGeneration
         else:
             current_generation = nextGeneration
+    return current_generation
         
     
 def BranchAndBound(interface, seed_func, time_var, intervention_var, inductive_threshold, time_interval, const_ranges, deck, complexity_limit):
@@ -177,16 +179,32 @@ def allOperations(function1, function2):
 
 
 def randomOperation(function1, function2):
+<<<<<<< HEAD
     """Returns the result of one of the possible combinations of functions 1 and 2
     chosen at random (from a uniform distribution)
+=======
+    """Returns the result of a possible combination of functions 1 and 2
+>>>>>>> 95fe62fb8f4393dfc83f8e77ff2ca52f32ae1346
     """
     operation = random.randint(0, 2)
+    function1Copy = Function(function1._function, function1._const_count, function1._var_count)
     if operation == 0:
+<<<<<<< HEAD
         function1.Add(function2)
     elif operation == 2:
         function1.Multiply(function2)
     else:
         function1.Exponentiate(function2)
+=======
+        function1Copy.Add(function2)
+        return function1Copy
+    elif operation == 2:
+        function1Copy.Multiply(function2)
+        return function1Copy
+    else:
+        function1Copy.Power(function2)
+        return function1Copy
+>>>>>>> 95fe62fb8f4393dfc83f8e77ff2ca52f32ae1346
 
 
 def RandomSelection(deck, num_selected):
