@@ -177,15 +177,16 @@ def allOperations(function1, function2):
 
 
 def randomOperation(function1, function2):
-    """Returns the result of each possible combination of functions 1 and 2
+    """Returns the result of one of the possible combinations of functions 1 and 2
+    chosen at random (from a uniform distribution)
     """
     operation = random.randint(0, 2)
     if operation == 0:
-        return function1.Add(function2)
+        function1.Add(function2)
     elif operation == 2:
-        return function1.Multiply(function2)
+        function1.Multiply(function2)
     else:
-        return function1.Exponentiate(function2)
+        function1.Exponentiate(function2)
 
 
 def RandomSelection(deck, num_selected):

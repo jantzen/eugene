@@ -36,8 +36,17 @@ def test_SymFunc():
     assert out1 < .01 and out2 > .01
 
 
-def test_randomOperation():
+def test_SymmetryGroup:
     pass
+
+
+def test_randomOperation():
+    func1 = Function("c[0]*v[0]",1,1)
+    func2 = Function("c[0]+v[0]",1,1)
+
+    randomOperation(func1, func2)
+
+    assert func1._function == "(c[0]*v[0])+(c[1]+v[0])" or func1._function == "(c[0]*v[0])*(c[1]+v[0])" or func1._function == "pow(c[0]*v[0],c[1]+v[0])"
 
 
 def test_GeneticAlgorithm():
