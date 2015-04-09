@@ -48,7 +48,7 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
 
     
     # COMPARE THE FINAL STATES
-    return abs(v1 -  v2)/v1
+    return (v1 -  v2)/v1
 
     # NOTE: DOES NOT USE THE INDUCTIVE THRESHOLD
 
@@ -107,13 +107,13 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
         #Remove the functions that will not be passed on to the next generation:
                         
         #Sort the next generation by fitness
-        comparison = lambda x: x._fitness
-        nextGeneration.sort(comparison, reverse=True)
+        comparator = lambda x: x._fitness
+        nextGeneration.sort(key=comparator, reverse=True)
         if generation_size > percent_guaranteed * len(nextGeneration):
             fitnessTotals = []
             
             #Preserve the most fit functions
-            reducedGeneration = nextGeneration[0:percent_guaranteed*len(nextGeneration)]
+            reducedGeneration = nextGeneration[0:int(math.floor(percent_guaranteed*len(nextGeneration)))]
             runningTotal = 0
             
             #Create a list of running totals, representing a weighted distribution
@@ -122,13 +122,13 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
                 fitnessTotals.append(runningTotal)
                 
             #Fill the rest of the spots in the next generation
-            for i in range(0, generation_size - percent_guaranteed * len(nextGeneration)):
+            for i in range(0, generation_size - int(math.floor(percent_guaranteed * len(nextGeneration)))):
                 
                 #Choose a random number that is greater than the running total from the last of the guaranteed-to-pass-on functions
-                rand = random.random() * (fitnessTotals[len(fitnessTotals) - 1] - fitnessTotals[percent_guaranteed*len(fitnessTotals)])
+                rand = random.random() * (fitnessTotals[len(fitnessTotals) - 1] - fitnessTotals[int(math.floor(percent_guaranteed*len(fitnessTotals)))])
                 
                 #Use the random number and the weighted distribution to select a function to preserve
-                for j in range(percent_guaranteed*len(nextGeneration), len(nextGeneration)):
+                for j in range(int(math.floor(percent_guaranteed*len(nextGeneration))), len(nextGeneration)):
                     if fitnessTotals[i] > rand:
                         reducedGeneration.append(fitnessTotals[i])
                         fitnessTotals.remove(fitnessTotals[i])
@@ -179,37 +179,24 @@ def allOperations(function1, function2):
 
 
 def randomOperation(function1, function2):
-<<<<<<< HEAD
     """Returns the result of one of the possible combinations of functions 1 and 2
     chosen at random (from a uniform distribution)
-=======
-    """Returns the result of a possible combination of functions 1 and 2
->>>>>>> 95fe62fb8f4393dfc83f8e77ff2ca52f32ae1346
     """
-    operation = random.randint(0, 2)
+    operation = random.randint(0, 1)
     function1Copy = Function(function1._function, function1._const_count, function1._var_count)
     if operation == 0:
-<<<<<<< HEAD
-        function1.Add(function2)
-    elif operation == 2:
-        function1.Multiply(function2)
-    else:
-        function1.Exponentiate(function2)
-=======
         function1Copy.Add(function2)
         return function1Copy
-    elif operation == 2:
+    elif operation == 1:
         function1Copy.Multiply(function2)
         return function1Copy
-    else:
-        function1Copy.Power(function2)
-        return function1Copy
->>>>>>> 95fe62fb8f4393dfc83f8e77ff2ca52f32ae1346
+    #else:
+    #    function1Copy.Power(function2)
+    #    return function1Copy
 
 
 def RandomSelection(deck, num_selected):
     """Returns num_selected number of elements of the list, deck
     """
     random.shuffle(deck)
-    return deck[0:(num_selected-1)]
-    
+    return deck[0:(num_selected)]

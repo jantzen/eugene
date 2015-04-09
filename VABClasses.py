@@ -141,7 +141,13 @@ class Function( object ):
         self._const_count = const_count
         self._var_count = var_count
         self._constants = [0] * const_count
-        
+
+    def __str__(self):
+        return self._function
+
+    def __repr__(self):
+        return str(self)
+
     def SetConstants(self, constants):
         """Sets the constants in the function
         """

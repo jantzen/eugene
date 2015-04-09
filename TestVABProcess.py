@@ -33,10 +33,10 @@ def test_SymFunc():
     print 'Out 1: {}'.format(out1) 
     print 'Out 2: {}'.format(out2)
 
-    assert out1 < .01 and out2 > .01
+    assert out1**2 < .0001 and out2**2 > .0001
 
 
-def test_SymmetryGroup:
+def test_SymmetryGroup():
     pass
 
 
@@ -81,6 +81,6 @@ def test_GeneticAlgorithm():
     const_range = Range(-100,100)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 2, 2, 10, 10)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 4, 2, 10, 0.1)
 
     print final_generation
