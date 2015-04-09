@@ -37,9 +37,20 @@ def test_SymFunc():
 
 
 def test_randomOperation():
-    pass
-
-
+    #Create two functions
+    function_1 = Function("c[0]*v[0]",1,1)
+    function_2 = Function("c[0]+v[0]",1,1)
+    
+    #Do a random operation
+    function_3 = randomOperation(function_1,function_2)
+    
+    #Ensure the output is what it should be
+    assert function_3._function == "(c[0]*v[0])+(c[1]+v[0])" or function_3._function == "(c[0]*v[0])*(c[1]+v[0])" or function_3._function == "pow(c[0]*v[0],c[1]+v[0])"
+    
+    #Ensure that the inputs remain unchanged
+    assert function_1._function == "c[0]*v[0]"
+    assert function_2._function == "c[0]+v[0]"
+    
 def test_GeneticAlgorithm():
     # set up a system, sensors, and actuators
     sys = VABSystemExpGrowth(1,0.2)
@@ -59,12 +70,12 @@ def test_GeneticAlgorithm():
     current_generation = [func]
 
     # build a simple deck
-    deck = [Function("v[1]",0,1),Function("c[0]",1,0)]
+    deck = [Function("v[0]",0,1),Function("c[0]",1,0)]
 
     # create range objects
     const_range = Range(-100,100)
 
     # Start the Genetic Algorithm
-    GeneticAlgorithm(interface, current_generation, 0, 1, 10, 0.1, [const_range], deck, 2, 2, 10, 10)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 2, 2, 10, 10)
 
-    print current_generation
+    print final_generation
