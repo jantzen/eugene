@@ -109,30 +109,30 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
         #Sort the next generation by fitness
         comparator = lambda x: x._fitness
         nextGeneration.sort(key=comparator, reverse=True)
-        if generation_size > percent_guaranteed * len(nextGeneration):
+        if generation_size > (int(percent_guaranteed * len(nextGeneration))+1) and len(nextGeneration) > generation_size:
             fitnessTotals = []
             
             #Preserve the most fit functions
-            reducedGeneration = nextGeneration[0:int(math.floor(percent_guaranteed*len(nextGeneration)))]
-            runningTotal = 0
+            reducedGeneration = nextGeneration[0:int(percent_guaranteed*len(nextGeneration))]
             
             #Create a list of running totals, representing a weighted distribution
+            runningTotal = 0
             for func in nextGeneration:
                 runningTotal += func._fitness
                 fitnessTotals.append(runningTotal)
                 
             #Fill the rest of the spots in the next generation
-            for i in range(0, generation_size - int(math.floor(percent_guaranteed * len(nextGeneration)))):
+            for i in range(0, generation_size - int(percent_guaranteed * len(nextGeneration))-1):
                 
                 #Choose a random number that is greater than the running total from the last of the guaranteed-to-pass-on functions
-                rand = random.random() * (fitnessTotals[len(fitnessTotals) - 1] - fitnessTotals[int(math.floor(percent_guaranteed*len(fitnessTotals)))])
-                
+                #rand = random.random() * (fitnessTotals[len(fitnessTotals) - 1] - fitnessTotals[int(percent_guaranteed*len(fitnessTotals))])
+                rand = random.random() * fitnessTotals[int(percent_guaranteed*len(nextGeneration))] 
                 #Use the random number and the weighted distribution to select a function to preserve
-                for j in range(int(math.floor(percent_guaranteed*len(nextGeneration))), len(nextGeneration)):
-                    if fitnessTotals[i] > rand:
-                        reducedGeneration.append(fitnessTotals[i])
-                        fitnessTotals.remove(fitnessTotals[i])
-                        nextGeneration.remove(nextGeneration[i])
+                for j in range(int(percent_guaranteed*len(nextGeneration)), len(nextGeneration)):
+                    if fitnessTotals[j] > rand:
+                        reducedGeneration.append(nextGeneration[j])
+                        fitnessTotals.remove(fitnessTotals[j])
+                        nextGeneration.remove(nextGeneration[j])
             current_generation = reducedGeneration
         else:
             current_generation = nextGeneration
