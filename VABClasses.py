@@ -7,8 +7,10 @@ import time
 
 
 class VABSensor( object ):
-    def __init__self(self):
+    def __init__(self, range):
         self._init_value = None
+        self._range = range
+
 
 class VABTimeSensor(VABSensor):
     def read(self, sys):

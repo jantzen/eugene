@@ -7,9 +7,9 @@ from VABProcess import *
 def test_SymFunc():
     # set up a system, sensors, and actuators
     sys = VABSystemExpGrowth(1,2)
-    tsensor = VABTimeSensor()
-    psensor = VABPopulationSensor()
-    pact = VABPopulationActuator()
+    tsensor = VABTimeSensor([])
+    psensor = VABPopulationSensor([])
+    pact = VABPopulationActuator([])
 
     # build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1,tsensor),(2,psensor)])
@@ -59,9 +59,9 @@ def test_randomOperation():
 def test_GeneticAlgorithm():
     # set up a system, sensors, and actuators
     sys = VABSystemExpGrowth(1,0.2)
-    tsensor = VABTimeSensor()
-    psensor = VABPopulationSensor()
-    pact = VABPopulationActuator()
+    tsensor = VABTimeSensor([])
+    psensor = VABPopulationSensor([])
+    pact = VABPopulationActuator([])
 
     # build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1,tsensor),(2,psensor)])

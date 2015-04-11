@@ -4,10 +4,10 @@ from VABClasses import *
 
 def test_sensors():
     sys = VABSystemExpGrowth(1, 0.2)
-    tsensor = VABTimeSensor()
+    tsensor = VABTimeSensor([])
     t = tsensor.read(sys)
     ttest = t == sys._time
-    psensor = VABPopulationSensor()
+    psensor = VABPopulationSensor([])
     p = psensor.read(sys)
     ptest = p == sys._population
 
@@ -16,7 +16,7 @@ def test_sensors():
  
 def test_actuators():
     sys = VABSystemExpGrowth(1, 0.2)
-    pact = VABPopulationActuator()
+    pact = VABPopulationActuator([])
     pact.set(sys,25)
     
     assert 25 == sys._population
@@ -26,7 +26,7 @@ def test_growth_model():
     sys1 = VABSystemExpGrowth(1, 10)
     sys2 = VABSystemExpGrowth(5, 10)
 
-    psensor = VABPopulationSensor()
+    psensor = VABPopulationSensor([])
 
     time.sleep(0.02)
  

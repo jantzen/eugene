@@ -3,7 +3,10 @@
 import time
 import math
 import random
+import scipy
 from VABClasses import *
+from scipy import optimize
+
 
 def SameState(state1, state2, tolerance):
     #DEPRECATED
@@ -34,6 +37,7 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
     # immediately read the new state of affairs
     v1 = interface.read_sensor(intervention_var)
 
+
     # TRANSFORM AND THEN EVOLVE
 
     # get the system back into its initial state and apply the transformation
@@ -46,11 +50,13 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
     # read the final state of affairs
     v2 = interface.read_sensor(intervention_var)
 
-    
     # COMPARE THE FINAL STATES
-    return (v1 -  v2)/v1
+    return (v1 -  v2)
 
     # NOTE: DOES NOT USE THE INDUCTIVE THRESHOLD
+
+    #DEBUGGING:
+    print "SymFunc output: v1 = {}, v2 = {}, v1-v2 = {}".format(v1,v2,v1-v2)
 
 
 def SymmetryGroup(interface, func, time_var, intervention_var, inductive_threshold, time_interval, const_range):
@@ -100,42 +106,59 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
             for func2 in RandomSelection(deck, num_mutes):
                 #Combine the function with the functions in the deck in various ways
                 modifiedFunc = randomOperation(func, func2)
-                #Measure fitness
-                modifiedFunc._fitness = SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range)
+                #Measure fitness (convert errors to fitnesses)
+                modifiedFunc._fitness = 1./(SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range) + 10**(-6))
                 nextGeneration.append(modifiedFunc)
-                        
-        #Remove the functions that will not be passed on to the next generation:
-                        
-        #Sort the next generation by fitness
+             
+        #Sort the next generation by fitness 
         comparator = lambda x: x._fitness
         nextGeneration.sort(key=comparator, reverse=True)
-        if generation_size > (int(percent_guaranteed * len(nextGeneration))+1) and len(nextGeneration) > generation_size:
-            fitnessTotals = []
-            
-            #Preserve the most fit functions
+        
+        #Check to see if we need to save more than the guaranteed percentage
+        if generation_size > (int(percent_guaranteed * len(nextGeneration))):
+            #Check whether there's room to save everything
+            if generation_size > len(nextGeneration):
+               return nextGeneration
+               
+            #We can't save everything.
+            #First, preserve the most fit functions
             reducedGeneration = nextGeneration[0:int(percent_guaranteed*len(nextGeneration))]
+            nextGeneration = nextGeneration[int(percent_guaranteed*len(nextGeneartion))+1 : len(nextGeneration)-1]
             
             #Create a list of running totals, representing a weighted distribution
+            fitnessTotals = []
             runningTotal = 0
             for func in nextGeneration:
                 runningTotal += func._fitness
                 fitnessTotals.append(runningTotal)
-                
+
+            #Determine the number of slots to fill
+            slots_remaining = generation_size - (int(percent_guaranteed * len(nextGeneration)) +1)
+
             #Fill the rest of the spots in the next generation
-            for i in range(0, generation_size - int(percent_guaranteed * len(nextGeneration))-1):
-                
+            for i in range(slots_remaining-1):
                 #Choose a random number that is greater than the running total from the last of the guaranteed-to-pass-on functions
                 #rand = random.random() * (fitnessTotals[len(fitnessTotals) - 1] - fitnessTotals[int(percent_guaranteed*len(fitnessTotals))])
-                rand = random.random() * fitnessTotals[int(percent_guaranteed*len(nextGeneration))] 
+		min_num = int(percent_guaranteed*len(fitnessTotals)) 
+                max_num = fitnessTotals[len(fitnessTotals)-1]-(fitnessTotals[len(fitnessTotals)-1]-fitnessTotals[len(fitnessTotals)-2])/2
+                rand = random.uniform(min_num,max_num)
+                
                 #Use the random number and the weighted distribution to select a function to preserve
-                for j in range(int(percent_guaranteed*len(nextGeneration)), len(nextGeneration)):
+                for j in range(len(nextGeneration)):
                     if fitnessTotals[j] > rand:
                         reducedGeneration.append(nextGeneration[j])
                         fitnessTotals.remove(fitnessTotals[j])
                         nextGeneration.remove(nextGeneration[j])
+                        break
+                        
             current_generation = reducedGeneration
+        
         else:
-            current_generation = nextGeneration
+            current_generation = nextGeneration[0:(generation_size-1)]
+        
+        #DEBUGGING
+    print "Most fit function: {}. Fitness: {}.".format(current_generation[0]._function, current_generation[0]._fitness)
+
     return current_generation
         
     
