@@ -7,9 +7,12 @@ import time
 
 
 class VABSensor( object ):
-    def __init__(self, range):
+    def __init__(self, dynamic_range):
         self._init_value = None
-        self._range = range
+        self._range = dynamic_range
+
+    def get_range(self):
+        return self._range
 
 
 class VABTimeSensor(VABSensor):
@@ -19,7 +22,14 @@ class VABTimeSensor(VABSensor):
 
 class VABPopulationSensor(VABSensor):
     def read(self, sys):
-      return sys.update_pop() 
+        if len(self._range) != 2:
+            raise ValueError('No sensor range specified.')
+        else:
+            pop = sys.update_pop()
+            if pop > self._range[1] or pop < self._range[0]:
+                return 'OutofRange'
+            else:
+                return pop
 
 
 class VABPopulationActuator(VABSensor):
@@ -77,6 +87,7 @@ class VABSystemExpGrowth(object):
         
         return self._time
 
+
 class VABSigmoidSystem( object ):
     """ A system that simulates the logistic equation
     """
@@ -123,7 +134,12 @@ class VABSystemInterface( object ):
         else:
             a.set(self._system, value)
 
-    
+
+    def get_sensor_range(self, id):
+        # return the dynamic range of the sensor corresponding to id
+        return self._sensors[id].get_range()
+
+
 class Range( object ):
     """Specifies both the start and the end of a range of numbers
     """

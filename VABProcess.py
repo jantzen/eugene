@@ -3,7 +3,7 @@
 import time
 import math
 import random
-import scipy
+#import scipy
 from VABClasses import *
 from scipy import optimize
 
@@ -14,6 +14,38 @@ def SameState(state1, state2, tolerance):
         return True
     else:
         return False
+
+
+def FindConstants(interface, func, time_var, intervention_var, time_interval, const_range):
+    good_set = False
+    lower = interface.get_sensor_range(intervention_var)[0]
+    upper = interface.get_sensor_range(intervention_var)[1]
+    attempts = 0
+
+    while not good_set and attempts<10:
+        # Generate a tentative list of constants
+        constants = [] 
+        for y in range(0,func._const_count):
+            constants.append(random.uniform(const_range._start, const_range._end))
+        func.SetConstants(constants)
+
+        # Check whether the transformation, given these parameter values, would keep the intervention_var in of bounds
+        val1 = func.EvaluateAt([interface.read_sensor(intervention_var)])
+        if  val1 > lower and val1 < upper:
+            # Check whether the transformation would take the system out of bounds assuming that time evolution takes it half way there (in either direction)
+            temp1 = (val1 + upper)/2 
+            temp2 = (val1 + lower)/2
+            val2_high = func.EvaluateAt([temp1])
+            val2_low = func.EvaluateAt([temp2])
+            if val2_high < upper and val2_low > lower:
+                good_set = True
+        attempts += 1
+
+    if good_set:
+       return 1
+
+    else:
+        return 0
 
 
 def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, time_interval):
@@ -50,14 +82,15 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
     # read the final state of affairs
     v2 = interface.read_sensor(intervention_var)
 
+    #DEBUGGING:
+    print "SymFunc output: function = {}, v1 = {}, v2 = {}, v1-v2 = {}".format(func._function,v1,v2,v1-v2)
+
     # COMPARE THE FINAL STATES
     return (v1 -  v2)
 
     # NOTE: DOES NOT USE THE INDUCTIVE THRESHOLD
 
-    #DEBUGGING:
-    print "SymFunc output: v1 = {}, v2 = {}, v1-v2 = {}".format(v1,v2,v1-v2)
-
+    
 
 def SymmetryGroup(interface, func, time_var, intervention_var, inductive_threshold, time_interval, const_range):
     """ Tests to see if several variations of func are symmetries.  
@@ -71,12 +104,15 @@ def SymmetryGroup(interface, func, time_var, intervention_var, inductive_thresho
         constants = [];
         
         #Generate a list of constants
-        for y in range(0,func._const_count):
-            constants.append(random.uniform(const_range._start, const_range._end))
-        func.SetConstants(constants)
-        
-        #Test whether func with the generated constants is a symmetry
-        sum += pow(SymFunc(interface, func, time_var, intervention_var, inductive_threshold, time_interval), 2)
+        #for y in range(0,func._const_count):
+        #    constants.append(random.uniform(const_range._start, const_range._end))
+        #func.SetConstants(constants)
+        check = FindConstants(interface, func, time_var, intervention_var, time_interval, const_range)   
+        if check == 1:
+            #Test whether func with the generated constants is a symmetry
+            sum += pow(SymFunc(interface, func, time_var, intervention_var, inductive_threshold, time_interval), 2)
+        else:
+            sum += 10**12
         
     return (sum/inductive_threshold)
     
@@ -118,12 +154,16 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
         if generation_size > (int(percent_guaranteed * len(nextGeneration))):
             #Check whether there's room to save everything
             if generation_size > len(nextGeneration):
-               return nextGeneration
+                #DEBUGGING
+                print "Most fit function: {}.".format(current_generation[0]._function)
+                
+                current_generation = nextGeneration
+                continue
                
             #We can't save everything.
             #First, preserve the most fit functions
             reducedGeneration = nextGeneration[0:int(percent_guaranteed*len(nextGeneration))]
-            nextGeneration = nextGeneration[int(percent_guaranteed*len(nextGeneartion))+1 : len(nextGeneration)-1]
+            nextGeneration = nextGeneration[int(percent_guaranteed*len(nextGeneration))+1 : len(nextGeneration)-1]
             
             #Create a list of running totals, representing a weighted distribution
             fitnessTotals = []
@@ -157,9 +197,10 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
             current_generation = nextGeneration[0:(generation_size-1)]
         
         #DEBUGGING
-    print "Most fit function: {}. Fitness: {}.".format(current_generation[0]._function, current_generation[0]._fitness)
+        print "Most fit function: {}. Fitness: {}.".format(current_generation[0]._function, current_generation[0]._fitness)
+        print "Generation: {}.".format(generation)
 
-    return current_generation
+        return current_generation
         
     
 def BranchAndBound(interface, seed_func, time_var, intervention_var, inductive_threshold, time_interval, const_ranges, deck, complexity_limit):

@@ -7,11 +7,17 @@ def test_sensors():
     tsensor = VABTimeSensor([])
     t = tsensor.read(sys)
     ttest = t == sys._time
-    psensor = VABPopulationSensor([])
+    psensor = VABPopulationSensor([0,10**12])
     p = psensor.read(sys)
     ptest = p == sys._population
 
     assert ttest and ptest
+
+    sys = VABSystemExpGrowth(1, 20)
+    tsensor = VABTimeSensor([])
+    psensor = VABPopulationSensor([0,10**12])
+    p = psensor.read(sys)
+    ptest = p == 'OutofRange'
 
  
 def test_actuators():
@@ -26,7 +32,7 @@ def test_growth_model():
     sys1 = VABSystemExpGrowth(1, 10)
     sys2 = VABSystemExpGrowth(5, 10)
 
-    psensor = VABPopulationSensor([])
+    psensor = VABPopulationSensor([0,10**12])
 
     time.sleep(0.02)
  
@@ -103,3 +109,20 @@ def test_Function_MultiplyAddPower():
     assert func2._function == "(c[0]*v[0])+(c[1]*v[0]+c[2])"
     assert func3._function == "pow(c[0]*v[0]+c[1],c[2]*v[0]+c[3])"
 
+
+def test_VABSystemInterface():
+    # set up a system, sensors, and actuators
+    sys = VABSystemExpGrowth(1,2)
+    tsensor = VABTimeSensor([])
+    psensor = VABPopulationSensor([0,10**12])
+    pact = VABPopulationActuator([0,10**4])
+
+    # build a dictionary of sensors and a dictionary of actuators
+    sensors = dict([(1,tsensor),(2,psensor)])
+    actuators = dict([(2,pact)])
+
+    # build an interface
+    interface = VABSystemInterface(sensors, actuators, sys)
+
+    # make sure one can pull the range of a sensor
+    assert interface.get_sensor_range(2) == [0,10**12]

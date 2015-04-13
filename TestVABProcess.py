@@ -3,13 +3,16 @@
 from VABClasses import *
 from VABProcess import *
 
+def test_FindConstants():
+    pass
+
 
 def test_SymFunc():
     # set up a system, sensors, and actuators
     sys = VABSystemExpGrowth(1,2)
     tsensor = VABTimeSensor([])
-    psensor = VABPopulationSensor([])
-    pact = VABPopulationActuator([])
+    psensor = VABPopulationSensor([0,10**12])
+    pact = VABPopulationActuator([0,10**12])
 
     # build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1,tsensor),(2,psensor)])
@@ -58,10 +61,10 @@ def test_randomOperation():
 
 def test_GeneticAlgorithm():
     # set up a system, sensors, and actuators
-    sys = VABSystemExpGrowth(1,0.2)
+    sys = VABSystemExpGrowth(1,0.002)
     tsensor = VABTimeSensor([])
-    psensor = VABPopulationSensor([])
-    pact = VABPopulationActuator([])
+    psensor = VABPopulationSensor([0,10**12])
+    pact = VABPopulationActuator([0,10**12])
 
     # build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1,tsensor),(2,psensor)])
@@ -78,7 +81,7 @@ def test_GeneticAlgorithm():
     deck = [Function("v[0]",0,1),Function("c[0]",1,0)]
 
     # create range objects
-    const_range = Range(-100,100)
+    const_range = Range(0,1)
 
     # Start the Genetic Algorithm
     final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 4, 2, 10, 0.1)
