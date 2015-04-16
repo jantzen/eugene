@@ -86,7 +86,7 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
     print "SymFunc output: function = {}, v1 = {}, v2 = {}, v1-v2 = {}".format(func._function,v1,v2,v1-v2)
 
     # COMPARE THE FINAL STATES
-    return (v1 -  v2)
+    return (v1 -  v2)/max(v1, v2)
 
     # NOTE: DOES NOT USE THE INDUCTIVE THRESHOLD
 
@@ -94,7 +94,7 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
 
 def SymmetryGroup(interface, func, time_var, intervention_var, inductive_threshold, time_interval, const_range):
     """ Tests to see if several variations of func are symmetries.  
-        If every variation of constants is a symmetry,returns true.
+        Returns the mean of squares of the error
         This is the fitness function for the GA
         const_ranges: A list containing the ranges in which each constant in the function must reside
         trials: The number of different random variations of constants to test
@@ -145,12 +145,12 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
                 #Combine the function with the functions in the deck in various ways
                 modifiedFunc = randomOperation(func, func2)
                 #Measure fitness (convert errors to fitnesses)
-                modifiedFunc._fitness = 1./(SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range) + 10**(-6))
+                modifiedFunc._error = (SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range))
                 nextGeneration.append(modifiedFunc)
              
         #Sort the next generation by fitness 
-        comparator = lambda x: x._fitness
-        nextGeneration.sort(key=comparator, reverse=True)
+        comparator = lambda x: x._error
+        nextGeneration.sort(key=comparator)
         
         #Check to see if we need to save more than the guaranteed percentage
         if generation_size > (int(percent_guaranteed * len(nextGeneration))):
@@ -171,7 +171,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
             fitnessTotals = []
             runningTotal = 0
             for func in nextGeneration:
-                runningTotal += func._fitness
+                runningTotal += 1/(func._error+1)
                 fitnessTotals.append(runningTotal)
 
             #Determine the number of slots to fill
@@ -199,7 +199,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
             current_generation = nextGeneration[0:(generation_size-1)]
         
         #DEBUGGING
-        print "Most fit function: {}. Fitness: {}.".format(current_generation[0]._function, current_generation[0]._fitness)
+        print "Lowest error function: {}. Mean Squared Error: {}.".format(current_generation[0]._function, current_generation[0]._error)
         print "Generation: {}.".format(generation)
 
         return current_generation
@@ -227,7 +227,7 @@ def BranchAndBound(interface, seed_func, time_var, intervention_var, inductive_t
             for func2 in deck:
                 modifiedFuncs = allOperations(func, func2)
                 for function in modifiedFuncs:
-                    function._fitness = SymmetryGroup(interface, function, time_var, intervention_var, inductive_threshold, time_interval, const_ranges)
+                    function._error = SymmetryGroup(interface, function, time_var, intervention_var, inductive_threshold, time_interval, const_ranges)
                 possibleSymmetries.append(modifiedFuncs)
     return possibleSymmetries
     
