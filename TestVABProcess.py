@@ -30,8 +30,8 @@ def test_SymFunc():
 
 
     # call SymFunc to test whether sigma is a symmetry
-    out1 = SymFunc(interface, sigma_1, 1, 2, 0, 0.5)
-    out2 = SymFunc(interface, sigma_2, 1, 2, 0, 0.5)
+    out1 = SymFunc(interface, sigma_1, 1, 2, 0.5)
+    out2 = SymFunc(interface, sigma_2, 1, 2, 0.5)
 
     print 'Out 1: {}'.format(out1) 
     print 'Out 2: {}'.format(out2)

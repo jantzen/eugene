@@ -48,7 +48,7 @@ def FindConstants(interface, func, time_var, intervention_var, time_interval, co
         return 0
 
 
-def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, time_interval):
+def SymFunc(interface, func, time_var, intervention_var, time_interval):
     """ Takes a system interface, a function object...
         FINISH THIS DESCRIPTION 
     """
@@ -86,9 +86,7 @@ def SymFunc(interface, func, time_var, intervention_var, inductive_threshold, ti
     print "SymFunc output: function = {}, v1 = {}, v2 = {}, v1-v2 = {}".format(func._function,v1,v2,v1-v2)
 
     # COMPARE THE FINAL STATES
-    return (v1 -  v2)/max(v1, v2)
-
-    # NOTE: DOES NOT USE THE INDUCTIVE THRESHOLD
+    return (v1 -  v2)
 
     
 
@@ -110,7 +108,7 @@ def SymmetryGroup(interface, func, time_var, intervention_var, inductive_thresho
         check = FindConstants(interface, func, time_var, intervention_var, time_interval, const_range)   
         if check == 1:
             #Test whether func with the generated constants is a symmetry
-            sum += pow(SymFunc(interface, func, time_var, intervention_var, inductive_threshold, time_interval), 2)
+            sum += pow(SymFunc(interface, func, time_var, intervention_var, time_interval), 2)
         else:
             sum += 10**12
         
@@ -139,6 +137,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
         nextGeneration = []
         #All members of the current generation are candidates for the next generation
         nextGeneration.extend(current_generation)
+        
         #Loop through all of the current-gen functions
         for func in current_generation:
             for func2 in RandomSelection(deck, num_mutes):
@@ -151,45 +150,49 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
         #Sort the next generation by fitness 
         comparator = lambda x: x._error
         nextGeneration.sort(key=comparator)
-        
+       
+        #Figure out how many are guaranteed to be passed on
+        numGuaranteed = int(percent_guaranteed * len(nextGeneration))
+
         #Check to see if we need to save more than the guaranteed percentage
-        if generation_size > (int(percent_guaranteed * len(nextGeneration))):
+        if generation_size > numGuaranteed:
             #Check whether there's room to save everything
             if generation_size > len(nextGeneration):
                 #DEBUGGING
-                print "Most fit function: {}.".format(current_generation[0]._function)
+                print "Function with smallest error: {}. Error: {}".format(current_generation[0]._function, current_generation[0]._error)
                 
                 current_generation = nextGeneration
                 continue
                
             #We can't save everything.
             #First, preserve the most fit functions
-            reducedGeneration = nextGeneration[0:int(percent_guaranteed*len(nextGeneration))]
-            nextGeneration = nextGeneration[int(percent_guaranteed*len(nextGeneration))+1 : len(nextGeneration)-1]
+            if numGuaranteed > 0:
+                reducedGeneration = nextGeneration[0:numGuaranteed-1]
+                nextGeneration = nextGeneration[numGuaranteed : len(nextGeneration)-1]
             
             #Create a list of running totals, representing a weighted distribution
-            fitnessTotals = []
+            errorTotals = []
             runningTotal = 0
             for func in nextGeneration:
-                runningTotal += 1/(func._error+1)
-                fitnessTotals.append(runningTotal)
+                runningTotal += func._error
+                errorTotals.append(runningTotal)
 
             #Determine the number of slots to fill
-            slots_remaining = generation_size - (int(percent_guaranteed * len(nextGeneration)) +1)
+            slots_remaining = generation_size - numGuaranteed
 
             #Fill the rest of the spots in the next generation
             for i in range(slots_remaining-1):
-                #Choose a random number that is greater than the running total from the last of the guaranteed-to-pass-on functions
-                #rand = random.random() * (fitnessTotals[len(fitnessTotals) - 1] - fitnessTotals[int(percent_guaranteed*len(fitnessTotals))])
-		min_num = int(percent_guaranteed*len(fitnessTotals)) 
-                max_num = fitnessTotals[len(fitnessTotals)-1]-(fitnessTotals[len(fitnessTotals)-1]-fitnessTotals[len(fitnessTotals)-2])/2
-                rand = random.uniform(min_num,max_num)
+                #Pull a random number from a uniform distribution on [0,1]
+                rand = random.random()
+
+                #Assuming an exponential probability density function over error of the form exp(-x), find the corresponding error value (x)
+                x = -math.log(rand)
                 
-                #Use the random number and the weighted distribution to select a function to preserve
+                #Use the generated error value to select a function to preserve
                 for j in range(len(nextGeneration)):
-                    if fitnessTotals[j] > rand:
+                    if errorTotals[j] > x:
                         reducedGeneration.append(nextGeneration[j])
-                        fitnessTotals.remove(fitnessTotals[j])
+                        errorTotals.remove(errorTotals[j])
                         nextGeneration.remove(nextGeneration[j])
                         break
                         
