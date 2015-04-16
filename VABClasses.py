@@ -159,6 +159,7 @@ class Function( object ):
         self._const_count = const_count
         self._var_count = var_count
         self._constants = [0] * const_count
+        self._fitness = 0
 
     def __str__(self):
         return self._function

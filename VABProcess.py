@@ -137,6 +137,8 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
     
     for generation in range(0, generation_limit):
         nextGeneration = []
+        #All members of the current generation are candidates for the next generation
+        nextGeneration.extend(current_generation)
         #Loop through all of the current-gen functions
         for func in current_generation:
             for func2 in RandomSelection(deck, num_mutes):
