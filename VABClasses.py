@@ -4,6 +4,8 @@
 
 import math
 import time
+import copy
+import random
 
 
 class VABSensor( object ):
@@ -31,12 +33,26 @@ class VABPopulationSensor(VABSensor):
             else:
                 return pop
 
+class VABLogisticSensor(VABSensor):
+    def read(self, sys):
+        if len(self._range) != 2:
+            raise ValueError('No sensor range specified.')
+        else:
+            pop = sys.update_x()
+            if pop > self._range[1] or pop < self._range[0]:
+                return 'OutofRange'
+            else:
+                return pop
 
 class VABPopulationActuator(VABSensor):
     def set(self, sys, value):
         sys._population = value
         sys._time = time.time()
 
+class VABLogisticActuator(VABSensor):
+    def set(self, sys, value):
+        sys._x = value
+        sys._time = time.time()
 
 class VABSystemExpGrowth(object):
     """This class defines a simulated system -- a collection of 
@@ -56,6 +72,8 @@ class VABSystemExpGrowth(object):
 
         #set remaining attributes
         self._growth_rate = growth_rate
+        
+        self._init_pop = init_pop
 
     
     """ define a function that returns the current population given
@@ -86,19 +104,33 @@ class VABSystemExpGrowth(object):
         self._time = curr_time
         
         return self._time
-
-
-class VABSigmoidSystem( object ):
-    """ A system that simulates the logistic equation
-    """
-    def __init__(self, limit, midpoint, steepness):
-        self._limit = limit
-        self._midpoint = midpoint
-        self._steepness = steepness
         
-    def update(self, x):
-        return self._limit/(1+pow(math.e, 0-(self.steepness*(x - self._midpoint))))
+    def reset(self):
+        self._population - self._init_pop
         
+class VABSystemLogistic( object ):
+
+    def __init__(self, malthusian_param, x_init):
+        self._malthusian = malthusian_param
+        self._x = x_init
+        self._time = time.time()
+        self._x0 = x_init
+        
+    def update_x(self):
+        curr_time = time.time()
+        elapsed_time = curr_time - self._time
+        self._x = 1/(1+((1/self._x)-1)*math.exp(0-self._malthusian*elapsed_time))
+        self._time = curr_time
+        return self._x
+    def update_time(self):
+        curr_time = time.time()
+        elapsed_time = curr_time - self._time
+        self._x = 1/(1+((1/self._x)-1)*math.exp(0-self._malthusian*elapsed_time))
+        self._time = curr_time
+        return self._x
+        
+    def reset(self):
+        self._x = self._x0
 
 class VABSystemInterface( object ):
     """ This is a generic class. Interface objects are what the 'process' will
@@ -138,6 +170,9 @@ class VABSystemInterface( object ):
     def get_sensor_range(self, id):
         # return the dynamic range of the sensor corresponding to id
         return self._sensors[id].get_range()
+        
+    def reset(self):
+        self._system.reset()
 
 
 class Range( object ):
@@ -239,3 +274,161 @@ class Function( object ):
     
     def Substitute(self, expression, placeholder):
         self._function.replace(placeholder, expression)
+
+class Expression( object ):
+    """Recursive structure for holding a mathematical expression.  An expression
+    may have o, 1, or 2 children and anoperation that acts upon them (if there is
+    at least one) or a symbol
+    """
+    def __init__(self, terminalSymbol, const_count = 0):
+        """
+        Initializes an expression that consists only of a terminal symbol
+        """
+        self._terminal = terminalSymbol
+        self._left = None
+        self._right = None
+        self._const_count = const_count
+    
+    def SetLeft(self, expression):
+        self._left = expression
+    
+    def SetRight(self, expression):
+        self._right = expression
+        
+    def SetTerminal(self, expression):
+        self._terminal = expression
+        
+    def Evaluate(self):
+        """Generates a string representation of the function, with all parameters represented
+        as c[0]
+        """
+        if self._right != None:
+            return '(' + self._left.Evaluate() + self._terminal + self._right.Evaluate() + ')'
+        elif self._left != None:
+            return self._terminal + '(' + self._left.Evaluate() +')'
+        else:
+            return self._terminal
+    
+    def Size(self):
+        if self._right != None:
+            return self._left.Size() + 1 + self._right.Size()
+        elif self._left != None:
+            return 1 + self._left.Size()
+        else:
+            return 1
+            
+    def CountConstants(self):
+        if self._right != None:
+            return self._left.CountConstants() + self._const_count + self._right.CountConstants()
+        elif self._left != None:
+            return self._const_count + self._left.CountConstants()
+        else:
+            return self._const_count
+        
+class FunctionTree( object ):
+    """ Class that represents a function composed of variables (v), parameters
+    (c), and operations that act on them.  The function itself is stored as an
+    Expression.
+    """
+    def __init__(self, initialExpression):
+        """Initial Expression must be a valid expression
+        """
+        self._expression = copy.deepcopy(initialExpression)
+        self._parameters = [0]
+        self._error = 10**12
+        
+    def EvaluateAt(self, v):
+        """Evaluates the function with the variables, v0, v1, etc. equal to
+        v[0], v[1], etc.
+        """
+        c = self._parameters
+        func = self.ExpressionString()
+        return eval(func)
+        
+    def ExpressionString(self):
+        """Turns the expression into a readable and executeable string with
+        parameters properly indexed
+        """
+        expression = self._expression.Evaluate()
+        Digits = '0123456789';
+        descriptorIndex = -2
+        descriptor = ''
+        num = ''
+        const_count = 0
+        updatedFunction = ''
+        for c in expression:
+            if c in Digits:
+                num += c
+                if descriptor == '':
+                    descriptor = expression[descriptorIndex]
+            else:
+                if num != '' and descriptor == 'c':
+                    updatedFunction += str(const_count)
+                    const_count += 1
+                    num = ''
+                    descriptor = ''
+                elif num != '':
+                    updatedFunction += str((int(num)))
+                    num = ''
+                    descriptor = ''
+                updatedFunction += c
+            descriptorIndex += 1
+        return updatedFunction
+    
+    def CountParameters(self):
+        """Count the number of parameters (c) in the expression
+        """
+        return self._expression.CountConstants()
+    
+    def SetParameters(self, parameters):
+        """Sets the value for the expression's paremeters
+        """
+        if len(parameters) == self.CountParameters(): 
+            self._parameters = parameters
+        else:
+            raise ValueError
+    
+    def Size(self):
+        """Computes the size of the expression
+        """
+        return self._expression.Size()
+        
+    def OperateOnRandom(self, operation, operand=None):
+        """Performs an operation to a random sub-expression of this function
+        """
+        self.OperateOn(random.randint(1,self.Size()), operation, operand)
+    
+    def OperateOn(self, node, operation, operand=None, index=0, exp=None):
+        """Performs an operation on sub-expression node, where node is an integer 
+        indicating the sub-expression's position in an in-order traversal of the tree
+        """
+        if exp == None:
+            self.OperateOn(node, operation, operand, index, self._expression)
+        elif index < node:
+            if exp._left != None:
+                index += self.OperateOn(node, operation, operand, index, exp._left)
+            index +=1
+            if index == node:
+                self.Operate(exp, operation, operand)
+            if exp._right != None:
+                index += self.OperateOn(node, operation, operand, index, exp._right)
+        return index
+        
+    def Operate(self, expression, operation, operand=None):
+        """Performs the given operation on the given function
+        """
+        left_replica = copy.deepcopy(expression)
+        right_replica = copy.deepcopy(operand)
+        expression.SetTerminal(operation)
+        expression.SetLeft(left_replica)
+        expression.SetRight(right_replica)
+        expression._const_count = 0
+        
+        
+        
+        
+        
+        
+        
+        
+        

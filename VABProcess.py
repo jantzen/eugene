@@ -23,24 +23,32 @@ def FindConstants(interface, func, time_var, intervention_var, time_interval, co
     attempts = 0
 
     while not good_set and attempts<10:
-        # Generate a tentative list of constants
-        constants = [] 
-        for y in range(0,func._const_count):
-            constants.append(random.uniform(const_range._start, const_range._end))
-        func.SetConstants(constants)
+        #Try/catch added to take care of cases such as exp(exp(v[0])), which are likely not desirable and almost certainly lead to overflows
+        try:
+            # Generate a tentative list of constants
+            constants = [] 
+            #for y in range(0,func._const_count):
+            for y in range(0,func.CountParameters()):
+                constants.append(random.uniform(const_range._start, const_range._end))
+            func.SetParameters(constants)
+            
+            # Check whether the transformation, given these parameter values, would keep the intervention_var in of bounds
+            val1 = func.EvaluateAt([interface.read_sensor(intervention_var)])
 
-        # Check whether the transformation, given these parameter values, would keep the intervention_var in of bounds
-        val1 = func.EvaluateAt([interface.read_sensor(intervention_var)])
-        if  val1 > lower and val1 < upper:
-            # Check whether the transformation would take the system out of bounds assuming that time evolution takes it half way there (in either direction)
-            temp1 = (val1 + upper)/2 
-            temp2 = (val1 + lower)/2
-            val2_high = func.EvaluateAt([temp1])
-            val2_low = func.EvaluateAt([temp2])
-            if val2_high < upper and val2_low > lower:
-                good_set = True
-        attempts += 1
-
+            if  val1 > lower and val1 < upper:
+                # Check whether the transformation would take the system out of bounds assuming that time evolution takes it half way there (in either direction)
+                temp1 = (val1 + upper)/2 
+                temp2 = (val1 + lower)/2
+    
+                val2_high = func.EvaluateAt([temp1])
+                val2_low = func.EvaluateAt([temp2])
+                if val2_high < upper and val2_low > lower:
+                    good_set = True
+            attempts += 1
+        except OverflowError:
+            attempts += 1
+            print 'Overflow from ' + func.ExpressionString()
+        
     if good_set:
        return 1
 
@@ -83,7 +91,7 @@ def SymFunc(interface, func, time_var, intervention_var, time_interval):
     v2 = interface.read_sensor(intervention_var)
 
     #DEBUGGING:
-    print "SymFunc output: function = {}, v1 = {}, v2 = {}, v1-v2 = {}".format(func._function,v1,v2,v1-v2)
+    print "SymFunc output: function = {}, v1 = {}, v2 = {}, v1-v2 = {}".format(func._expression.Evaluate(),v1,v2,v1-v2)
 
     # COMPARE THE FINAL STATES
     return (v1 -  v2)
@@ -111,6 +119,7 @@ def SymmetryGroup(interface, func, time_var, intervention_var, inductive_thresho
             sum += pow(SymFunc(interface, func, time_var, intervention_var, time_interval), 2)
         else:
             sum += 10**12
+            print func._expression.Evaluate() + ' could not find constants'
         
     return (sum/inductive_threshold)
     
@@ -142,10 +151,11 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
         for func in current_generation:
             for func2 in RandomSelection(deck, num_mutes):
                 #Combine the function with the functions in the deck in various ways
-                modifiedFunc = randomOperation(func, func2)
+                modifiedFunc = randomTreeOperation(func, func2)
                 #Measure fitness (convert errors to fitnesses)
                 modifiedFunc._error = (SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range))
                 nextGeneration.append(modifiedFunc)
+                interface.reset()
              
         #Sort the next generation by fitness 
         comparator = lambda x: x._error
@@ -159,7 +169,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
             #Check whether there's room to save everything
             if generation_size > len(nextGeneration):
                 #DEBUGGING
-                print "Function with smallest error: {}. Error: {}".format(current_generation[0]._function, current_generation[0]._error)
+                print "Function with smallest error: {}. Error: {}".format(current_generation[0]._expression.Evaluate(), current_generation[0]._error)
                 
                 current_generation = nextGeneration
                 continue
@@ -202,10 +212,10 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
             current_generation = nextGeneration[0:(generation_size-1)]
         
         #DEBUGGING
-        print "Lowest error function: {}. Mean Squared Error: {}.".format(current_generation[0]._function, current_generation[0]._error)
+        print "Lowest error function: {}. Mean Squared Error: {}.".format(current_generation[0].ExpressionString(), current_generation[0]._error)
         print "Generation: {}.".format(generation)
 
-        return current_generation
+    return current_generation
         
     
 def BranchAndBound(interface, seed_func, time_var, intervention_var, inductive_threshold, time_interval, const_ranges, deck, complexity_limit):
@@ -263,6 +273,20 @@ def randomOperation(function1, function2):
     #    function1Copy.Power(function2)
     #    return function1Copy
 
+def randomTreeOperation(function1, function2):
+    """Returns the result of a random combination of function trees 1 and 2
+    """
+    operations = ['*', '+', 'math.exp', '1/']
+    no_param = 2
+    opCode = random.randint(0,len(operations)-1)
+    replica = copy.deepcopy(function1)
+    if opCode >= no_param:
+        replica.OperateOnRandom(operations[opCode])
+    else:
+        print ' ' + str(opCode) + function2.Evaluate()
+        replica.OperateOnRandom(operations[opCode], function2)
+    return replica
+    
 
 def RandomSelection(deck, num_selected):
     """Returns num_selected number of elements of the list, deck

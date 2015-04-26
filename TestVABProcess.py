@@ -63,8 +63,8 @@ def test_GeneticAlgorithm():
     # set up a system, sensors, and actuators
     sys = VABSystemExpGrowth(1,0.002)
     tsensor = VABTimeSensor([])
-    psensor = VABPopulationSensor([0,10**12])
-    pact = VABPopulationActuator([0,10**12])
+    psensor = VABPopulationSensor([0,700])
+    pact = VABPopulationActuator([0,700])
 
     # build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1,tsensor),(2,psensor)])
@@ -74,11 +74,12 @@ def test_GeneticAlgorithm():
     interface = VABSystemInterface(sensors, actuators, sys)
 
     # build a seed generation
-    func = Function("c[0]",1,1)
+    #func = Function("c[0]",1,1)
+    func = FunctionTree(Expression("c[0]",1))
     current_generation = [func]
 
     # build a simple deck
-    deck = [Function("v[0]",0,1),Function("c[0]",1,0)]
+    deck = [Expression("v[0]",0),Expression("c[0]",1)]
 
     # create range objects
     const_range = Range(0,1)
@@ -87,3 +88,38 @@ def test_GeneticAlgorithm():
     final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 4, 2, 10, 0.1)
 
     print final_generation
+    for function in final_generation:
+        print function._expression.Evaluate()
+        
+def test_GeneticAlgorithmAndLogistic():
+    # set up a system, sensors, and actuators
+    sys = VABSystemLogistic(0.15, 1)
+    tsensor = VABTimeSensor([])
+    xsensor = VABLogisticSensor([0,700])
+    xact = VABLogisticActuator([0,700])
+
+    # build a dictionary of sensors and a dictionary of actuators
+    sensors = dict([(1,tsensor),(2,xsensor)])
+    actuators = dict([(2,xact)])
+
+    # build an interface
+    interface = VABSystemInterface(sensors, actuators, sys)
+
+    # build a seed generation
+    #func = Function("c[0]",1,1)
+    func = FunctionTree(Expression("c[0]",1))
+    func2 = FunctionTree(Expression("v[0]",0))
+    current_generation = [func, func2]
+
+    # build a simple deck
+    deck = [Expression("v[0]",0),Expression("c[0]",1)]
+
+    # create range objects
+    const_range = Range(0,1)
+
+    # Start the Genetic Algorithm
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 6, 2, 30, 0.1)
+
+    print final_generation
+    for function in final_generation:
+        print function._expression.Evaluate()
