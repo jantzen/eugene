@@ -277,7 +277,7 @@ class Function( object ):
 
 class Expression( object ):
     """Recursive structure for holding a mathematical expression.  An expression
-    may have o, 1, or 2 children and anoperation that acts upon them (if there is
+    may have 0, 1, or 2 children and an operation that acts upon them (if there is
     at least one) or a symbol
     """
     def __init__(self, terminalSymbol, const_count = 0):
