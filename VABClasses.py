@@ -105,32 +105,39 @@ class VABSystemExpGrowth(object):
         
         return self._time
         
-    def reset(self):
-        self._population - self._init_pop
+#    def reset(self):
+#        self._population = self._init_pop
         
 class VABSystemLogistic( object ):
 
-    def __init__(self, malthusian_param, x_init):
-        self._malthusian = malthusian_param
-        self._x = x_init
+    def __init__(self, K, r, x0):
+        self._K = K
+        self._r = r
+        self._x = x0
         self._time = time.time()
-        self._x0 = x_init
         
     def update_x(self):
+        # first get the current time
         curr_time = time.time()
+        # compute the time elapsed since the last read
         elapsed_time = curr_time - self._time
-        self._x = 1/(1+((1/self._x)-1)*math.exp(0-self._malthusian*elapsed_time))
+        # now compute the current population based on the model
+        self._x =  self._K*self._x / ((self._K - self._x)*math.exp(-self._r*elapsed_time) + self._x) 
         self._time = curr_time
+
         return self._x
+
     def update_time(self):
+        # first get current time
         curr_time = time.time()
+        # compute the time elapsed since the last read
         elapsed_time = curr_time - self._time
+        # now compute the current population based on the model
         self._x = 1/(1+((1/self._x)-1)*math.exp(0-self._malthusian*elapsed_time))
         self._time = curr_time
-        return self._x
-        
-    def reset(self):
-        self._x = self._x0
+
+        return self._time
+
 
 class VABSystemInterface( object ):
     """ This is a generic class. Interface objects are what the 'process' will

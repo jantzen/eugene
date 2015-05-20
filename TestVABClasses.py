@@ -39,14 +39,28 @@ def test_growth_model():
     p1 = psensor.read(sys1)
     p2 = psensor.read(sys2)
     
-    print(5*p1)
-    print(p2)
+    # print(5*p1)
+    # print(p2)
 
     assert (5*p1 - .1) < p2 and p2 < (5*p1 + .1)
 
 
-def test_VABSigmoidSystem():
-    pass
+def test_VABSystemLogistic():
+    x0 = 1
+    x1 =  1*math.exp(1)*x0 / (1 + (math.exp(1) - 1)*x0)
+    sys1 = VABSystemLogistic(1,1,x0)
+    sys2 = VABSystemLogistic(1,1,x1)
+
+    psensor = VABLogisticSensor([0,10**12])
+
+    time.sleep(0.02)
+
+    p1 = psensor.read(sys1)
+    p2 = psensor.read(sys2)
+    
+    p1_trans =  1*math.exp(1)*p1 / (1 + (math.exp(1) - 1)*p1)
+
+    assert (p1_trans - 0.1) < p2 and p2 < (p1_trans + 0.1)
 
 
 def test_Function_init():
