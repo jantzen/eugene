@@ -87,13 +87,15 @@ def test_GeneticAlgorithm():
     # Start the Genetic Algorithm
     final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 4, 2, 10, 0.1)
 
-    print final_generation
+    # print final_generation
     for function in final_generation:
-        print function._expression.Evaluate()
-        
+        print "Function: {}; error: {}\n".format(function._expression.Evaluate(),function._error)
+       
+
+
 def test_GeneticAlgorithmAndLogistic():
     # set up a system, sensors, and actuators
-    sys = VABSystemLogistic(0.15, 1)
+    sys = VABSystemLogistic(100,2,1)
     tsensor = VABTimeSensor([])
     xsensor = VABLogisticSensor([0,700])
     xact = VABLogisticActuator([0,700])
@@ -122,4 +124,6 @@ def test_GeneticAlgorithmAndLogistic():
 
     print final_generation
     for function in final_generation:
-        print function._expression.Evaluate()
+        print "Function: {}; error: {}\n".format(function._expression.Evaluate(),function._error)
+       
+

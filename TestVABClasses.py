@@ -46,10 +46,13 @@ def test_growth_model():
 
 
 def test_VABSystemLogistic():
+    K = 100
+    c = 1
+    r = 2
     x0 = 1
-    x1 =  1*math.exp(1)*x0 / (1 + (math.exp(1) - 1)*x0)
-    sys1 = VABSystemLogistic(1,1,x0)
-    sys2 = VABSystemLogistic(1,1,x1)
+    x1 =  K*math.exp(c)*x0 / (K + (math.exp(c) - 1)*x0)
+    sys1 = VABSystemLogistic(K,r,x0)
+    sys2 = VABSystemLogistic(K,r,x1)
 
     psensor = VABLogisticSensor([0,10**12])
 
@@ -58,7 +61,7 @@ def test_VABSystemLogistic():
     p1 = psensor.read(sys1)
     p2 = psensor.read(sys2)
     
-    p1_trans =  1*math.exp(1)*p1 / (1 + (math.exp(1) - 1)*p1)
+    p1_trans =  K*math.exp(c)*p1 / (K + (math.exp(c) - 1)*p1)
 
     assert (p1_trans - 0.1) < p2 and p2 < (p1_trans + 0.1)
 
