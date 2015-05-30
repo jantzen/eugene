@@ -95,7 +95,7 @@ def test_GeneticAlgorithm():
 
 def test_GeneticAlgorithmAndLogistic():
     # set up a system, sensors, and actuators
-    sys = VABSystemLogistic(100,2,1)
+    sys = VABSystemLogistic(100,10,1)
     tsensor = VABTimeSensor([])
     xsensor = VABLogisticSensor([0,700])
     xact = VABLogisticActuator([0,700])
@@ -109,18 +109,18 @@ def test_GeneticAlgorithmAndLogistic():
 
     # build a seed generation
     #func = Function("c[0]",1,1)
-    func = FunctionTree(Expression("c[0]",1))
-    func2 = FunctionTree(Expression("v[0]",0))
+    func = FunctionTree(Expression("v[0]",0))
+    func2 = FunctionTree(Expression("c[0]*v[0]",1))
     current_generation = [func, func2]
 
     # build a simple deck
-    deck = [Expression("v[0]",0),Expression("c[0]",1)]
+    deck = [Expression("v[0]",0),Expression("c[0]",1),Expression("c[1]",1),Expression("c[2]",1)]
 
     # create range objects
-    const_range = Range(0,1)
+    const_range = Range(0,100)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 6, 2, 30, 0.1)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 10, 2, 50, 0.1)
 
     print final_generation
     for function in final_generation:
