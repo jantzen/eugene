@@ -120,7 +120,7 @@ def test_GeneticAlgorithmAndLogistic():
     const_range = Range(0,100)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 10, 2, 50, 0.1)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 20, 2, 50, 0.1)
 
     print final_generation
     for function in final_generation:

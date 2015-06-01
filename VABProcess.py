@@ -32,10 +32,11 @@ def FindConstants(interface, func, time_var, intervention_var, time_interval, co
                 constants.append(random.uniform(const_range._start, const_range._end))
             func.SetParameters(constants)
             
-            # Check whether the transformation, given these parameter values, would keep the intervention_var in of bounds
-            val1 = func.EvaluateAt([interface.read_sensor(intervention_var)])
+            # Check whether the transformation, given these parameter values, would keep the intervention_var in bounds AND change the state by at least 10% of the allowable range
+            current_val = interface.read_sensor(intervention_var)
+            val1 = func.EvaluateAt([current_val])
 
-            if  val1 > lower and val1 < upper:
+            if  val1 > lower and val1 < upper and abs(val1-current_val) > (upper - lower)/10:
                 # Check whether the transformation would take the system out of bounds assuming that time evolution takes it half way there (in either direction)
                 temp1 = (val1 + upper)/2 
                 temp2 = (val1 + lower)/2
@@ -89,12 +90,18 @@ def SymFunc(interface, func, time_var, intervention_var, time_interval):
 
     # read the final state of affairs
     v2 = interface.read_sensor(intervention_var)
+    
+    # check for overflow on sensors
+    try:
+        out = v1 - v2
+    except:
+        out = 10**6
 
     #DEBUGGING:
-    print "SymFunc output: function = {}, v1 = {}, v2 = {}, v1-v2 = {}".format(func._expression.Evaluate(),v1,v2,v1-v2)
+    print "SymFunc output: function = {}, v1 = {}, v2 = {}, v1-v2 = {}".format(func._expression.Evaluate(),v1,v2,out)
 
     # COMPARE THE FINAL STATES
-    return (v1 -  v2)
+    return (out)
 
     
 
