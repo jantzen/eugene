@@ -32,11 +32,15 @@ def FindConstants(interface, func, time_var, intervention_var, time_interval, co
                 constants.append(random.uniform(const_range._start, const_range._end))
             func.SetParameters(constants)
             
-            # Check whether the transformation, given these parameter values, would keep the intervention_var in bounds AND change the state by at least 10% of the allowable range
+            # Check whether the transformation, given these parameter values, would keep the intervention_var in bounds 
             current_val = interface.read_sensor(intervention_var)
-            val1 = func.EvaluateAt([current_val])
+            try:
+                val1 = func.EvaluateAt([current_val])
+            except:
+                attempts+=1
+                continue
 
-            if  val1 > lower and val1 < upper and abs(val1-current_val) > (upper - lower)/10:
+            if  val1 > lower and val1 < upper:
                 # Check whether the transformation would take the system out of bounds assuming that time evolution takes it half way there (in either direction)
                 temp1 = (val1 + upper)/2 
                 temp2 = (val1 + lower)/2
@@ -162,7 +166,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
                 #Measure fitness (convert errors to fitnesses)
                 modifiedFunc._error = (SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range))
                 nextGeneration.append(modifiedFunc)
-                interface.reset()
+#                interface.reset()
              
         #Sort the next generation by fitness 
         comparator = lambda x: x._error
@@ -283,8 +287,8 @@ def randomOperation(function1, function2):
 def randomTreeOperation(function1, function2):
     """Returns the result of a random combination of function trees 1 and 2
     """
-    operations = ['*', '+', 'math.exp', '1/']
-    no_param = 2
+    operations = ['*', '+', '-','math.exp', '1/']
+    no_param = 3
     opCode = random.randint(0,len(operations)-1)
     replica = copy.deepcopy(function1)
     if opCode >= no_param:

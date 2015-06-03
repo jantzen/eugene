@@ -197,7 +197,7 @@ class Range( object ):
         
         
 class Function( object ):
-    """ Contains a function that can be added, multiplied by, and raised to the
+    """ DEPRECATED. Contains a function that can be added, multiplied by, and raised to the
         power of another function.
         The function is stored as a string.  The function f(x) = kx would be
         stored as the string "c[0]x
@@ -293,14 +293,15 @@ class Expression( object ):
     may have 0, 1, or 2 children and an operation that acts upon them (if there is
     at least one) or a symbol
     """
-    def __init__(self, terminalSymbol, const_count = 0):
+    def __init__(self, terminalSymbol, var_count = 0, param_count = 0):
         """
         Initializes an expression that consists only of a terminal symbol
         """
         self._terminal = terminalSymbol
         self._left = None
         self._right = None
-        self._const_count = const_count
+        self._param_count = param_count
+        self._var_count = var_count
     
     def SetLeft(self, expression):
         self._left = expression
@@ -308,8 +309,8 @@ class Expression( object ):
     def SetRight(self, expression):
         self._right = expression
         
-    def SetTerminal(self, expression):
-        self._terminal = expression
+    def SetTerminal(self, string):
+        self._terminal = string
         
     def Evaluate(self):
         """Generates a string representation of the function, with all parameters represented
@@ -330,14 +331,15 @@ class Expression( object ):
         else:
             return 1
             
-    def CountConstants(self):
+    def CountParams(self):
         if self._right != None:
-            return self._left.CountConstants() + self._const_count + self._right.CountConstants()
+            return self._left.CountParams() + self._param_count + self._right.CountParams()
         elif self._left != None:
-            return self._const_count + self._left.CountConstants()
+            return self._param_count + self._left.CountParams()
         else:
-            return self._const_count
-        
+            return self._param_count
+       
+
 class FunctionTree( object ):
     """ Class that represents a function composed of variables (v), parameters
     (c), and operations that act on them.  The function itself is stored as an
@@ -347,7 +349,8 @@ class FunctionTree( object ):
         """Initial Expression must be a valid expression
         """
         self._expression = copy.deepcopy(initialExpression)
-        self._parameters = [0]
+       # self._parameters = [0]
+        self._parameters = []
         self._error = 10**12
         
     def EvaluateAt(self, v):
@@ -362,36 +365,37 @@ class FunctionTree( object ):
         """Turns the expression into a readable and executeable string with
         parameters properly indexed
         """
-        expression = self._expression.Evaluate()
-        Digits = '0123456789';
-        descriptorIndex = -2
-        descriptor = ''
-        num = ''
-        const_count = 0
-        updatedFunction = ''
-        for c in expression:
-            if c in Digits:
-                num += c
-                if descriptor == '':
-                    descriptor = expression[descriptorIndex]
-            else:
-                if num != '' and descriptor == 'c':
-                    updatedFunction += str(const_count)
-                    const_count += 1
-                    num = ''
-                    descriptor = ''
-                elif num != '':
-                    updatedFunction += str((int(num)))
-                    num = ''
-                    descriptor = ''
-                updatedFunction += c
-            descriptorIndex += 1
-        return updatedFunction
+        # expression = self._expression.Evaluate()
+        # Digits = '0123456789';
+        # descriptorIndex = -2
+        # descriptor = ''
+        # num = ''
+        # const_count = 0
+        # updatedFunction = ''
+        # for c in expression:
+        #     if c in Digits:
+        #         num += c
+        #         if descriptor == '':
+        #             descriptor = expression[descriptorIndex]
+        #     else:
+        #         if num != '' and descriptor == 'c':
+        #             updatedFunction += str(const_count)
+        #             const_count += 1
+        #             num = ''
+        #             descriptor = ''
+        #         elif num != '':
+        #             updatedFunction += str((int(num)))
+        #             num = ''
+        #             descriptor = ''
+        #         updatedFunction += c
+        #     descriptorIndex += 1
+        # return updatedFunction
+        return self._expression.Evaluate()
     
     def CountParameters(self):
         """Count the number of parameters (c) in the expression
         """
-        return self._expression.CountConstants()
+        return self._expression.CountParams()
     
     def SetParameters(self, parameters):
         """Sets the value for the expression's paremeters

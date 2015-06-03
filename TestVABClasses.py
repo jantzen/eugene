@@ -143,3 +143,29 @@ def test_VABSystemInterface():
 
     # make sure one can pull the range of a sensor
     assert interface.get_sensor_range(2) == [0,10**12]
+
+
+def test_Expression():
+    exp1 = Expression("v[0]",1,0)
+    exp2 = Expression("c[0]",0,1)
+    assert exp1._left == None and exp1._right == None and exp1._var_count == 1 and exp1._param_count == 0
+    assert exp2._left == None and exp2._right == None and exp2._var_count ==0 and exp2._param_count == 1
+    assert exp1.Evaluate() == "v[0]"
+    assert exp2.Evaluate() == "c[0]"
+    assert exp1.Size() == 1 and exp2.Size() == 1
+    exp1.SetLeft(Expression("v[1]",1,0))
+    exp1.SetTerminal("+")
+    exp1.SetRight(Expression("v[0]",1,0))
+    assert exp1.Size() == 3 
+    assert exp1.Evaluate()=="(v[1]+v[0])"
+
+def test_FunctionTree():
+    exp1 = Expression("",0,0)
+    exp2 = Expression("",0,0)
+    exp1.SetLeft(Expression("c[0]",0,1))
+    exp1.SetTerminal("+")
+    exp2.SetLeft(Expression("c[1]",0,1))
+    exp2.SetTerminal("*")
+    exp2.SetRight(Expression("v[0]",1,0))
+    exp1.SetRight(exp2)
+

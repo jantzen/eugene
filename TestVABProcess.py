@@ -75,17 +75,17 @@ def test_GeneticAlgorithm():
 
     # build a seed generation
     #func = Function("c[0]",1,1)
-    func = FunctionTree(Expression("c[0]",1))
+    func = FunctionTree(Expression("c[0]",0,1))
     current_generation = [func]
 
     # build a simple deck
-    deck = [Expression("v[0]",0),Expression("c[0]",1)]
+    deck = [Expression("v[0]",1,0),Expression("c[0]",0,1),Expression("c[1]",0,1)]
 
     # create range objects
     const_range = Range(0,1)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 4, 2, 10, 0.1)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 10, 4, 10, 0.1)
 
     # print final_generation
     for function in final_generation:
@@ -114,13 +114,13 @@ def test_GeneticAlgorithmAndLogistic():
     current_generation = [func, func2]
 
     # build a simple deck
-    deck = [Expression("v[0]",0),Expression("c[0]",1),Expression("c[1]",1),Expression("c[2]",1)]
+    deck = [Expression("v[0]",0),Expression("c[0]",1),Expression("c[1]",1),Expression("c[2]",1),Expression("1",0)]
 
     # create range objects
     const_range = Range(0,100)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 20, 2, 50, 0.1)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 30, 2, 50, 0.1)
 
     print final_generation
     for function in final_generation:
