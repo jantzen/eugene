@@ -359,7 +359,10 @@ class FunctionTree( object ):
         """
         c = self._parameters
         func = self.ExpressionString()
-        return eval(func)
+        try:
+            return eval(func)
+        except:
+            return None
         
     def ExpressionString(self):
         """Turns the expression into a readable and executeable string with

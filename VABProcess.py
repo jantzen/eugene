@@ -4,8 +4,10 @@ import time
 import math
 import random
 #import scipy
+import numpy as np
 from VABClasses import *
 from scipy import optimize
+import pdb
 
 
 def SameState(state1, state2, tolerance):
@@ -17,48 +19,76 @@ def SameState(state1, state2, tolerance):
 
 
 def FindConstants(interface, func, time_var, intervention_var, time_interval, const_range):
-    good_set = False
-    lower = interface.get_sensor_range(intervention_var)[0]
-    upper = interface.get_sensor_range(intervention_var)[1]
-    attempts = 0
+#    good_set = False
+#    lower = interface.get_sensor_range(intervention_var)[0]
+#    upper = interface.get_sensor_range(intervention_var)[1]
+#    attempts = 0
 
-    while not good_set and attempts<10:
-        #Try/catch added to take care of cases such as exp(exp(v[0])), which are likely not desirable and almost certainly lead to overflows
-        try:
-            # Generate a tentative list of constants
-            constants = [] 
-            #for y in range(0,func._const_count):
-            for y in range(0,func.CountParameters()):
-                constants.append(random.uniform(const_range._start, const_range._end))
-            func.SetParameters(constants)
-            
-            # Check whether the transformation, given these parameter values, would keep the intervention_var in bounds 
-            current_val = interface.read_sensor(intervention_var)
-            try:
-                val1 = func.EvaluateAt([current_val])
-            except:
-                attempts+=1
-                continue
+#    while not good_set and attempts<10:
+#        #Try/catch added to take care of cases such as exp(exp(v[0])), which are likely not desirable and almost certainly lead to overflows
+#        try:
+#            # Generate a tentative list of constants
+#            constants = [] 
+#            #for y in range(0,func._const_count):
+#            for y in range(0,func.CountParameters()):
+#                constants.append(random.uniform(const_range._start, const_range._end))
+#            func.SetParameters(constants)
+#            
+#            # Check whether the transformation, given these parameter values, would keep the intervention_var in bounds 
+#            current_val = interface.read_sensor(intervention_var)
+#            try:
+#                val1 = func.EvaluateAt([current_val])
+#            except:
+#                attempts+=1
+#                continue
+#
+#            if  val1 > lower and val1 < upper:
+#                # Check whether the transformation would take the system out of bounds assuming that time evolution takes it half way there (in either direction)
+#                temp1 = (val1 + upper)/2 
+#                temp2 = (val1 + lower)/2
+#    
+#                val2_high = func.EvaluateAt([temp1])
+#                val2_low = func.EvaluateAt([temp2])
+#                if val2_high < upper and val2_low > lower:
+#                    good_set = True
+#            attempts += 1
+#        except OverflowError:
+#            attempts += 1
+#            print 'Overflow from ' + func.ExpressionString()
+#        
+#    if good_set:
+#       return 1
+#
+#    else:
+#        return 0
 
-            if  val1 > lower and val1 < upper:
-                # Check whether the transformation would take the system out of bounds assuming that time evolution takes it half way there (in either direction)
-                temp1 = (val1 + upper)/2 
-                temp2 = (val1 + lower)/2
+    tol = 10**(-6)
+    # read the current state of the system
+    init_val = interface.read_sensor(intervention_var)
+    # allow the system to evolve over a short interval
+    time.sleep(time_interval)
+    # read the evolved state of the system
+    final_val = interface.read_sensor(intervention_var)
+
+    # define functions that will allow a search for appropriate constants
+    f = lambda c,v: eval(func.ExpressionString())
+    f_min = lambda c: (f(c, [init_val]) - final_val)**2
+
+    # construct an initial guess (an array of 1s of length equal to the number of params)
+    init_guess = np.array([1] * func.CountParameters())
+    try: 
+        sol = optimize.minimize(f_min, init_guess, tol=tol)
+    except:
+        return 0
     
-                val2_high = func.EvaluateAt([temp1])
-                val2_low = func.EvaluateAt([temp2])
-                if val2_high < upper and val2_low > lower:
-                    good_set = True
-            attempts += 1
-        except OverflowError:
-            attempts += 1
-            print 'Overflow from ' + func.ExpressionString()
-        
-    if good_set:
-       return 1
-
+    # if successful, set the parameters in func, reset the system, and return
+    if sol.success == True and sol.fun < tol:
+        func.SetParameters(sol.x.tolist())
+        interface.set_actuator(intervention_var, init_val)
+        return 1
     else:
         return 0
+
 
 
 def SymFunc(interface, func, time_var, intervention_var, time_interval):
@@ -76,12 +106,21 @@ def SymFunc(interface, func, time_var, intervention_var, time_interval):
     time.sleep(time_interval)
 
     # transform the system
-    interface.set_actuator(intervention_var,
-            func.EvaluateAt([interface.read_sensor(intervention_var)]))
+
+    # before attempting the transformation, make sure the function evaluates
+    # at the desired point (this is going to introduce more noise because
+    # the system is going to continue to evolve.
+    try:
+        set_point = func.EvaluateAt([interface.read_sensor(intervention_var)])
+        interface.set_actuator(intervention_var, set_point)
+    # interface.set_actuator(intervention_var,
+    #        func.EvaluateAt([interface.read_sensor(intervention_var)]))
 
     # immediately read the new state of affairs
-    v1 = interface.read_sensor(intervention_var)
-
+        v1 = interface.read_sensor(intervention_var)
+    
+    except:
+        return 10**12
 
     # TRANSFORM AND THEN EVOLVE
 
@@ -157,7 +196,12 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
         nextGeneration = []
         #All members of the current generation are candidates for the next generation
         nextGeneration.extend(current_generation)
-        
+       
+        #If this is the first generation, loop through and compute errors on the seed functions
+        if generation == 0:
+            for func in current_generation:
+                func._error = (SymmetryGroup(interface, func, time_var, intervention_var, inductive_threshold, time_interval, const_range))
+
         #Loop through all of the current-gen functions
         for func in current_generation:
             for func2 in RandomSelection(deck, num_mutes):
@@ -166,23 +210,24 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
                 #Measure fitness (convert errors to fitnesses)
                 modifiedFunc._error = (SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range))
                 nextGeneration.append(modifiedFunc)
-#                interface.reset()
-             
+                interface.reset()
+#        pdb.set_trace()     
         #Sort the next generation by fitness 
         comparator = lambda x: x._error
         nextGeneration.sort(key=comparator)
        
         #Figure out how many are guaranteed to be passed on
-        numGuaranteed = int(percent_guaranteed * len(nextGeneration))
+        numGuaranteed = max(int(percent_guaranteed * len(nextGeneration)),1)
 
         #Check to see if we need to save more than the guaranteed percentage
         if generation_size > numGuaranteed:
             #Check whether there's room to save everything
             if generation_size > len(nextGeneration):
+                current_generation = nextGeneration
+                
                 #DEBUGGING
                 print "Function with smallest error: {}. Error: {}".format(current_generation[0]._expression.Evaluate(), current_generation[0]._error)
-                
-                current_generation = nextGeneration
+
                 continue
                
             #We can't save everything.
@@ -221,7 +266,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
         
         else:
             current_generation = nextGeneration[0:(generation_size-1)]
-        
+       
         #DEBUGGING
         print "Lowest error function: {}. Mean Squared Error: {}.".format(current_generation[0].ExpressionString(), current_generation[0]._error)
         print "Generation: {}.".format(generation)

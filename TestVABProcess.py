@@ -75,7 +75,7 @@ def test_GeneticAlgorithm():
 
     # build a seed generation
     #func = Function("c[0]",1,1)
-    func = FunctionTree(Expression("c[0]",0,1))
+    func = FunctionTree(Expression("c[0]*v[0]",1,1))
     current_generation = [func]
 
     # build a simple deck
@@ -88,6 +88,7 @@ def test_GeneticAlgorithm():
     final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 10, 4, 10, 0.1)
 
     # print final_generation
+    print "\n\nFINAL GENERATION:  \n"
     for function in final_generation:
         print "Function: {}; error: {}\n".format(function._expression.Evaluate(),function._error)
        
@@ -95,7 +96,7 @@ def test_GeneticAlgorithm():
 
 def test_GeneticAlgorithmAndLogistic():
     # set up a system, sensors, and actuators
-    sys = VABSystemLogistic(100,10,1)
+    sys = VABSystemLogistic(100,8,1)
     tsensor = VABTimeSensor([])
     xsensor = VABLogisticSensor([0,700])
     xact = VABLogisticActuator([0,700])
@@ -109,9 +110,8 @@ def test_GeneticAlgorithmAndLogistic():
 
     # build a seed generation
     #func = Function("c[0]",1,1)
-    func = FunctionTree(Expression("v[0]",0))
-    func2 = FunctionTree(Expression("c[0]*v[0]",1))
-    current_generation = [func, func2]
+    func = FunctionTree(Expression("c[0]*v[0]",1,1))
+    current_generation = [func]
 
     # build a simple deck
     deck = [Expression("v[0]",0),Expression("c[0]",1),Expression("c[1]",1),Expression("c[2]",1),Expression("1",0)]
@@ -120,7 +120,7 @@ def test_GeneticAlgorithmAndLogistic():
     const_range = Range(0,100)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 30, 2, 50, 0.1)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 10, 4, 50, 0.5)
 
     print final_generation
     for function in final_generation:
