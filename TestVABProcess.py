@@ -2,8 +2,20 @@
 
 from VABClasses import *
 from VABProcess import *
+from random import *
 
-def test_FindConstants():
+def test_EmpiricalDeriv():
+    data = []
+    for i in range(5):
+        data.append(i**2)
+    assert EmpiricalDeriv(data) == 4
+
+    data = []
+    f = lambda x:x**2
+    for i in range(-1,14):
+        data.append(f(i*.25))
+    assert EmpiricalDeriv(data,.25) == 3
+def test_FindParamVals():
     pass
 
 

@@ -17,8 +17,46 @@ def SameState(state1, state2, tolerance):
     else:
         return False
 
+def EmpiricalDeriv(data, h=1):
+    """ Uses the method of Lanczos (_Applied Analysis_, p321) to
+        compute the first derivative of an empirical function.
+        data is a list and is assumed to contain an odd number of
+        ordinates. The center value is treated as the ordinate 
+        corresponding to the abscissa at which the derivative is
+        desired. 'h' is the distance along the abscissa between
+        samples.
+    """
+    if len(data)%2 != 0 and len(data)<5:
+        raise ValueError('data list must have len >= 5 and contain an odd number of points.')
+    if h<=0:
+        raise ValueError('step size, h, must be greater than zero')
 
-def FindConstants(interface, func, time_var, intervention_var, time_interval, const_range):
+    k = (len(data)-1)/2
+    numerator = 0
+    denominator = 0
+
+    index = 0
+    for a in range(-k,(k+1)):
+        numerator += a*data[index]
+        index += 1
+    
+    for a in range(1,(k+1)):
+        denominator += 2*a**2*h
+
+    return numerator/denominator
+
+
+def DynamicRange(interface, target_var, index_var):
+    """ Returns the minimum and maximum values that target_var can
+        reach as a function of index_var, bounded by the sensor
+        limits for the system.
+    """
+    # Compue the first derivative near the initial value of the system
+    # For now, I will assume the index variable is time. This should
+    # be changed in future versions of this package.
+    pass
+
+def FindParamVals(interface, func, time_var, intervention_var, time_interval, const_range):
 #    good_set = False
 #    lower = interface.get_sensor_range(intervention_var)[0]
 #    upper = interface.get_sensor_range(intervention_var)[1]
@@ -163,7 +201,7 @@ def SymmetryGroup(interface, func, time_var, intervention_var, inductive_thresho
         #for y in range(0,func._const_count):
         #    constants.append(random.uniform(const_range._start, const_range._end))
         #func.SetConstants(constants)
-        check = FindConstants(interface, func, time_var, intervention_var, time_interval, const_range)   
+        check = FindParamVals(interface, func, time_var, intervention_var, time_interval, const_range)   
         if check == 1:
             #Test whether func with the generated constants is a symmetry
             sum += pow(SymFunc(interface, func, time_var, intervention_var, time_interval), 2)
