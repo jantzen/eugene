@@ -359,10 +359,7 @@ class FunctionTree( object ):
         """
         c = self._parameters
         func = self.ExpressionString()
-        try:
-            return eval(func)
-        except:
-            return None
+        return eval(func)
         
     def ExpressionString(self):
         """Turns the expression into a readable and executeable string with
@@ -442,13 +439,38 @@ class FunctionTree( object ):
         expression.SetTerminal(operation)
         expression.SetLeft(left_replica)
         expression.SetRight(right_replica)
-        expression._const_count = 0
+        expression._param_count = expression.CountParams()
+    
+    def ReplaceRandomNode(self, substitute):
+        """ Replaces a random node (and everything below it
+        in the parse tree with expression.
+        """
+        self.ReplaceNode(random.randint(1,self.Size()), substitute)
+    
+    def ReplaceNode(self, node, substitute, index=0, exp=None):
+        """Performs an operation on sub-expression node, where node is an integer 
+        indicating the sub-expression's position in an in-order traversal of the tree
+        """
+        if exp == None:
+            self.ReplaceNode(node, substitute, index, self._expression)
+        elif index < node:
+            if exp._left != None:
+                index += self.ReplaceNode(node, substitute, index, exp._left)
+            index +=1
+            if index == node:
+                self.Replace(exp, substitute)
+            if exp._right != None:
+                index += self.ReplaceNode(node, substitute, index, exp._right)
+        return index
         
-        
-        
-        
-        
-        
-        
-        
+    def Replace(self, expression, substitute):
+        """Performs the given operation on the given function
+        """
+        replica = copy.deepcopy(substitute)
+        expression.SetTerminal(replica._terminal)
+        expression.SetLeft(replica._left)
+        expression.SetRight(replica._right)
+        expression._param_count = expression.CountParams()
+
+
         

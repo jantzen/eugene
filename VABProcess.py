@@ -49,12 +49,42 @@ def EmpiricalDeriv(data, h=1):
 def DynamicRange(interface, target_var, index_var):
     """ Returns the minimum and maximum values that target_var can
         reach as a function of index_var, bounded by the sensor
-        limits for the system.
+        limits for the system. This version assumes that index_var
+        is time.
     """
-    # Compue the first derivative near the initial value of the system
-    # For now, I will assume the index variable is time. This should
+    # Compute the first derivative near the initial value of the system
+    # For now, assume the index variable is time. This should
     # be changed in future versions of this package.
-    pass
+    interface.reset()
+
+    # Sample 5 points
+    x = []
+    for i in range(5):
+        x.append(interface.read_sensor(target_var))
+        time.wait(0.05)
+
+    # Compute the derivative
+    d1 = EmpiricalDeriv(x,0.05)
+
+    # Put the system near the sensor limit (assume this doesn't break causal structure)
+    max_x = interface.get_sensor_range(target_var)[1]
+    interface.set_actuator(target_var,0.9*max_x)
+    
+    # Sample 5 points
+    x = []
+    try:
+        for i in range(5):
+            x.append(interface.read_sensor(target_var))
+            time.wait(0.05)
+
+        # Compute the derivatice
+        d2 = EmpiricalDeriv(x,0.05)
+    except:
+        # If the sensor threw an out-of-range error, the system must increase at that point,
+        # so that's the global max.
+        global_max = interface.get_sensor_range(target_var)[1]
+        
+
 
 def FindParamVals(interface, func, time_var, intervention_var, time_interval, const_range):
 #    good_set = False
@@ -101,16 +131,27 @@ def FindParamVals(interface, func, time_var, intervention_var, time_interval, co
 #        return 0
 
     tol = 10**(-6)
-    # read the current state of the system
-    init_val = interface.read_sensor(intervention_var)
-    # allow the system to evolve over a short interval
-    time.sleep(time_interval)
-    # read the evolved state of the system
-    final_val = interface.read_sensor(intervention_var)
+#    # read the current state of the system
+#    init_val = interface.read_sensor(intervention_var)
+#    # allow the system to evolve over a short interval
+#    time.sleep(time_interval)
+#    # read the evolved state of the system
+#    final_val = interface.read_sensor(intervention_var)
+#
+#    pdb.set_trace()
+    # get the range of possible values the system can take (assuming they span the sensor
+    # range)
+    [f_min,f_max]=interface.get_sensor_range(intervention_var)
 
+    # choose a value in this range at random
+    f_target = random.uniform(1.1*f_min,0.9*f_max)
+   
+   # read the current state of the system
+    init_val = interface.read_sensor(intervention_var)
+    
     # define functions that will allow a search for appropriate constants
     f = lambda c,v: eval(func.ExpressionString())
-    f_min = lambda c: (f(c, [init_val]) - final_val)**2
+    f_min = lambda c: (f(c, [init_val]) - f_target)**2
 
     # construct an initial guess (an array of 1s of length equal to the number of params)
     init_guess = np.array([1] * func.CountParameters())
@@ -179,7 +220,7 @@ def SymFunc(interface, func, time_var, intervention_var, time_interval):
         out = 10**6
 
     #DEBUGGING:
-    print "SymFunc output: function = {}, v1 = {}, v2 = {}, v1-v2 = {}".format(func._expression.Evaluate(),v1,v2,out)
+#    print "SymFunc output: function = {}, v1 = {}, v2 = {}, v1-v2 = {}".format(func._expression.Evaluate(),v1,v2,out)
 
     # COMPARE THE FINAL STATES
     return (out)
@@ -207,12 +248,12 @@ def SymmetryGroup(interface, func, time_var, intervention_var, inductive_thresho
             sum += pow(SymFunc(interface, func, time_var, intervention_var, time_interval), 2)
         else:
             sum += 10**12
-            print func._expression.Evaluate() + ' could not find constants'
+#            print func._expression.Evaluate() + ' could not find constants'
         
     return (sum/inductive_threshold)
     
 
-def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, inductive_threshold, time_interval, const_range, deck, generation_limit, num_mutes, generation_size, percent_guaranteed):
+def GeneticAlgorithm(interface, seed_generation, time_var, intervention_var, inductive_threshold, time_interval, const_range, deck, generation_limit, num_mutes, generation_size, percent_guaranteed):
     """ Genetic Algorithm to find functions which are most likely to be symmetries
     
         Parameters:
@@ -229,7 +270,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
             generation_size: The maximum allowable size of a single generation
             percent_guaranteed: The top x% of fit functions are guaranteed to be passed to the next generation
     """
-    
+    current_generation = seed_generation
     for generation in range(0, generation_limit):
         nextGeneration = []
         #All members of the current generation are candidates for the next generation
@@ -244,7 +285,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
         for func in current_generation:
             for func2 in RandomSelection(deck, num_mutes):
                 #Combine the function with the functions in the deck in various ways
-                modifiedFunc = randomTreeOperation(func, func2)
+                modifiedFunc = randomTreeOperation(func, func2, seed_generation)
                 #Measure fitness (convert errors to fitnesses)
                 modifiedFunc._error = (SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range))
                 nextGeneration.append(modifiedFunc)
@@ -264,7 +305,7 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
                 current_generation = nextGeneration
                 
                 #DEBUGGING
-                print "Function with smallest error: {}. Error: {}".format(current_generation[0]._expression.Evaluate(), current_generation[0]._error)
+#                print "Function with smallest error: {}. Error: {}".format(current_generation[0]._expression.Evaluate(), current_generation[0]._error)
 
                 continue
                
@@ -306,8 +347,8 @@ def GeneticAlgorithm(interface, current_generation, time_var, intervention_var, 
             current_generation = nextGeneration[0:(generation_size-1)]
        
         #DEBUGGING
-        print "Lowest error function: {}. Mean Squared Error: {}.".format(current_generation[0].ExpressionString(), current_generation[0]._error)
         print "Generation: {}.".format(generation)
+        print "Lowest error function: {}. Mean Squared Error: {}.".format(current_generation[0].ExpressionString(), current_generation[0]._error)
 
     return current_generation
         
@@ -367,18 +408,24 @@ def randomOperation(function1, function2):
     #    function1Copy.Power(function2)
     #    return function1Copy
 
-def randomTreeOperation(function1, function2):
+
+def randomTreeOperation(function1, function2, seed):
     """Returns the result of a random combination of function trees 1 and 2
     """
-    operations = ['*', '+', '-','math.exp', '1/']
-    no_param = 3
+    operations = [['*',2], ['+',2], ['-',2],['math.exp',1], ['1/',1]]
     opCode = random.randint(0,len(operations)-1)
     replica = copy.deepcopy(function1)
-    if opCode >= no_param:
-        replica.OperateOnRandom(operations[opCode])
+
+    # First, decide whether to apply a constructive or destructive op
+    if random.random() < 0.5:
+        # choose a random member of the seed population
+        term = random.randint(0,len(seed)-1)
+        replica.ReplaceRandomNode(seed[term]._expression)
+    if operations[opCode][1] == 1:
+        replica.OperateOnRandom(operations[opCode][0])
     else:
-        print ' ' + str(opCode) + function2.Evaluate()
-        replica.OperateOnRandom(operations[opCode], function2)
+#        print ' ' + str(opCode) + function2.Evaluate()
+        replica.OperateOnRandom(operations[opCode][0], function2)
     return replica
     
 

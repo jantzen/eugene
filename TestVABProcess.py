@@ -15,6 +15,15 @@ def test_EmpiricalDeriv():
     for i in range(-1,14):
         data.append(f(i*.25))
     assert EmpiricalDeriv(data,.25) == 3
+
+    data = []
+    f = lambda x:x**2
+    for i in range(-1,14):
+        data.append(f(i*.25)+gauss(0,.2))
+    x=EmpiricalDeriv(data,.25)
+    assert 2.5 < x < 3.5 
+
+
 def test_FindParamVals():
     pass
 
@@ -87,7 +96,11 @@ def test_GeneticAlgorithm():
 
     # build a seed generation
     #func = Function("c[0]",1,1)
-    func = FunctionTree(Expression("c[0]*v[0]",1,1))
+    expr = Expression("",0,0)
+    expr.SetLeft(Expression("c[0]",0,1))
+    expr.SetTerminal("*")
+    expr.SetRight(Expression("v[0]",1,0))
+    func = FunctionTree(expr)
     current_generation = [func]
 
     # build a simple deck
@@ -97,7 +110,7 @@ def test_GeneticAlgorithm():
     const_range = Range(0,1)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 10, 4, 10, 0.1)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 10, 4, 10, 0.3)
 
     # print final_generation
     print "\n\nFINAL GENERATION:  \n"
@@ -132,7 +145,7 @@ def test_GeneticAlgorithmAndLogistic():
     const_range = Range(0,100)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 10, 4, 50, 0.5)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 40, 4, 50, 0.2)
 
     print final_generation
     for function in final_generation:
