@@ -2,6 +2,7 @@
 
 from VABClasses import *
 
+
 def test_sensors():
     sys = VABSystemExpGrowth(1, 0.2)
     tsensor = VABTimeSensor([])
@@ -45,6 +46,32 @@ def test_growth_model():
     assert (5*p1 - .1) < p2 and p2 < (5*p1 + .1)
 
 
+def test_Virtual_interface():
+#    pdb.set_trace()
+    sys = VABSystemLogisticVirtual(100,8,1)
+
+    xsensor = VABLogisticSensorVirtual([0,10**12])
+    tsensor = VABTimeSensorVirtual([0,10**12])
+    xact = VABLogisticActuator_X([1,1000])
+    tact = VABLogisticActuator_T([0,10**12])
+
+    # build a dictionary of sensors and a dictionary of actuators
+    sensors = dict([(1,tsensor),(2,xsensor)])
+    actuators = dict([(1,tact),(2,xact)])
+
+    # build an interface
+    interface = VABSystemInterface(sensors, actuators, sys)
+
+    # set the time
+    interface.set_actuator(1,0.2)
+
+    # read the time and population
+    time = interface.read_sensor(1)
+    pop = interface.read_sensor(2)
+
+    assert time == 0.2 and pop == 100*1/((100-1)*math.exp(-8*0.2)+1)
+
+
 def test_VABSystemLogistic():
     K = 100
     c = 1
@@ -57,6 +84,30 @@ def test_VABSystemLogistic():
     psensor = VABLogisticSensor([0,10**12])
 
     time.sleep(0.02)
+
+    p1 = psensor.read(sys1)
+    p2 = psensor.read(sys2)
+    
+    p1_trans =  K*math.exp(c)*p1 / (K + (math.exp(c) - 1)*p1)
+
+    assert (p1_trans - 0.1) < p2 and p2 < (p1_trans + 0.1)
+
+
+def test_VABSystemLogisticVirtual():
+    K = 100
+    c = 1
+    r = 2
+    x0 = 1
+    x1 =  K*math.exp(c)*x0 / (K + (math.exp(c) - 1)*x0)
+    sys1 = VABSystemLogisticVirtual(K,r,x0)
+    sys2 = VABSystemLogisticVirtual(K,r,x1)
+
+    psensor = VABLogisticSensorVirtual([0,10**12])
+    tsensor = VABTimeSensor([0,10**12])
+    pact = VABLogisticActuator_X([1,1000])
+    tact = VABLogisticActuator_T([0,10**12])
+    tact.set(sys1,0.02)
+    tact.set(sys2,0.02)
 
     p1 = psensor.read(sys1)
     p2 = psensor.read(sys2)

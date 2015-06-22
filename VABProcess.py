@@ -7,7 +7,8 @@ import random
 import numpy as np
 from VABClasses import *
 from scipy import optimize
-import pdb
+#import pdb
+import pp
 
 
 def SameState(state1, state2, tolerance):
@@ -182,7 +183,8 @@ def SymFunc(interface, func, time_var, intervention_var, time_interval):
     v0 = interface.read_sensor(intervention_var)
     
     # evolve the system
-    time.sleep(time_interval)
+    # time.sleep(time_interval)
+    interface.set_actuator(time_var, time_interval)
 
     # transform the system
 
@@ -208,7 +210,7 @@ def SymFunc(interface, func, time_var, intervention_var, time_interval):
     interface.set_actuator(intervention_var, func.EvaluateAt([v0]))
 
     # evolve the system
-    time.sleep(time_interval)
+    interface.set_actuator(time_var, time_interval)
 
     # read the final state of affairs
     v2 = interface.read_sensor(intervention_var)
@@ -270,6 +272,7 @@ def GeneticAlgorithm(interface, seed_generation, time_var, intervention_var, ind
             generation_size: The maximum allowable size of a single generation
             percent_guaranteed: The top x% of fit functions are guaranteed to be passed to the next generation
     """
+#    pdb.set_trace()
     current_generation = seed_generation
     for generation in range(0, generation_limit):
         nextGeneration = []
@@ -283,9 +286,9 @@ def GeneticAlgorithm(interface, seed_generation, time_var, intervention_var, ind
 
         #Loop through all of the current-gen functions
         for func in current_generation:
-            for func2 in RandomSelection(deck, num_mutes):
+            for i in range(num_mutes):
                 #Combine the function with the functions in the deck in various ways
-                modifiedFunc = randomTreeOperation(func, func2, seed_generation)
+                modifiedFunc = randomTreeOperation(func, deck, seed_generation)
                 #Measure fitness (convert errors to fitnesses)
                 modifiedFunc._error = (SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range))
                 nextGeneration.append(modifiedFunc)
@@ -409,10 +412,10 @@ def randomOperation(function1, function2):
     #    return function1Copy
 
 
-def randomTreeOperation(function1, function2, seed):
+def randomTreeOperation(function1, deck, seed):
     """Returns the result of a random combination of function trees 1 and 2
     """
-    operations = [['*',2], ['+',2], ['-',2],['math.exp',1], ['1/',1]]
+    operations = [['*',2], ['+',2], ['-',2],['math.exp',1], ['/',2]]
     opCode = random.randint(0,len(operations)-1)
     replica = copy.deepcopy(function1)
 
@@ -421,10 +424,12 @@ def randomTreeOperation(function1, function2, seed):
         # choose a random member of the seed population
         term = random.randint(0,len(seed)-1)
         replica.ReplaceRandomNode(seed[term]._expression)
-    if operations[opCode][1] == 1:
+    elif operations[opCode][1] == 1:
         replica.OperateOnRandom(operations[opCode][0])
     else:
-#        print ' ' + str(opCode) + function2.Evaluate()
+        # Draw a function at random from the deck
+        function2 = deck[random.randint(0,len(deck)-1)]
+        # apply the binary operation
         replica.OperateOnRandom(operations[opCode][0], function2)
     return replica
     

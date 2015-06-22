@@ -22,6 +22,11 @@ class VABTimeSensor(VABSensor):
         return sys.update_time()
 
 
+class VABTimeSensorVirtual(VABSensor):
+    def read(self, sys):
+        return sys._time
+
+
 class VABPopulationSensor(VABSensor):
     def read(self, sys):
         if len(self._range) != 2:
@@ -32,6 +37,7 @@ class VABPopulationSensor(VABSensor):
                 return 'OutofRange'
             else:
                 return pop
+
 
 class VABLogisticSensor(VABSensor):
     def read(self, sys):
@@ -44,15 +50,40 @@ class VABLogisticSensor(VABSensor):
             else:
                 return pop
 
+
+class VABLogisticSensorVirtual(VABSensor):
+    def read(self, sys):
+        if len(self._range) != 2:
+            raise ValueError('No sensor range specified.')
+        else:
+            pop = sys._x
+            if pop > self._range[1] or pop < self._range[0]:
+                return 'OutofRange'
+            else:
+                return pop
+
+
 class VABPopulationActuator(VABSensor):
     def set(self, sys, value):
         sys._population = value
         sys._time = time.time()
 
+
 class VABLogisticActuator(VABSensor):
     def set(self, sys, value):
         sys._x = value
         sys._time = time.time()
+
+
+class VABLogisticActuator_X(VABSensor):
+    def set(self, sys, value):
+        sys._x = value
+
+
+class VABLogisticActuator_T(VABSensor):
+    def set(self, sys, interval):
+        sys.update_time(interval)
+
 
 class VABSystemExpGrowth(object):
     """This class defines a simulated system -- a collection of 
@@ -144,6 +175,34 @@ class VABSystemLogistic( object ):
     def reset(self):
         self._x = self._x_init
  
+
+class VABSystemLogisticVirtual( object ):
+
+    def __init__(self, K, r, x0):
+        self._K = K
+        self._r = r
+        self._x = x0
+        self._time = 0
+        self._x_init = x0
+
+    def update_x(self, x):
+        self._x = x
+        return self._x
+
+    def update_time(self, time_interval):
+        elapsed_time = time_interval
+
+        # now compute the current population based on the model
+        self._x =  self._K*self._x / ((self._K - self._x)*math.exp(-self._r*elapsed_time) + self._x) 
+
+        self._time = self._time + elapsed_time
+
+        return self._time
+
+    def reset(self):
+        self._x = self._x_init
+        self._time = 0
+
 
 class VABSystemInterface( object ):
     """ This is a generic class. Interface objects are what the 'process' will

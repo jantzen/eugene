@@ -121,21 +121,27 @@ def test_GeneticAlgorithm():
 
 def test_GeneticAlgorithmAndLogistic():
     # set up a system, sensors, and actuators
-    sys = VABSystemLogistic(100,8,1)
-    tsensor = VABTimeSensor([])
-    xsensor = VABLogisticSensor([0,700])
-    xact = VABLogisticActuator([0,700])
+    sys = VABSystemLogisticVirtual(100,8,1)
+    tsensor = VABTimeSensor([0,10**12])
+    xsensor = VABLogisticSensorVirtual([0,700])
+    xact = VABLogisticActuator_X([0,700])
+    tact = VABLogisticActuator_T([0,10**12])
 
     # build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1,tsensor),(2,xsensor)])
-    actuators = dict([(2,xact)])
+    actuators = dict([(1,tact),(2,xact)])
 
     # build an interface
     interface = VABSystemInterface(sensors, actuators, sys)
 
     # build a seed generation
     #func = Function("c[0]",1,1)
-    func = FunctionTree(Expression("c[0]*v[0]",1,1))
+#    func = FunctionTree(Expression("c[0]*v[0]",1,1))
+    expr = Expression("",0,0)
+    expr.SetLeft(Expression("c[0]",0,1))
+    expr.SetTerminal("*")
+    expr.SetRight(Expression("v[0]",1,0))
+    func = FunctionTree(expr)
     current_generation = [func]
 
     # build a simple deck
@@ -145,10 +151,52 @@ def test_GeneticAlgorithmAndLogistic():
     const_range = Range(0,100)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 40, 4, 50, 0.2)
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.1, const_range, deck, 50, 10, 50, 0.2)
 
     print final_generation
     for function in final_generation:
         print "Function: {}; error: {}\n".format(function._expression.Evaluate(),function._error)
        
+def test_GeneticAlgorithmAndLogisticVirtual():
+    # set up a system, sensors, and actuators
+    sys = VABSystemLogisticVirtual(100,8,1)
 
+    xsensor = VABLogisticSensorVirtual([0,700])
+    tsensor = VABTimeSensorVirtual([0,10**12])
+    xact = VABLogisticActuator_X([1,1000])
+    tact = VABLogisticActuator_T([0,10**12])
+
+    # build a dictionary of sensors and a dictionary of actuators
+    sensors = dict([(1,tsensor),(2,xsensor)])
+    actuators = dict([(1,tact),(2,xact)])
+
+    # build an interface
+    interface = VABSystemInterface(sensors, actuators, sys)
+
+    # build a seed generation
+    expr1 = Expression("",0,0)
+    expr1.SetLeft(Expression("c[0]",0,1))
+    expr1.SetTerminal("*")
+    expr1.SetRight(Expression("v[0]",1,0))
+    func1 = FunctionTree(expr1)
+    expr2 = Expression("",0,0)
+    expr2.SetLeft(Expression("c[0]",0,1))
+    expr2.SetTerminal("+")
+    expr2.SetRight(Expression("v[0]",1,0))
+    func2 = FunctionTree(expr2)
+ 
+    current_generation = [func1,func2]
+
+    # build a simple deck
+    deck = [Expression("v[0]",0),Expression("c[0]",1),Expression("c[1]",1),Expression("c[2]",1),Expression("1",0)]
+
+    # create range objects
+    const_range = Range(0,100)
+
+    # Start the Genetic Algorithm
+    final_generation = GeneticAlgorithm(interface, current_generation, 1, 2, 10, 0.2, const_range, deck, 500, 10, 1000, 0.1)
+
+    print final_generation
+    for function in final_generation:
+        print "Function: {}; error: {}\n".format(function._expression.Evaluate(),function._error)
+ 
