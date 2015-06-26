@@ -4,10 +4,11 @@ import time
 import math
 import random
 #import scipy
-import numpy as np
+#import numpy as np
+import numpy
 from VABClasses import *
-from scipy import optimize
-#import pdb
+#from scipy import optimize
+import pdb
 import pp
 
 
@@ -130,7 +131,7 @@ def FindParamVals(interface, func, time_var, intervention_var, time_interval, co
 #
 #    else:
 #        return 0
-
+    from scipy import optimize
     tol = 10**(-6)
 #    # read the current state of the system
 #    init_val = interface.read_sensor(intervention_var)
@@ -155,7 +156,7 @@ def FindParamVals(interface, func, time_var, intervention_var, time_interval, co
     f_min = lambda c: (f(c, [init_val]) - f_target)**2
 
     # construct an initial guess (an array of 1s of length equal to the number of params)
-    init_guess = np.array([1] * func.CountParameters())
+    init_guess = numpy.array([1] * func.CountParameters())
     try: 
         sol = optimize.minimize(f_min, init_guess, tol=tol)
     except:
@@ -253,13 +254,29 @@ def SymmetryGroup(interface, func, time_var, intervention_var, inductive_thresho
 #            print func._expression.Evaluate() + ' could not find constants'
         
     return (sum/inductive_threshold)
-    
 
-def GeneticAlgorithm(interface, seed_generation, time_var, intervention_var, inductive_threshold, time_interval, const_range, deck, generation_limit, num_mutes, generation_size, percent_guaranteed):
+
+def Loop(nextGeneration, current_generation, num_mutes, deck, seed_generation, interface, time_var, intervention_var, inductive_threshold, time_interval, const_range):
+#    pdb.set_trace()
+    for func in current_generation:
+ 
+        # compute each function's error and combine with any previous data
+        func._error = (func._error+(SymmetryGroup(interface, func, time_var, intervention_var, inductive_threshold, time_interval, const_range)))/2
+
+        for i in range(num_mutes):
+            #Combine the function with the functions in the deck in various ways
+            modifiedFunc = randomTreeOperation(func, deck, seed_generation)
+            #Measure fitness (convert errors to fitnesses)
+            modifiedFunc._error = (SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range))
+            nextGeneration.append(modifiedFunc)
+            interface.reset()
+    return nextGeneration
+
+def GeneticAlgorithm(cores, interfaces, seed_generation, time_var, intervention_var, inductive_threshold, time_interval, const_range, deck, generation_limit, num_mutes, generation_size, percent_guaranteed):
     """ Genetic Algorithm to find functions which are most likely to be symmetries
     
         Parameters:
-            interface: System interface that is used to modify/monitor the system
+            interface: List of cloned system interfaces each of which is used to modify/monitor the system
             current_generation: The current generation of the GA
             time_var: The sensor ID of the time sensor
             intervention_var: The sensor ID of the actuator
@@ -274,6 +291,9 @@ def GeneticAlgorithm(interface, seed_generation, time_var, intervention_var, ind
     """
 #    pdb.set_trace()
     current_generation = seed_generation
+    # open output file for use in debugging
+    f = open('out','w')
+
     for generation in range(0, generation_limit):
         nextGeneration = []
         #All members of the current generation are candidates for the next generation
@@ -282,17 +302,39 @@ def GeneticAlgorithm(interface, seed_generation, time_var, intervention_var, ind
         #If this is the first generation, loop through and compute errors on the seed functions
         if generation == 0:
             for func in current_generation:
-                func._error = (SymmetryGroup(interface, func, time_var, intervention_var, inductive_threshold, time_interval, const_range))
+                func._error = (SymmetryGroup(interfaces[0], func, time_var, intervention_var, inductive_threshold, time_interval, const_range))
+      
+#        pdb.set_trace() 
 
-        #Loop through all of the current-gen functions
-        for func in current_generation:
-            for i in range(num_mutes):
-                #Combine the function with the functions in the deck in various ways
-                modifiedFunc = randomTreeOperation(func, deck, seed_generation)
-                #Measure fitness (convert errors to fitnesses)
-                modifiedFunc._error = (SymmetryGroup(interface, modifiedFunc, time_var, intervention_var, inductive_threshold, time_interval, const_range))
-                nextGeneration.append(modifiedFunc)
-                interface.reset()
+        # Divide up the current generation into piles based on available cores and system clones
+        num_piles= min(cores, len(interfaces))
+        quot = divmod(len(current_generation),num_piles)
+        job_data = []
+        if len(current_generation) >= num_piles:
+            for i in range(num_piles):
+                job_data.append(current_generation[quot[0]*i:min((quot[0]*i+quot[0]), len(current_generation))])
+        
+            # create job server for parallel processing
+            job_server = pp.Server(ncpus=num_piles)
+
+            # create the jobs
+            jobs = [job_server.submit(Loop,([], job_data[i], num_mutes, deck, seed_generation, interfaces[i], time_var, intervention_var, inductive_threshold, time_interval, const_range), (randomTreeOperation,SymmetryGroup,FindParamVals,SymFunc),("VABClasses","math","random","numpy","copy","pdb")) for i in range(num_piles)]   
+
+            # acquire and process the output
+            if (generation == 26):
+                pdb.set_trace()
+            out = []
+            for i in range(len(jobs)):
+                out.extend(jobs[i]())
+            nextGeneration.extend(out)
+
+            # destroy the job server
+            job_server.destroy()
+
+        else:
+            #Loop through all of the current-gen functions
+            Loop(nextGeneration, current_generation, num_mutes, deck, seed_generation, interfaces[0], time_var, intervention_var, inductive_threshold, time_interval, const_range)
+
 #        pdb.set_trace()     
         #Sort the next generation by fitness 
         comparator = lambda x: x._error
@@ -315,8 +357,8 @@ def GeneticAlgorithm(interface, seed_generation, time_var, intervention_var, ind
             #We can't save everything.
             #First, preserve the most fit functions
             if numGuaranteed > 0:
-                reducedGeneration = nextGeneration[0:numGuaranteed-1]
-                nextGeneration = nextGeneration[numGuaranteed : len(nextGeneration)-1]
+                reducedGeneration = nextGeneration[0:numGuaranteed]
+                nextGeneration = nextGeneration[numGuaranteed : len(nextGeneration)]
             
             #Create a list of running totals, representing a weighted distribution
             errorTotals = []
@@ -329,7 +371,7 @@ def GeneticAlgorithm(interface, seed_generation, time_var, intervention_var, ind
             slots_remaining = generation_size - numGuaranteed
 
             #Fill the rest of the spots in the next generation
-            for i in range(slots_remaining-1):
+            for i in range(slots_remaining):
                 #Pull a random number from a uniform distribution on [0,1]
                 rand = random.random()
 
@@ -347,11 +389,15 @@ def GeneticAlgorithm(interface, seed_generation, time_var, intervention_var, ind
             current_generation = reducedGeneration
         
         else:
-            current_generation = nextGeneration[0:(generation_size-1)]
-       
+            current_generation = nextGeneration[0:(generation_size)]
         #DEBUGGING
-        print "Generation: {}.".format(generation)
-        print "Lowest error function: {}. Mean Squared Error: {}.".format(current_generation[0].ExpressionString(), current_generation[0]._error)
+        print "Generation: {}.\n".format(generation)
+        f.write("Generation: {}.\n".format(generation))
+        print "Lowest error function: {}. Mean Squared Error: {}.\n".format(current_generation[0].ExpressionString(), current_generation[0]._error)
+        f.write("Lowest error function: {}. Mean Squared Error: {}.\n".format(current_generation[0].ExpressionString(), current_generation[0]._error))
+
+    # close file for debug
+    f.close()
 
     return current_generation
         
