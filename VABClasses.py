@@ -1,5 +1,5 @@
 # VABClasses.py
-""" Set of classes for VAB objects.
+""" Set of classes for Virginia Bacon (VAB) objects.
 """
 
 import math
