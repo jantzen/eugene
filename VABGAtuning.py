@@ -89,11 +89,15 @@ def test_GeneticAlgorithmAndLogistic():
 
 
 
-def test_GeneticAlgorithmAndLogisticVirtual(cores=1,inductive_threshold=10,time_interval=0.2,generation_limit=100,num_mutes=10,generation_size=1000,percent_guaranteed=0.1):
+def test_GeneticAlgorithmAndLogisticVirtual(cores=1, inductive_threshold=10,
+        time_interval=0.2, generation_limit=100, num_mutes=10,
+        generation_size=1000, percent_guaranteed=0.1,
+        ROI=dict([(1,[0.5,1.5]),(2,[1,100])])):
+
     # set up a system, sensors, and actuators
     sys = VABSystemLogisticVirtual(100,8,1)
 
-    xsensor = VABLogisticSensorVirtual([0,700])
+    xsensor = VABLogisticSensorVirtual([1,700])
     tsensor = VABTimeSensorVirtual([0,10**12])
     xact = VABLogisticActuator_X([1,1000])
     tact = VABLogisticActuator_T([0,10**12])
@@ -126,10 +130,11 @@ def test_GeneticAlgorithmAndLogisticVirtual(cores=1,inductive_threshold=10,time_
     deck = [Expression("v[0]",0),Expression("c[0]",1),Expression("1",0),Expression("5",0),Expression("10",0),Expression("50",0),Expression("100",0),Expression("500",0),Expression("1000",0)]
 
     # create range objects
-    const_range = Range(0,100)
+#    const_range = Range(0,100)
 
     # Start the Genetic Algorithm
-    final_generation = GeneticAlgorithm(cores, interfaces, seed_generation, 1, 2, inductive_threshold, time_interval, const_range, deck, generation_limit, num_mutes, generation_size, percent_guaranteed)
+    final_generation = GeneticAlgorithm(cores, interfaces, seed_generation, 1,
+            2, inductive_threshold, time_interval, ROI, deck, generation_limit, num_mutes, generation_size, percent_guaranteed)
 
     print final_generation
     for function in final_generation:

@@ -418,7 +418,14 @@ class FunctionTree( object ):
         """
         c = self._parameters
         func = self.ExpressionString()
-        return eval(func)
+        try:
+            out = eval(func)
+        except ZeroDivisionError:
+            out = 10**12
+        except OverflowError:
+            out = 10**12
+        return out
+
         
     def ExpressionString(self):
         """Turns the expression into a readable and executeable string with

@@ -81,16 +81,22 @@ def DynamicRange(interface, target_var, index_var):
 
 
 def FindParamVals(interface, func, time_var, intervention_var, 
-                  time_interval, const_range):
-    from scipy import optimize
-    tol = 10**(-6)
+                  time_interval, ROI):
+    """ ROI: a dictionary of lists representing ranges
+    """
 
-    # get the range of possible values the system can take (assuming 
-    # they span the sensor range)
-    [f_min,f_max]=interface.get_sensor_range(intervention_var)
+    from scipy import optimize
+    # get the range of possible values for target variable in the ROI
+    [f_min,f_max] = ROI[intervention_var]
+
+    # get the range of possible values for index variable from ROI
+#    [t_min, t_max] = ROI[time_var]
+
+    # set the tolerance
+    tol = (float(f_max) - float(f_min)) / 10**6
 
     # choose a value in this range at random
-    f_target = random.uniform(1.1*f_min,0.9*f_max)
+    f_target = random.uniform(f_min,f_max)
    
     # read the current state of the system
     init_val = interface.read_sensor(intervention_var)
@@ -98,13 +104,13 @@ def FindParamVals(interface, func, time_var, intervention_var,
     # define functions that will allow a search for appropriate 
     # parameters
     f = lambda c,v: eval(func.ExpressionString())
-    f_min = lambda c: (f(c, [init_val]) - f_target)**2
+    func_min = lambda c: (f(c, [init_val]) - f_target)**2
 
     # construct an initial guess (an array of 1s of length equal to the 
     # number of params)
     init_guess = numpy.array([1] * func.CountParameters())
     try: 
-        sol = optimize.minimize(f_min, init_guess, tol=tol)
+        sol = optimize.minimize(func_min, init_guess, tol=tol)
     except:
         return 0
     
@@ -112,7 +118,8 @@ def FindParamVals(interface, func, time_var, intervention_var,
     # return
     if sol.success == True and sol.fun < tol:
         func.SetParameters(sol.x.tolist())
-        interface.set_actuator(intervention_var, init_val)
+        interface.set_actuator(intervention_var, random.uniform(f_min, f_max))
+#        interface.set_actuator(time_var, random.uniform(t_min, t_max))
         return 1
     else:
         return 0
@@ -129,7 +136,6 @@ def SymFunc(interface, func, time_var, intervention_var, time_interval):
         time_interval: the interval over which to move the index
         variable
     """
-
     # EVOLVE AND THEN TRANSFORM
     
     # record the initial state 
@@ -173,16 +179,18 @@ def SymFunc(interface, func, time_var, intervention_var, time_interval):
         out = v1 - v2
     except:
         out = 10**6
-
+    # DEBUGGING
+#    print "Function:{}, c[0] = {}, v0 = {}, v1 = {}, v2 = {}, out = {}".format(
+#            func.ExpressionString(), func._parameters, v0, v1, v2, out)
     return (out)
 
 
 def SymmetryGroup(interface, func, time_var, intervention_var, 
-                  inductive_threshold, time_interval, const_range):
+                  inductive_threshold, time_interval, ROI):
     """ Tests to see if several variations of func are symmetries.  
         Returns the mean of squares of the error
         This is the fitness function for the GA
-        const_ranges: A list containing the ranges in which each 
+        ROIs: A list containing the ranges in which each 
         constant in the function must reside trials: The number of different 
         random variations of constants to test
     """ 
@@ -190,8 +198,16 @@ def SymmetryGroup(interface, func, time_var, intervention_var,
     for x in range(0, inductive_threshold):
         constants = [];
         check = FindParamVals(interface, func, time_var, 
-                              intervention_var, time_interval, const_range)   
+                              intervention_var, time_interval, ROI)   
         if check == 1:
+            # Randomly select an increment for the index variable that keeps 
+            # it in the ROI
+            [t_min, t_max] = ROI[time_var]
+            # Reset the system (since it makes no sense to run time backward)
+            interface.reset()
+            shift = random.uniform(0.01*(t_max-t_min), 0.9*(t_max-t_min))
+            interface.set_actuator(time_var,shift)
+
             # Test whether func with the generated paramter values 
             # is a symmetry
             sum += pow(SymFunc(interface, func, time_var, 
@@ -204,14 +220,14 @@ def SymmetryGroup(interface, func, time_var, intervention_var,
 
 def Loop(nextGeneration, current_generation, num_mutes, deck, 
          seed_generation, interface, time_var, intervention_var, 
-         inductive_threshold, time_interval, const_range):
+         inductive_threshold, time_interval, ROI):
     for func in current_generation:
  
         # compute each function's error and combine with any previous 
         # data
         func._error = (func._error+(SymmetryGroup(interface, func, 
                        time_var, intervention_var, inductive_threshold, 
-                       time_interval, const_range)))/2
+                       time_interval, ROI)))/2
 
         for i in range(num_mutes):
             # Combine the function with the functions in the deck 
@@ -224,7 +240,7 @@ def Loop(nextGeneration, current_generation, num_mutes, deck,
                                    modifiedFunc, time_var, 
                                    intervention_var, 
                                    inductive_threshold, time_interval, 
-                                   const_range))
+                                   ROI))
             nextGeneration.append(modifiedFunc)
             interface.reset()
     return nextGeneration
@@ -232,7 +248,7 @@ def Loop(nextGeneration, current_generation, num_mutes, deck,
 
 def GeneticAlgorithm(cores, interfaces, seed_generation, time_var, 
                      intervention_var, inductive_threshold, time_interval, 
-                     const_range, deck, generation_limit, num_mutes, generation_size, 
+                     ROI, deck, generation_limit, num_mutes, generation_size, 
                      percent_guaranteed):
     """ Genetic Algorithm to find functions which are most likely to be 
         symmetries
@@ -246,8 +262,7 @@ def GeneticAlgorithm(cores, interfaces, seed_generation, time_var,
             inductive_threshold: The number of trials before 
                 generalizing
             time_interval: Wait time
-            const_ranges: Ranges of possible values for the constants 
-                in the functions
+            ROI: Ranges of values in region of interest for each variable 
             deck: Set of expressions used to mutate functions
                 generation_limit: Maximum number of generations before 
                 ending
@@ -262,21 +277,19 @@ def GeneticAlgorithm(cores, interfaces, seed_generation, time_var,
     current_generation = seed_generation
     # open output file for use in debugging
     f = open('out','w')
-
+    
     for generation in range(0, generation_limit):
+      
+        for func in current_generation:
+            func._error = (SymmetryGroup(interfaces[0], func, 
+                           time_var, intervention_var, 
+                           inductive_threshold, time_interval, 
+                           ROI))
+ 
         nextGeneration = []
         # All members of the current generation are candidates for the 
         # next generation
         nextGeneration.extend(current_generation)
-       
-        #If this is the first generation, loop through and compute 
-        # errors on the seed functions
-        if generation == 0:
-            for func in current_generation:
-                func._error = (SymmetryGroup(interfaces[0], func, 
-                               time_var, intervention_var, 
-                               inductive_threshold, time_interval, 
-                               const_range))
       
         # Divide up the current generation into piles based on 
         # available cores and system clones
@@ -296,13 +309,11 @@ def GeneticAlgorithm(cores, interfaces, seed_generation, time_var,
             jobs = [job_server.submit(Loop,([], job_data[i], num_mutes, 
                     deck, seed_generation, interfaces[i], time_var, 
                     intervention_var, inductive_threshold, time_interval, 
-                    const_range), (randomTreeOperation,SymmetryGroup,
+                    ROI), (randomTreeOperation,SymmetryGroup,
                     FindParamVals,SymFunc),("VABClasses","math","random",
                     "numpy","copy","pdb")) for i in range(num_piles)]   
 
             # acquire and process the output
-            if (generation == 26):
-                pdb.set_trace()
             out = []
             for i in range(len(jobs)):
                 out.extend(jobs[i]())
@@ -316,7 +327,7 @@ def GeneticAlgorithm(cores, interfaces, seed_generation, time_var,
             Loop(nextGeneration, current_generation, num_mutes, deck, 
                  seed_generation, interfaces[0], time_var, 
                  intervention_var, inductive_threshold, time_interval, 
-                 const_range)
+                 ROI)
 
         #Sort the next generation by fitness 
         comparator = lambda x: x._error
@@ -394,7 +405,7 @@ def GeneticAlgorithm(cores, interfaces, seed_generation, time_var,
         
     
 def BranchAndBound(interface, seed_func, time_var, intervention_var, 
-                   inductive_threshold, time_interval, const_ranges, 
+                   inductive_threshold, time_interval, ROIs, 
                    deck, complexity_limit):
     """ Exaustive search of possible functions generated with 
         expressions from the deck
@@ -408,7 +419,7 @@ def BranchAndBound(interface, seed_func, time_var, intervention_var,
             inductive_threshold: The number of trials before 
                 generalizing
             time_interval: Wait time
-            const_ranges: Ranges of possible values for the constants 
+            ROIs: Ranges of possible values for the constants 
                 in the functions
             deck: Set of expressions used to mutate functions
             complexity_limit: Maximum number of expressions before 
@@ -424,7 +435,7 @@ def BranchAndBound(interface, seed_func, time_var, intervention_var,
                 for function in modifiedFuncs:
                     function._error = SymmetryGroup(interface, function,
                         time_var, intervention_var, inductive_threshold, 
-                        time_interval, const_ranges)
+                        time_interval, ROIs)
                 possibleSymmetries.append(modifiedFuncs)
     return possibleSymmetries
     
