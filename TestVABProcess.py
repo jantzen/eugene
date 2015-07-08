@@ -203,4 +203,23 @@ def test_GeneticAlgorithmAndLogisticVirtual():
     print final_generation
     for function in final_generation:
         print "Function: {}; error: {}\n".format(function._expression.Evaluate(),function._error)
- 
+
+# def test_TimeSampleData():
+#     # set up a system, sensors, and actuators
+#     sys = VABSystemExpGrowth(1,0.002)
+#     tsensor = VABTimeSensor([])
+#     psensor = VABPopulationSensor([0,10**6])
+#     pact = VABPopulationActuator([0,10**6])
+# 
+#     # build a dictionary of sensors and a dictionary of actuators
+#     sensors = dict([(1,tsensor),(2,psensor)])
+#     actuators = dict([(2,pact)])
+# 
+#     # build an interface
+#     interface = VABSystemInterface(sensors, actuators, sys)
+# 
+#     # build ROI
+#     ROI = dict([(1, [0,1]),(2,[1,100])])
+# 
+#     return TimeSampleData(1, 2, interface, ROI)
+

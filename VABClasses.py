@@ -6,6 +6,7 @@ import math
 import time
 import copy
 import random
+import numpy as np
 
 
 class VABSensor( object ):
@@ -352,21 +353,23 @@ class Expression( object ):
     may have 0, 1, or 2 children and an operation that acts upon them (if there is
     at least one) or a symbol
     """
-    def __init__(self, terminalSymbol, var_count = 0, param_count = 0):
+    def __init__(self, terminalSymbol, var_ids = set([]), param_ids = set([])):
         """
         Initializes an expression that consists only of a terminal symbol
         """
         self._terminal = terminalSymbol
         self._left = None
         self._right = None
-        self._param_count = param_count
-        self._var_count = var_count
+        self._param_ids = param_ids
+        self._var_count = var_ids
     
     def SetLeft(self, expression):
         self._left = expression
+        self._param_ids = self.CollectParams()
     
     def SetRight(self, expression):
         self._right = expression
+        self._param_ids = self.CollectParams()
         
     def SetTerminal(self, string):
         self._terminal = string
@@ -391,12 +394,22 @@ class Expression( object ):
             return 1
             
     def CountParams(self):
+#        if self._right != None:
+#            return self._left.CountParams() + len(self._param_ids) + self._right.CountParams()
+#        elif self._left != None:
+#            return len(self._param_ids) + self._left.CountParams()
+#        else:
+#            return len(self._param_ids)
+        return len(self._param_ids)
+
+
+    def CollectParams(self): 
         if self._right != None:
-            return self._left.CountParams() + self._param_count + self._right.CountParams()
+            return self._left.CollectParams().union(self._param_ids).union(self._right.CollectParams())
         elif self._left != None:
-            return self._param_count + self._left.CountParams()
+            return self._param_ids.union(self._left.CollectParams())
         else:
-            return self._param_count
+            return self._param_ids
        
 
 class FunctionTree( object ):
@@ -431,31 +444,6 @@ class FunctionTree( object ):
         """Turns the expression into a readable and executeable string with
         parameters properly indexed
         """
-        # expression = self._expression.Evaluate()
-        # Digits = '0123456789';
-        # descriptorIndex = -2
-        # descriptor = ''
-        # num = ''
-        # const_count = 0
-        # updatedFunction = ''
-        # for c in expression:
-        #     if c in Digits:
-        #         num += c
-        #         if descriptor == '':
-        #             descriptor = expression[descriptorIndex]
-        #     else:
-        #         if num != '' and descriptor == 'c':
-        #             updatedFunction += str(const_count)
-        #             const_count += 1
-        #             num = ''
-        #             descriptor = ''
-        #         elif num != '':
-        #             updatedFunction += str((int(num)))
-        #             num = ''
-        #             descriptor = ''
-        #         updatedFunction += c
-        #     descriptorIndex += 1
-        # return updatedFunction
         return self._expression.Evaluate()
     
     def CountParameters(self):
@@ -505,7 +493,6 @@ class FunctionTree( object ):
         expression.SetTerminal(operation)
         expression.SetLeft(left_replica)
         expression.SetRight(right_replica)
-        expression._param_count = expression.CountParams()
     
     def ReplaceRandomNode(self, substitute):
         """ Replaces a random node (and everything below it
@@ -536,7 +523,63 @@ class FunctionTree( object ):
         expression.SetTerminal(replica._terminal)
         expression.SetLeft(replica._left)
         expression.SetRight(replica._right)
-        expression._param_count = expression.CountParams()
 
 
-        
+class DataFrame( object ):
+    """ DataFrame objects hold single samples of data suitable for building models of
+    symmetry structure. Specifically, they consist a set of numpy
+    arrays that contains an array of values of an index variable, and one array
+    for each of one or more distinct initial values of a target variable.
+    """
+    def __init__(self, index_id = None, index_values =
+    np.array([],dtype='float64'),
+            target_id = None, target_values = []):
+        # store the id of the index variable
+        if index_id != None and type(index_id) == int:
+            self._index_id = index_id
+        else:
+            raise ValueError("id of index variable must be an integer")
+
+        # store the id of the target variable
+        if target_id != None and type(target_id) == int:
+            self._target_id = target_id
+        else:
+            raise ValueError("id of target variable must be an integer")
+
+        # store passed data
+        self._index_values = index_values
+        self._target_values = target_values
+
+    def SetIndex(self, index_id):
+        if type(index_id) == int:
+            self._index_id = index_id
+        else:
+            raise ValueError("id must be an integer")
+
+    def SetTarget(self, target_id):
+        if type(target_id) == int:
+            self._target_id = target_id
+        else:
+            raise ValueError("id must be an integer")
+
+    def SetIndexData(self, data_array):
+        self._index_values = data_array
+
+    def SetTargetData(self, list_of_data_arrays):
+        self._target_values = list_of_data_arrays
+
+
+class SymModel( object ):
+    """ Anobject holding a collection of polynomial models, each corresponding
+    to a symmetry labeled by a distinct value of what is presumed to be a
+    single, real-valued parameter - in other words, a collection of members of a
+    lie group of symmetries. Each polynomial is represented by an ndarray
+    containing the polynomial coefficients, highest power first."""
+    
+    def __init__(self, index_var, target_var, polynomials = []):
+        self._polynomials = polynomials
+        self._index_var = index_var
+        self._target_var = target_var
+
+    def Update(self, polynomials):
+        self._polynomials = polynomials

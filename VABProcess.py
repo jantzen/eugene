@@ -71,7 +71,7 @@ def DynamicRange(interface, target_var, index_var):
             x.append(interface.read_sensor(target_var))
             time.wait(0.05)
 
-        # Compute the derivatice
+        # Compute the derivative
         d2 = EmpiricalDeriv(x,0.05)
     except:
         # If the sensor threw an out-of-range error, the system must 
@@ -194,6 +194,8 @@ def SymmetryGroup(interface, func, time_var, intervention_var,
         constant in the function must reside trials: The number of different 
         random variations of constants to test
     """ 
+    from scipy import integrate
+
     sum = 0
     for x in range(0, inductive_threshold):
         constants = [];
@@ -209,13 +211,29 @@ def SymmetryGroup(interface, func, time_var, intervention_var,
             interface.set_actuator(time_var,shift)
 
             # Test whether func with the generated paramter values 
-            # is a symmetry
-            sum += pow(SymFunc(interface, func, time_var, 
-                       intervention_var, time_interval), 2)
+            # is a symmetry (distinct from identity)
+#            sum += pow(SymFunc(interface, func, time_var, 
+#                       intervention_var, time_interval), 2)
+#            pdb.set_trace()
+            sum += pow(SymFunc(interface, func, time_var, intervention_var, time_interval), 2) 
         else:
             sum += 10**12
-        
-    return (sum/inductive_threshold)
+
+    # compute divergence from identity
+    try:
+        if check == 1:
+            int_kernel = lambda x: (func.EvaluateAt([x])-x)**2
+            [a,b] = ROI[intervention_var]
+            divergence = integrate.quad(int_kernel, a, b)
+        else:
+            divergence = [10**12]
+    except:
+        divergence = [10**12]
+    if divergence[0] < 0 or sum < 0:
+        print 'Function: {}  divergence = {} a = {}  b = {}  Parameters = []'.format(func.ExpressionString(),divergence, a, b, func._parameters)
+        raise ValueError
+    return (sum/inductive_threshold + 1./(divergence[0]+1)) 
+    # the '+1' in the denominator is to avoid division by zero
 
 
 def Loop(nextGeneration, current_generation, num_mutes, deck, 
@@ -312,7 +330,7 @@ def GeneticAlgorithm(cores, interfaces, seed_generation, time_var,
                     ROI), (randomTreeOperation,SymmetryGroup,
                     FindParamVals,SymFunc),("VABClasses","math","random",
                     "numpy","copy","pdb")) for i in range(num_piles)]   
-
+#            pdb.set_trace()
             # acquire and process the output
             out = []
             for i in range(len(jobs)):
@@ -502,3 +520,139 @@ def RandomSelection(deck, num_selected):
     """
     random.shuffle(deck)
     return deck[0:(num_selected)]
+
+
+#---------------------Methods for statistical approach-------------------------#
+def TimeSampleData(time_var, target_var, interface, ROI, resolution=[100,10]):
+    """ Fills and returns a DataFrame object with time-sampled data from the
+    specified system.
+    """
+    # figure the delay to set between samples
+    [time_low, time_high] = ROI[time_var]
+    delay = (float(time_high) - float(time_low)) / resolution[0]
+
+    # fill out the index variable (time) values for the data frame
+    times = np.arange(time_low, time_high+delay, delay)
+    
+    # figure out the set of initial values
+    [target_low, target_high] = ROI[target_var]
+    spacing = (float(target_high) - float(target_low)) / resolution[1]
+    initial_values = np.arange(target_low, target_high, spacing)
+
+    samples = []
+
+    # for each intial value, sample data
+    for val in initial_values:
+        # reset the system, then wait until time_low
+        interface.reset()
+        interface.set_actuator(target_var, val)
+        time.sleep(time_low)
+    
+        # initialize the output list
+        data = []
+    
+        # start sampling
+        for i in range(len(times)):
+            data.append(interface.read_sensor(target_var))
+            time.sleep(delay)
+    
+        # convert the data and add to output list
+        data = np.array(data)
+        samples.append(data)
+
+    out = DataFrame(time_var, times, target_var, samples)
+
+    return out
+
+
+def BuildSymModel(data_frame, index_var, target_var, alpha=0):
+    # from the raw curves of target vs. index, build tranformation curves (e.g.,
+    # target1 vs. target2)
+    abscissa = data_frame._target_values[0]
+    ordinates = data_frame._target_values[1:]
+    
+    # for each curve, fit a polynomial using 10-fold cross-validation to choose
+    # the order
+    pdb.set_trace()
+    polynomials = []
+
+    for curve in ordinates:
+        # first try a linear fit
+        order = 1
+        
+        # partition the data
+        data = np.vstack((abscissa, curve))
+        data = data.transpose()
+        np.random.shuffle(data)
+        partition = np.array_split(data, 10)
+
+        # compute the error using each partition as validation set
+        sum_square_error = 0
+        for p in range(len(partition)):
+            # build training data
+            training_set = np.empty([0,2],dtype='float64')
+            for i in range(len(partition)):
+                if i != p:
+                    training_set = np.concatenate((training_set, partition[i]), 0)
+            # fit polynomial
+            x = training_set[:,0]
+            y = training_set[:,1]
+            fit = np.polyfit(x, y, 1)
+            # compute error of fit against partitition p
+            x = partition[p][:,0]
+            y = partition[p][:,1]
+            for i in range(len(x)):
+                sum_square_error += (np.polyval(fit, x[i]) - y[i])**2
+
+        # compute mean square error for first order
+        mse = sum_square_error/len(partition)
+        best_fit_order = order
+        best_fit = fit
+
+        # assess fits for higher-order polynomials until the minimum is passed
+        loop = True
+        
+        while loop:
+            order += 1
+            # partition the data
+            # data = np.vstack((times, curve))
+            # data = data.transpose()
+            np.random.shuffle(data)
+            partition = np.array_split(data, 10)
+    
+            # compute the error using each partition as validation set
+            sum_square_error = 0
+            for p in range(len(partition)):
+               # build training data
+               training_set = np.empty([0,2],dtype='float64')
+               for i in range(len(partition)):
+                   if i != p:
+                       training_set = np.concatenate((training_set, partition[i]), 0)
+               # fit polynomial
+               x = training_set[:,0]
+               y = training_set[:,1]
+               fit = np.polyfit(x, y, order)
+               # compute error of fit against partitition p
+               x = partition[p][:,0]
+               y = partition[p][:,1]
+               for i in range(len(x)):
+                   sum_square_error += (np.polyval(fit, x[i]) - y[i])**2
+
+  
+            # compute mean square error for current order
+            mse_candidate = sum_square_error/len(partition)
+
+            # if significantly better, keep it. If not, keep the old and halt.
+            if mse_candidate < mse - alpha:
+                mse = mse_candidate
+                best_fit_order = order
+                best_fit = fit
+
+            else:
+                loop = False
+        
+        polynomials.append(best_fit)
+    
+    # build and output a SymModel object
+    return SymModel(index_var, target_var, polynomials)
+

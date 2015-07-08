@@ -197,26 +197,31 @@ def test_VABSystemInterface():
 
 
 def test_Expression():
-    exp1 = Expression("v[0]",1,0)
-    exp2 = Expression("c[0]",0,1)
-    assert exp1._left == None and exp1._right == None and exp1._var_count == 1 and exp1._param_count == 0
-    assert exp2._left == None and exp2._right == None and exp2._var_count ==0 and exp2._param_count == 1
+    exp1 = Expression("v[0]",set([0]),set([]))
+    exp2 = Expression("c[0]",set([]),set([0]))
+    assert exp1._left == None and exp1._right == None and exp1.CountParams() == 0
+    assert exp2._left == None and exp2._right == None and exp2.CountParams() == 1
     assert exp1.Evaluate() == "v[0]"
     assert exp2.Evaluate() == "c[0]"
     assert exp1.Size() == 1 and exp2.Size() == 1
-    exp1.SetLeft(Expression("v[1]",1,0))
+    exp1.SetLeft(Expression("v[1]",set([1]),set([])))
     exp1.SetTerminal("+")
-    exp1.SetRight(Expression("v[0]",1,0))
+    exp1.SetRight(Expression("v[0]",set([0]),set([])))
     assert exp1.Size() == 3 
     assert exp1.Evaluate()=="(v[1]+v[0])"
+    func = FunctionTree(exp1)
+    func.Operate(exp1,'+',exp2)
+    assert exp1.Evaluate() == "((v[1]+v[0])+c[0])"
+    assert exp1.CountParams() == 1
+
 
 def test_FunctionTree():
-    exp1 = Expression("",0,0)
-    exp2 = Expression("",0,0)
-    exp1.SetLeft(Expression("c[0]",0,1))
-    exp1.SetTerminal("+")
-    exp2.SetLeft(Expression("c[1]",0,1))
-    exp2.SetTerminal("*")
-    exp2.SetRight(Expression("v[0]",1,0))
-    exp1.SetRight(exp2)
-
+#    exp1 = Expression("",0,0)
+#    exp2 = Expression("",0,0)
+#    exp1.SetLeft(Expression("c[0]",0,1))
+#    exp1.SetTerminal("+")
+#    exp2.SetLeft(Expression("c[1]",0,1))
+#    exp2.SetTerminal("*")
+#    exp2.SetRight(Expression("v[0]",1,0))
+#    exp1.SetRight(exp2)
+    pass

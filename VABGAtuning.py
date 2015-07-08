@@ -113,21 +113,21 @@ def test_GeneticAlgorithmAndLogisticVirtual(cores=1, inductive_threshold=10,
         interfaces.append(copy.deepcopy(interface))
 
     # build a seed generation
-    expr1 = Expression("",0,0)
-    expr1.SetLeft(Expression("c[0]",0,1))
+    expr1 = Expression("")
+    expr1.SetLeft(Expression("c[0]",set([]),set([0])))
     expr1.SetTerminal("*")
-    expr1.SetRight(Expression("v[0]",1,0))
+    expr1.SetRight(Expression("v[0]",set([0]),set([])))
     func1 = FunctionTree(expr1)
-    expr2 = Expression("",0,0)
-    expr2.SetLeft(Expression("c[0]",0,1))
+    expr2 = Expression("")
+    expr2.SetLeft(Expression("c[0]",set([]),set([0])))
     expr2.SetTerminal("+")
-    expr2.SetRight(Expression("v[0]",1,0))
+    expr2.SetRight(Expression("v[0]",set([0]),set([])))
     func2 = FunctionTree(expr2)
  
     seed_generation = [func1,func2]
 
     # build a simple deck
-    deck = [Expression("v[0]",0),Expression("c[0]",1),Expression("1",0),Expression("5",0),Expression("10",0),Expression("50",0),Expression("100",0),Expression("500",0),Expression("1000",0)]
+    deck = [Expression("v[0]",set([0]),set([])),Expression("c[0]",set([]),set([0])),Expression("1"),Expression("5"),Expression("10"),Expression("50"),Expression("100"),Expression("500"),Expression("1000")]
 
     # create range objects
 #    const_range = Range(0,100)
