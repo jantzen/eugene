@@ -573,7 +573,7 @@ def BuildSymModel(data_frame, index_var, target_var, alpha=0):
     
     # for each curve, fit a polynomial using 10-fold cross-validation to choose
     # the order
-    pdb.set_trace()
+#    pdb.set_trace()
     polynomials = []
 
     for curve in ordinates:
@@ -607,7 +607,6 @@ def BuildSymModel(data_frame, index_var, target_var, alpha=0):
         # compute mean square error for first order
         mse = sum_square_error/len(partition)
         best_fit_order = order
-        best_fit = fit
 
         # assess fits for higher-order polynomials until the minimum is passed
         loop = True
@@ -650,7 +649,10 @@ def BuildSymModel(data_frame, index_var, target_var, alpha=0):
 
             else:
                 loop = False
-        
+        # using the best-fit order, fit the full data set
+        x = data[:,0]
+        y = data[:,1]
+        best_fit = np.polyfit(x, y, best_fit_order)
         polynomials.append(best_fit)
     
     # build and output a SymModel object
