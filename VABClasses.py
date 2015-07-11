@@ -275,6 +275,7 @@ class VABSystemFirstOrderReaction(object):
         
     def reset(self):
         self._x = self._init_x
+        self._time = time.time()
  
 
 class VABSystemSecondOrderReaction(object):
@@ -328,6 +329,7 @@ class VABSystemSecondOrderReaction(object):
         
     def reset(self):
         self._x = self._init_x
+        self._time = time.time()
  
 
 class VABSystemThirdOrderReaction(object):
@@ -385,7 +387,8 @@ class VABSystemThirdOrderReaction(object):
         
     def reset(self):
         self._x = self._init_x
- 
+        self._time = time.time()
+
 
 class VABSystemInterface( object ):
     """ This is a generic class. Interface objects are what the 'process' will
@@ -758,10 +761,11 @@ class SymModel( object ):
     lie group of symmetries. Each polynomial is represented by an ndarray
     containing the polynomial coefficients, highest power first."""
     
-    def __init__(self, index_var, target_var, polynomials = []):
+    def __init__(self, index_var, target_var, polynomials = [], alpha=0):
         self._polynomials = polynomials
         self._index_var = index_var
         self._target_var = target_var
+        self._alpha = alpha
 
     def Update(self, polynomials):
         self._polynomials = polynomials

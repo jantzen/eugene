@@ -3,7 +3,7 @@
 import time
 import math
 import random
-import numpy
+import numpy as np
 from VABClasses import *
 import pdb
 import pp
@@ -108,7 +108,7 @@ def FindParamVals(interface, func, time_var, intervention_var,
 
     # construct an initial guess (an array of 1s of length equal to the 
     # number of params)
-    init_guess = numpy.array([1] * func.CountParameters())
+    init_guess = np.array([1] * func.CountParameters())
     try: 
         sol = optimize.minimize(func_min, init_guess, tol=tol)
     except:
@@ -565,7 +565,7 @@ def TimeSampleData(time_var, target_var, interface, ROI, resolution=[100,10]):
     return out
 
 
-def BuildSymModel(data_frame, index_var, target_var, alpha=0):
+def BuildSymModel(data_frame, index_var, target_var, epsilon=0):
     # from the raw curves of target vs. index, build tranformation curves (e.g.,
     # target1 vs. target2)
     abscissa = data_frame._target_values[0]
@@ -587,7 +587,7 @@ def BuildSymModel(data_frame, index_var, target_var, alpha=0):
         partition = np.array_split(data, 10)
 
         # compute the error using each partition as validation set
-        sum_square_error = 0
+        mse = []
         for p in range(len(partition)):
             # build training data
             training_set = np.empty([0,2],dtype='float64')
@@ -601,16 +601,19 @@ def BuildSymModel(data_frame, index_var, target_var, alpha=0):
             # compute error of fit against partitition p
             x = partition[p][:,0]
             y = partition[p][:,1]
+            sum_square_error = 0
             for i in range(len(x)):
                 sum_square_error += (np.polyval(fit, x[i]) - y[i])**2
+            mse.append(sum_square_error/len(x))
 
         # compute mean square error for first order
-        mse = sum_square_error/len(partition)
+        mmse = np.mean(np.array(mse))
         best_fit_order = order
 
         # assess fits for higher-order polynomials until the minimum is passed
         loop = True
-        
+
+#        pdb.set_trace()
         while loop:
             order += 1
             # partition the data
@@ -620,7 +623,7 @@ def BuildSymModel(data_frame, index_var, target_var, alpha=0):
             partition = np.array_split(data, 10)
     
             # compute the error using each partition as validation set
-            sum_square_error = 0
+            mse = []
             for p in range(len(partition)):
                # build training data
                training_set = np.empty([0,2],dtype='float64')
@@ -631,19 +634,20 @@ def BuildSymModel(data_frame, index_var, target_var, alpha=0):
                x = training_set[:,0]
                y = training_set[:,1]
                fit = np.polyfit(x, y, order)
-               # compute error of fit against partitition p
+               # compute error of fit against partition p
                x = partition[p][:,0]
                y = partition[p][:,1]
+               sum_square_error = 0
                for i in range(len(x)):
                    sum_square_error += (np.polyval(fit, x[i]) - y[i])**2
+               mse.append(sum_square_error/len(x))
 
-  
             # compute mean square error for current order
-            mse_candidate = sum_square_error/len(partition)
+            mmse_candidate = np.mean(np.array(mse))
 
             # if significantly better, keep it. If not, keep the old and halt.
-            if mse_candidate < mse - alpha:
-                mse = mse_candidate
+            if (mmse - mmse_candidate) > epsilon:
+                mmse = mmse_candidate
                 best_fit_order = order
                 best_fit = fit
 
@@ -656,5 +660,93 @@ def BuildSymModel(data_frame, index_var, target_var, alpha=0):
         polynomials.append(best_fit)
     
     # build and output a SymModel object
-    return SymModel(index_var, target_var, polynomials)
+    return SymModel(index_var, target_var, polynomials, epsilon)
+
+
+def SymTestTemporal(model, interface, time_var, target_var, ROI, num_trans,
+        resolution=[100,1], R2min=0.95):
+    # make a copy of the polynomial (symmetry transformation) list
+    poly = copy.deepcopy(model._polynomials)
+
+    # choose num_trans symmetry transformations at random from the model
+    if num_trans >  len(model._polynomials):
+       num_trans = len(model._polynomials)
+
+    if num_trans < len(model._polynomials):
+        np.random.shuffle(poly)
+    
+    # figure the delay to set between samples
+    [time_low, time_high] = ROI[time_var]
+    delay = (float(time_high) - float(time_low)) / resolution[0]
+
+    # fill out the index variable (time) values 
+    times = np.arange(time_low, time_high+delay, delay)
+   
+    success = True
+
+    # for each transformation, test to see whether it works on sys
+    for trans in poly:
+        # sample data from system 
+        samples = []
+        
+        # reset the system, then wait until time_low
+        interface.reset()
+        
+        x0_tentative = interface.read_sensor(target_var)
+        if np.polyval(trans, x0_tentative) > ROI[target_var][1]:
+            x0 = ROI[target_var][0]
+        elif np.polyval(trans, x0_tentative) < ROI[target_var][0]:
+            x0 = ROI[target_var][1]
+        else:
+            x0 = x0_tentative
+
+        interface.set_actuator(target_var, x0)
+        time.sleep(time_low)
+    
+        # initialize the output list
+        initial_data = []
+    
+        # start sampling
+        for i in range(len(times)):
+            initial_data.append(interface.read_sensor(target_var))
+            time.sleep(delay)
+    
+        # convert the data 
+        initial_data = np.array(initial_data)
+
+        # now, transform the initial value using trans, and sample again
+        x0_trans = np.polyval(trans, x0)
+        interface.reset()
+        interface.set_actuator(target_var, x0_trans)
+        time.sleep(time_low)
+
+        # initialize the output list
+        transformed_data = []
+    
+        # start sampling
+        for i in range(len(times)):
+            transformed_data.append(interface.read_sensor(target_var))
+            time.sleep(delay)
+    
+        # convert the data 
+        transformed_data = np.array(transformed_data)
+        
+        # compute the expected curve
+        expected_data = np.polyval(trans, initial_data)
+#	pdb.set_trace()
+
+        # compute an R^2 value
+        SStot = np.sum(np.power(transformed_data -
+            np.mean(transformed_data),2))
+        SSres = np.sum(np.power((expected_data - transformed_data),2))
+        R2 = 1. - SSres/SStot
+
+        # if no good, stop here and return failure
+        if R2 < R2min:
+            success = False
+            return success
+
+    return success
+
+
 
