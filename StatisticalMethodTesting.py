@@ -46,13 +46,13 @@ def SampleLogisticData():
     return data_frame
 
 
-def SampleReactionData():
+def SampleReactionData(noise_stdev=0):
     # set up systems, sensors, and actuators
     sys1 = VABSystemFirstOrderReaction(1,1)
     sys2 = VABSystemSecondOrderReaction(1,1)
     sys3 = VABSystemThirdOrderReaction(1,1)
     tsensor = VABTimeSensor([])
-    xsensor = VABConcentrationSensor([0,3])
+    xsensor = VABConcentrationSensor([0,3], noise_stdev)
     xact = VABConcentrationActuator([0,1])
 
     #build a dictionary of sensors and a dictionary of actuators
@@ -72,22 +72,20 @@ def SampleReactionData():
     return data_frames
 
    
-
-
 def BuildModel(data_frame, epsilon=0):
     model = BuildSymModel(data_frame, 1, 2, epsilon)
 
     return model
 
 
-def testSymTestTemporal(num_trans=1, epsilon=0):
+def testSymTestTemporal(num_trans=1, epsilon=0, noise_stdev=0):
     # get data
     # set up systems, sensors, and actuators
     sys1 = VABSystemFirstOrderReaction(1,1)
     sys2 = VABSystemSecondOrderReaction(1,1)
     sys3 = VABSystemThirdOrderReaction(1,1)
     tsensor = VABTimeSensor([])
-    xsensor = VABConcentrationSensor([0,3])
+    xsensor = VABConcentrationSensor([-1,3], noise_stdev)
     xact = VABConcentrationActuator([0,1])
 
     #build a dictionary of sensors and a dictionary of actuators
@@ -122,9 +120,9 @@ def testSymTestTemporal(num_trans=1, epsilon=0):
 
     # finally, check and make sure that reactions of the same order end up in
     # the same category despite different reaction rates
-    sys11 = VABSystemFirstOrderReaction(1,2)
-    sys12 = VABSystemFirstOrderReaction(0.5,1)
-    sys13 = VABSystemFirstOrderReaction(1,0.5)
+    sys11 = VABSystemFirstOrderReaction(1,2,noise_stdev)
+    sys12 = VABSystemFirstOrderReaction(0.5,1,noise_stdev)
+    sys13 = VABSystemFirstOrderReaction(1,0.5,noise_stdev)
 
     interface11 = VABSystemInterface(sensors, actuators, sys11)
     interface12 = VABSystemInterface(sensors, actuators, sys12)

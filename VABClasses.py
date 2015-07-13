@@ -88,11 +88,19 @@ class VABLogisticActuator_T(VABSensor):
 
 
 class VABConcentrationSensor(VABSensor):
+    def __init__(self, dynamic_range, noise_stdev=0):
+        self._range = dynamic_range
+        self._noise_stdev = noise_stdev
+    
     def read(self, sys):
         if len(self._range) != 2:
             raise ValueError('No sensor range specified.')
         else:
-            concentration = sys.update_x()
+            if self._noise_stdev == 0:
+                concentration = sys.update_x()
+            else:
+                concentration = sys.update_x() + np.random.normal(0,
+                        self._noise_stdev)
             if concentration > self._range[1] or concentration < self._range[0]:
                 return 'OutofRange'
             else:
@@ -253,12 +261,13 @@ class VABSystemFirstOrderReaction(object):
         # compute the time elapsed since the last read
         elapsed_time = curr_time - self._time
         # now compute the current population based on the model
-        x = self._x * math.exp(-self._k * elapsed_time)
+        x = self._x * math.exp(-self._k * elapsed_time) 
         # update the class variables before returning the values
         self._x = x
         self._time = curr_time
         
         return self._x
+
 
     def update_time(self):
         # first get current time
@@ -266,13 +275,14 @@ class VABSystemFirstOrderReaction(object):
         # compute the time elapsed since the last read
         elapsed_time = curr_time - self._time
         # now compute the current population based on the model
-        x = self._x * math.exp(-self._k * elapsed_time)
+        x = self._x * math.exp(-self._k * elapsed_time) 
         # update the class variables before returning the values
         self._x = x
         self._time = curr_time
        
         return self._time
-        
+       
+
     def reset(self):
         self._x = self._init_x
         self._time = time.time()
@@ -311,7 +321,7 @@ class VABSystemSecondOrderReaction(object):
         # update the class variables before returning the values
         self._x = x
         self._time = curr_time
-        
+     
         return self._x
 
     def update_time(self):
@@ -326,7 +336,8 @@ class VABSystemSecondOrderReaction(object):
         self._time = curr_time
        
         return self._time
-        
+       
+
     def reset(self):
         self._x = self._init_x
         self._time = time.time()
@@ -352,7 +363,6 @@ class VABSystemThirdOrderReaction(object):
         self._k = float(k)
         self._init_x = float(init_x) 
        
-    
     """ define a function that returns the current concentration given
     the concentration at some earlier time, time_i.
     """
@@ -361,14 +371,13 @@ class VABSystemThirdOrderReaction(object):
         curr_time = time.time()
         # compute the time elapsed since the last read
         elapsed_time = curr_time - self._time
-#        pdb.set_trace()
         # now compute the current population based on the model
         x = self._x / math.pow((1. + 2. * self._k * elapsed_time *
             math.pow(self._x,2)),0.5)
         # update the class variables before returning the values
         self._x = x
         self._time = curr_time
-        
+       
         return self._x
 
     def update_time(self):
@@ -384,7 +393,8 @@ class VABSystemThirdOrderReaction(object):
         self._time = curr_time
        
         return self._time
-        
+       
+
     def reset(self):
         self._x = self._init_x
         self._time = time.time()
@@ -761,11 +771,11 @@ class SymModel( object ):
     lie group of symmetries. Each polynomial is represented by an ndarray
     containing the polynomial coefficients, highest power first."""
     
-    def __init__(self, index_var, target_var, polynomials = [], alpha=0):
+    def __init__(self, index_var, target_var, polynomials = [], R2=None):
         self._polynomials = polynomials
         self._index_var = index_var
         self._target_var = target_var
-        self._alpha = alpha
+        self._R2 = R2
 
     def Update(self, polynomials):
         self._polynomials = polynomials

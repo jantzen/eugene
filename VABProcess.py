@@ -7,6 +7,7 @@ import numpy as np
 from VABClasses import *
 import pdb
 import pp
+import scipy.stats as stats
 
 
 def EmpiricalDeriv(data, h=1):
@@ -575,6 +576,7 @@ def BuildSymModel(data_frame, index_var, target_var, epsilon=0):
     # the order
 #    pdb.set_trace()
     polynomials = []
+    R2vals = []
 
     for curve in ordinates:
         # first try a linear fit
@@ -594,6 +596,7 @@ def BuildSymModel(data_frame, index_var, target_var, epsilon=0):
             for i in range(len(partition)):
                 if i != p:
                     training_set = np.concatenate((training_set, partition[i]), 0)
+            
             # fit polynomial
             x = training_set[:,0]
             y = training_set[:,1]
@@ -653,18 +656,25 @@ def BuildSymModel(data_frame, index_var, target_var, epsilon=0):
 
             else:
                 loop = False
+        
         # using the best-fit order, fit the full data set
         x = data[:,0]
         y = data[:,1]
         best_fit = np.polyfit(x, y, best_fit_order)
         polynomials.append(best_fit)
+        
+        # compute and save coeficient of determination
+        SStot = np.sum(np.power(curve - np.mean(y),2))
+        SSres = np.sum(np.power(np.polyval(best_fit, x) - y, 2))
+        R2 = 1. - SSres/SStot
+        R2vals.append(R2)
     
     # build and output a SymModel object
-    return SymModel(index_var, target_var, polynomials, epsilon)
+    return SymModel(index_var, target_var, polynomials, min(R2vals))
 
 
 def SymTestTemporal(model, interface, time_var, target_var, ROI, num_trans,
-        resolution=[100,1], R2min=0.95):
+        resolution=[100,1], alpha=0.05):
     # make a copy of the polynomial (symmetry transformation) list
     poly = copy.deepcopy(model._polynomials)
 
@@ -716,37 +726,78 @@ def SymTestTemporal(model, interface, time_var, target_var, ROI, num_trans,
 
         # now, transform the initial value using trans, and sample again
         x0_trans = np.polyval(trans, x0)
-        interface.reset()
-        interface.set_actuator(target_var, x0_trans)
-        time.sleep(time_low)
-
+ 
         # initialize the output list
-        transformed_data = []
-    
-        # start sampling
-        for i in range(len(times)):
-            transformed_data.append(interface.read_sensor(target_var))
-            time.sleep(delay)
+        transformed_data = [[] for i in range(len(times))]
+        
+        pdb.set_trace()
+
+        # make 5 replicates
+        for replicate in range(5):
+            interface.reset()
+            interface.set_actuator(target_var, x0_trans)
+            time.sleep(time_low)
+
+            # start sampling 
+            for i in range(len(times)):
+                 transformed_data[i].append(interface.read_sensor(target_var))
+                 time.sleep(delay)
     
         # convert the data 
-        transformed_data = np.array(transformed_data)
+#        transformed_data = np.array(transformed_data)
         
         # compute the expected curve
         expected_data = np.polyval(trans, initial_data)
-#	pdb.set_trace()
+
+        # determine the order of the model
+        order = len(trans) - 1
+	pdb.set_trace()
 
         # compute an R^2 value
-        SStot = np.sum(np.power(transformed_data -
-            np.mean(transformed_data),2))
-        SSres = np.sum(np.power((expected_data - transformed_data),2))
-        R2 = 1. - SSres/SStot
+#        SStot = np.sum(np.power(transformed_data -
+#            np.mean(transformed_data),2))
+#        SSres = np.sum(np.power((expected_data - transformed_data),2))
+#        R2 = 1. - SSres/SStot
 
         # if no good, stop here and return failure
-        if R2 < R2min:
+#        if R2 < model._R2 - R2diff:
+#            success = False
+#            return success
+        if LackOfFitTest(transformed_data, expected_data, order, alpha):
             success = False
             return success
 
     return success
 
 
+def LackOfFitTest(sampled_data, expected_data, order, alpha):
+    # compute the mean square for pure error
+    Ntotal = 5 * len(sampled_data)
+    Nunique = len(sampled_data)
 
+    total = 0
+    for i in range(Nunique):
+        for j in range(5):
+            total += np.power(sampled_data[i][j] - np.mean(sampled_data[i]), 2.)
+    
+    sigma_r2 = 1./(Ntotal - Nunique) * total
+
+    # compute the mean square for lack of fit
+    total = 0
+    for i in range(Nunique):
+        total += 5. * np.power(np.mean(sampled_data[i]) - expected_data[i], 2.)
+    
+    sigma_m2 = 1./(Nunique - order) * total
+
+    pdb.set_trace()
+
+    # compute F-statistic
+    F = sigma_m2 / sigma_r2
+
+    # compute p-value
+    p = 1. - stats.f.cdf(F, Nunique - order, Ntotal - Nunique)
+
+    if p < alpha:
+        return True # the model doesn't fit
+    else:
+        return False # the model does fit
