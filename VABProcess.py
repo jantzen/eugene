@@ -668,22 +668,42 @@ def BuildSymModel(data_frame, index_var, target_var, epsilon=0):
         SSres = np.sum(np.power(np.polyval(best_fit, x) - y, 2))
         R2 = 1. - SSres/SStot
         R2vals.append(R2)
-    
+   
+    # for the best-fit polynomials, use random subsets of the data to sample
+    # values of the coefficient of determination
+    R2_samples = [[] for i in range(len(polynomials))]
+    for i, poly in enumerate(polynomials):
+        y_complete = ordinates[i]
+        data_complete = np.vstack((abscissa, y_complete))
+        data_complete = data_complete.transpose()
+        for j in range(20):
+            np.random.shuffle(data_complete)
+            x = data_complete[1:int(len(data_complete)/2.),0]
+            y = data_complete[1:int(len(data_complete)/2.),1]
+            m = np.polyval(poly, x)
+            SStot = np.sum(np.power(y - np.mean(y),2))
+            SSres = np.sum(np.power(m - y, 2))
+            R2 = 1. - SSres/SStot
+            R2_samples[i].append(R2)
+   
+
     # build and output a SymModel object
-    return SymModel(index_var, target_var, polynomials, min(R2vals))
+    return SymModel(index_var, target_var, polynomials, R2_samples)
 
 
 def SymTestTemporal(model, interface, time_var, target_var, ROI, num_trans,
         resolution=[100,1], alpha=0.05):
+
     # make a copy of the polynomial (symmetry transformation) list
     poly = copy.deepcopy(model._polynomials)
 
     # choose num_trans symmetry transformations at random from the model
-    if num_trans >  len(model._polynomials):
-       num_trans = len(model._polynomials)
-
-    if num_trans < len(model._polynomials):
-        np.random.shuffle(poly)
+#    if num_trans >  len(model._polynomials):
+#       num_trans = len(model._polynomials)
+#
+#    if num_trans < len(model._polynomials):
+#        np.random.shuffle(poly)
+#        poly = poly[0:num_trans]
     
     # figure the delay to set between samples
     [time_low, time_high] = ROI[time_var]
@@ -695,7 +715,7 @@ def SymTestTemporal(model, interface, time_var, target_var, ROI, num_trans,
     success = True
 
     # for each transformation, test to see whether it works on sys
-    for trans in poly:
+    for counter, trans in enumerate(poly):
         # sample data from system 
         samples = []
         
@@ -728,32 +748,27 @@ def SymTestTemporal(model, interface, time_var, target_var, ROI, num_trans,
         x0_trans = np.polyval(trans, x0)
  
         # initialize the output list
-        transformed_data = [[] for i in range(len(times))]
+        transformed_data = []
         
-        pdb.set_trace()
+        interface.reset()
+        interface.set_actuator(target_var, x0_trans)
+        time.sleep(time_low)
 
-        # make 5 replicates
-        for replicate in range(5):
-            interface.reset()
-            interface.set_actuator(target_var, x0_trans)
-            time.sleep(time_low)
-
-            # start sampling 
-            for i in range(len(times)):
-                 transformed_data[i].append(interface.read_sensor(target_var))
-                 time.sleep(delay)
+        # start sampling 
+        for i in range(len(times)):
+            transformed_data.append(interface.read_sensor(target_var))
+            time.sleep(delay)
     
         # convert the data 
 #        transformed_data = np.array(transformed_data)
         
         # compute the expected curve
-        expected_data = np.polyval(trans, initial_data)
+#        expected_data = np.polyval(trans, initial_data)
 
         # determine the order of the model
         order = len(trans) - 1
-	pdb.set_trace()
 
-        # compute an R^2 value
+        # compute a sample of R^2 values
 #        SStot = np.sum(np.power(transformed_data -
 #            np.mean(transformed_data),2))
 #        SSres = np.sum(np.power((expected_data - transformed_data),2))
@@ -763,11 +778,29 @@ def SymTestTemporal(model, interface, time_var, target_var, ROI, num_trans,
 #        if R2 < model._R2 - R2diff:
 #            success = False
 #            return success
-        if LackOfFitTest(transformed_data, expected_data, order, alpha):
-            success = False
-            return success
+        pdb.set_trace()
+        # for the best-fit polynomials, use random subsets of the data to sample
+        # values of the coefficient of determination
+        R2_samples = []
+        data_complete = np.vstack((initial_data, transformed_data))
+        data_complete = data_complete.transpose()
+        for j in range(20):
+            np.random.shuffle(data_complete)
+            x = data_complete[1:int(len(data_complete)/2.),0]
+            y = data_complete[1:int(len(data_complete)/2.),1]
+            m = np.polyval(trans, x)
+            SStot = np.sum(np.power(y - np.mean(y),2))
+            SSres = np.sum(np.power(m - y, 2))
+            R2 = 1. - SSres/SStot
+            R2_samples.append(R2)
+        
+        # compare the R2 sample with the corresponding sample from the model
+        [D, p_val] = stats.ks_2samp(R2_samples, model._R2_samples[counter])
 
-    return success
+        if p_val < alpha:
+            return False
+        else:
+            return True
 
 
 def LackOfFitTest(sampled_data, expected_data, order, alpha):

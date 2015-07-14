@@ -771,11 +771,11 @@ class SymModel( object ):
     lie group of symmetries. Each polynomial is represented by an ndarray
     containing the polynomial coefficients, highest power first."""
     
-    def __init__(self, index_var, target_var, polynomials = [], R2=None):
+    def __init__(self, index_var, target_var, polynomials = [], R2_samples=[]):
         self._polynomials = polynomials
         self._index_var = index_var
         self._target_var = target_var
-        self._R2 = R2
+        self._R2_samples = R2_samples
 
     def Update(self, polynomials):
         self._polynomials = polynomials
