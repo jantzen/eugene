@@ -51,6 +51,7 @@ def SampleReactionData(noise_stdev=0):
     sys1 = VABSystemFirstOrderReaction(1,1)
     sys2 = VABSystemSecondOrderReaction(1,1)
     sys3 = VABSystemThirdOrderReaction(1,1)
+    sys4 = VABSystemSecondOrderReaction(0.5,2)
     tsensor = VABTimeSensor([])
     xsensor = VABConcentrationSensor([0,3], noise_stdev)
     xact = VABConcentrationActuator([0,1])
@@ -63,11 +64,14 @@ def SampleReactionData(noise_stdev=0):
     interface1 = VABSystemInterface(sensors, actuators, sys1)
     interface2 = VABSystemInterface(sensors, actuators, sys2)
     interface3 = VABSystemInterface(sensors, actuators, sys3)
+    interface4 = VABSystemInterface(sensors, actuators, sys4)
 
     # build ROI
     ROI = dict([(1, [0,1]),(2,[0.1,1])])
     
-    data_frames = [TimeSampleData(1, 2, interface1, ROI), TimeSampleData(1, 2, interface2, ROI), TimeSampleData(1, 2, interface3, ROI)]
+    data_frames = [TimeSampleData(1, 2, interface1, ROI), TimeSampleData(1, 2,
+        interface2, ROI), TimeSampleData(1, 2, interface3, ROI),
+        TimeSampleData(1, 2, interface4, ROI)]
 
     return data_frames
 
@@ -132,6 +136,43 @@ def testSymTestTemporal(num_trans=1, epsilon=0, noise_stdev=0):
     assert SymTestTemporal(model1, interface12, 1, 2, ROI, num_trans)
     assert SymTestTemporal(model1, interface13, 1, 2, ROI, num_trans)
 
- 
 
+def testCompareModels(noise_stdev=0, epsilon=10**(-4)):
+    # set up systems, sensors, and actuators
+    sys1 = VABSystemFirstOrderReaction(1,1)
+    sys2 = VABSystemSecondOrderReaction(1,1)
+    sys3 = VABSystemThirdOrderReaction(1,1)
+    tsensor = VABTimeSensor([])
+    xsensor = VABConcentrationSensor([-1,3], noise_stdev)
+    xact = VABConcentrationActuator([0,1])
 
+    #build a dictionary of sensors and a dictionary of actuators
+    sensors = dict([(1, tsensor), (2, xsensor)])
+    actuators = dict([(2,xact)])
+    
+    # build interfaces
+    interface1 = VABSystemInterface(sensors, actuators, sys1)
+    interface2 = VABSystemInterface(sensors, actuators, sys2)
+    interface3 = VABSystemInterface(sensors, actuators, sys3)
+
+    # build ROI
+    ROI = dict([(1, [0,1]),(2,[0.1,1])])
+
+    # get two sets of data for sys1
+    [data11, data12] = [TimeSampleData(1,2,interface1,ROI),
+            TimeSampleData(1,2,interface1,ROI)]
+
+    # get a set of data for sys2
+    data21 = TimeSampleData(1,2,interface2,ROI)
+    
+    # build models
+    [model11, model12] = [BuildModel(data11, epsilon), BuildModel(data12,
+        epsilon)]
+    model21 = BuildModel(data21, epsilon)
+
+    # compare models
+    p_same = CompareModels(model11, model12)
+    p_different = CompareModels(model11, model21)
+
+    print p_same
+    print p_different

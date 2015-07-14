@@ -769,13 +769,18 @@ class SymModel( object ):
     to a symmetry labeled by a distinct value of what is presumed to be a
     single, real-valued parameter - in other words, a collection of members of a
     lie group of symmetries. Each polynomial is represented by an ndarray
-    containing the polynomial coefficients, highest power first."""
+    containing the polynomial coefficients, highest power first.
+    sampled_data: an r x 2 array of values to which the corresponding
+    polynomials were fit
+    """
     
-    def __init__(self, index_var, target_var, polynomials = [], R2_samples=[]):
+    def __init__(self, index_var, target_var, sampled_data, polynomials = [],
+            epsilon=None):
         self._polynomials = polynomials
         self._index_var = index_var
         self._target_var = target_var
-        self._R2_samples = R2_samples
+        self._sampled_data = sampled_data
+        self._epsilon = epsilon
 
     def Update(self, polynomials):
         self._polynomials = polynomials
