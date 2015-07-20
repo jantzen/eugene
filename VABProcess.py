@@ -544,10 +544,10 @@ def TimeSampleData(time_var, target_var, interface, ROI, resolution=[100,10]):
 
     # for each intial value, sample data
     for val in initial_values:
-        # reset the system, then wait until time_low
+        # reset the system to t=0, then increment to time_low
         interface.reset()
         interface.set_actuator(target_var, val)
-        time.sleep(time_low)
+        interface.set_actuator(time_var, time_low)
     
         # initialize the output list
         data = []
@@ -555,7 +555,7 @@ def TimeSampleData(time_var, target_var, interface, ROI, resolution=[100,10]):
         # start sampling
         for i in range(len(times)):
             data.append(interface.read_sensor(target_var))
-            time.sleep(delay)
+            interface.set_actuator(time_var, delay)
     
         # convert the data and add to output list
         data = np.array(data)
@@ -566,7 +566,7 @@ def TimeSampleData(time_var, target_var, interface, ROI, resolution=[100,10]):
     return out
 
 
-def BuildSymModel(data_frame, index_var, target_var, epsilon=0):
+def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
     # from the raw curves of target vs. index, build tranformation curves (e.g.,
     # target1 vs. target2)
     abscissa = data_frame._target_values[0]
@@ -655,6 +655,12 @@ def BuildSymModel(data_frame, index_var, target_var, epsilon=0):
 
             else:
                 loop = False
+
+            # cap the complexity
+            if order >= 10:
+                loop = False
+
+
         
         # using the best-fit order, fit the full data set
         x = data[:,0]
@@ -687,7 +693,7 @@ def BuildSymModel(data_frame, index_var, target_var, epsilon=0):
         sampled_data.append(data)
     
     # build and output a SymModel object
-    return SymModel(index_var, target_var, sampled_data, polynomials, epsilon)
+    return SymModel(index_var, target_var, sys_id, sampled_data, polynomials, epsilon)
 
 
 def SymTestTemporal(model, interface, time_var, target_var, ROI, num_trans,
@@ -842,14 +848,20 @@ def CompareModels(model1, model2):
 #    pdb.set_trace()
     p_vals = []
 
+    # initialize containers for data that may be passed out
+    combined_sampled_data = []
+    combined_polynomials = []
+
     for counter, poly1 in enumerate(model1._polynomials):
+        # import relevant data
         poly2 = model2._polynomials[counter]
         data1 = model1._sampled_data[counter]
         data2 = model2._sampled_data[counter]
 
         # fit the joint data
         data = np.vstack((data1,data2))
-        
+        combined_sampled_data.append(data)
+
         # first try a linear fit
         order = 1
         
@@ -923,11 +935,18 @@ def CompareModels(model1, model2):
 
             else:
                 loop = False
-        
+            
+#            # cap the complexity
+#            if order >= 10:
+#                loop = False
+
         # using the best-fit order, fit the full data set
         x = data[:,0]
         y = data[:,1]
         null_hyp = np.polyfit(x, y, best_fit_order)
+
+        # save the best fit polynomial
+        combined_polynomials.append(null_hyp)
 
         # now use the same 'model' (the same order polynomial) to fit each data
         # set individually
@@ -936,12 +955,17 @@ def CompareModels(model1, model2):
 
         # compute sum of squares (SS) and degrees of freedom (df) for the null
         # hypothesis: both data sets are described by the same polynomial
-                # SS null
+
+        # first, construct a function to norm the data
+        norm = lambda x: (x - np.mean(data[:,1])) / (np.max(data[:,1]) -
+            np.min(data[:,1])) 
+
+        # SS null
         SSnull = 0
         for i in range(len(data)):
             x = data[i,0]
             y = data[i,1]
-            SSnull += np.power(y - np.polyval(null_hyp, x), 2.)
+            SSnull += np.power(norm(y) - norm(np.polyval(null_hyp, x)), 2.)
 
         # df null
         df_null = len(data) - len(null_hyp)
@@ -951,11 +975,12 @@ def CompareModels(model1, model2):
         for i in range(len(data1)):
             x = data1[i, 0]
             y = data1[i, 1]
-            SSalt += np.power(y - np.polyval(poly1, x), 2.)
+            SSalt += np.power(norm(y) - norm(np.polyval(poly1, x)), 2.)
+
         for i in range(len(data2)):
             x = data2[i, 0]
             y = data2[i, 1]
-            SSalt += np.power(y - np.polyval(poly2, x), 2.)
+            SSalt += np.power(norm(y) - norm(np.polyval(poly2, x)), 2.)
         
         # df alt
         df_alt = len(data1) - len(poly1) + len(data2) - len(poly2)
@@ -969,4 +994,43 @@ def CompareModels(model1, model2):
 
         p_vals.append(p)
 
-    return p_vals
+#    pdb.set_trace()
+
+    # if most of the p_vals exceed alpha = 0.05, then conclude that the models
+    # are equivalent and return the new combined model; otherwise, return an
+    # empty list. 
+    p_vals = np.array(p_vals)
+    if (np.sum(np.greater(p_vals, np.ones(p_vals.shape)*0.05)) >
+         round(len(p_vals)/2.)):
+        return SymModel(model1._index_var, model1._target_var, model1._sys_id,
+                combined_sampled_data, combined_polynomials,
+                min(model1._epsilon, model2._epsilon))
+    else:
+        return None
+
+
+def Classify(system_ids, models):
+    """ Assumes that the ith model corresponds to sys_id i.
+    """
+#    pdb.set_trace()
+    # initialize the sort with the first system in the list of systems
+    classes = []
+    classes.append(Category(set([system_ids[0]]), models[0]))
+
+    # sort the remainder of the systems
+    for sys_id in system_ids[1:]:
+        categorized = False
+        for c in classes:
+            # compare the unknown system to the paradigm
+            result = CompareModels(models[sys_id], c._paradigm)
+            if result != None:
+                categorized = True
+                c.add_system(sys_id)
+                c.update_paradigm(result)
+                break
+        # if the system doesn't fit a known category, make a new one
+        if categorized == False:
+            classes.append(Category(set([sys_id]), models[sys_id]))
+
+    # return the list of classes
+    return classes

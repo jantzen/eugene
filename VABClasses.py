@@ -88,29 +88,63 @@ class VABLogisticActuator_T(VABSensor):
 
 
 class VABConcentrationSensor(VABSensor):
-    def __init__(self, dynamic_range, noise_stdev=0):
+    def __init__(self, dynamic_range, noise_stdev=0, proportional=False):
         self._range = dynamic_range
         self._noise_stdev = noise_stdev
+        self._proportional = proportional
     
     def read(self, sys):
         if len(self._range) != 2:
             raise ValueError('No sensor range specified.')
+#        else:
+#            if self._noise_stdev == 0:
+#                concentration = sys.update_x()
+#            elif self._proportional:
+#                x = sys.update_x()
+#                noise = np.random.normal(0, self._noise_stdev * x)
+#                concentration = x + noise
+#            else:
+#                concentration = sys.update_x() + np.random.normal(0,
+#                        self._noise_stdev)
+#            if concentration > self._range[1] or concentration < self._range[0]:
+#                return 'outofrange'
+#            else:
+#                return concentration
         else:
             if self._noise_stdev == 0:
-                concentration = sys.update_x()
+                concentration = sys._x
+            elif self._proportional:
+                x = sys._x
+                noise = np.random.normal(0, self._noise_stdev * x)
+                concentration = x + noise
             else:
-                concentration = sys.update_x() + np.random.normal(0,
+                concentration = sys._x + np.random.normal(0,
                         self._noise_stdev)
             if concentration > self._range[1] or concentration < self._range[0]:
-                return 'OutofRange'
+                return 'outofrange'
             else:
                 return concentration
+
 
 
 class VABConcentrationActuator(VABSensor):
     def set(self, sys, value):
         sys._x = value
-        sys._time = time.time()
+#        sys._time = time.time()
+        sys._time = sys._init_t
+
+
+class VABVirtualTimeActuator(VABSensor):
+    def __init__(self, initial_time=0):
+        self._initial_time = initial_time
+        self._time = initial_time
+
+    def set(self, sys, delta):
+        sys._time = sys._time + delta
+        sys.update_x(delta)
+
+    def time(self, sys):
+        return sys._time
 
 
 class VABSystemExpGrowth(object):
@@ -238,7 +272,7 @@ class VABSystemFirstOrderReaction(object):
     constant (that includes the stoichiometric coefficient, a). """
     
     
-    def __init__(self, init_x, k):
+    def __init__(self, init_x, k, init_t=0):
         # set the initial population based on passed data
         if init_x > 0:
             self._x = float(init_x)
@@ -246,7 +280,8 @@ class VABSystemFirstOrderReaction(object):
             raise ValueError('Invalid initial concentration assignment. Must be greater than 0')
 
         # set the time corresponding to that initial concentration
-        self._time = time.time()
+        self._time = init_t
+        self._init_t = init_t
 
         #set remaining attributes
         self._k = float(k)
@@ -255,37 +290,42 @@ class VABSystemFirstOrderReaction(object):
     """ define a function that returns the current concentration given
     the concentration at some earlier time, time_i.
     """
-    def update_x(self):
-        # first get current time
-        curr_time = time.time()
-        # compute the time elapsed since the last read
-        elapsed_time = curr_time - self._time
+#    def update_x(self, time):
+#        # first get current time
+#        curr_time = time
+#        # compute the time elapsed since the last read
+#        elapsed_time = curr_time - self._time
+#        # now compute the current population based on the model
+#        x = self._x * math.exp(-self._k * elapsed_time) 
+#        # update the class variables before returning the values
+#        self._x = x
+#        self._time = curr_time
+#        
+#        return self._x
+#
+#
+#    def update_time(self, time):
+#        # first get current time
+#        curr_time = time
+#        # compute the time elapsed since the last read
+#        elapsed_time = curr_time - self._time
+#        # now compute the current population based on the model
+#        x = self._x * math.exp(-self._k * elapsed_time) 
+#        # update the class variables before returning the values
+#        self._x = x
+#        self._time = curr_time
+#       
+#        return self._time
+ 
+    def update_x(self, elapsed_time):
         # now compute the current population based on the model
         x = self._x * math.exp(-self._k * elapsed_time) 
         # update the class variables before returning the values
         self._x = x
-        self._time = curr_time
-        
-        return self._x
-
-
-    def update_time(self):
-        # first get current time
-        curr_time = time.time()
-        # compute the time elapsed since the last read
-        elapsed_time = curr_time - self._time
-        # now compute the current population based on the model
-        x = self._x * math.exp(-self._k * elapsed_time) 
-        # update the class variables before returning the values
-        self._x = x
-        self._time = curr_time
-       
-        return self._time
-       
 
     def reset(self):
         self._x = self._init_x
-        self._time = time.time()
+        self._time = self._init_t
  
 
 class VABSystemSecondOrderReaction(object):
@@ -294,7 +334,7 @@ class VABSystemSecondOrderReaction(object):
     constant (that includes the stoichiometric coefficient, a). """
     
     
-    def __init__(self, init_x, k):
+    def __init__(self, init_x, k, init_t=0):
         # set the initial population based on passed data
         if init_x > 0:
             self._x = float(init_x)
@@ -302,7 +342,8 @@ class VABSystemSecondOrderReaction(object):
             raise ValueError('Invalid initial concentration assignment. Must be greater than 0')
 
         # set the time corresponding to that initial concentration
-        self._time = time.time()
+        self._time = init_t
+        self._init_t = init_t
 
         #set remaining attributes
         self._k = float(k)
@@ -311,36 +352,41 @@ class VABSystemSecondOrderReaction(object):
     """ define a function that returns the current concentration given
     the concentration at some earlier time, time_i.
     """
-    def update_x(self):
-        # first get current time
-        curr_time = time.time()
-        # compute the time elapsed since the last read
-        elapsed_time = curr_time - self._time
+#    def update_x(self, time):
+#        # first get current time
+#        curr_time = time
+#        # compute the time elapsed since the last read
+#        elapsed_time = curr_time - self._time
+#        # now compute the current population based on the model
+#        x = self._x / (1. + self._k * elapsed_time * self._x)
+#        # update the class variables before returning the values
+#        self._x = x
+#        self._time = curr_time
+#     
+#        return self._x
+#
+#    def update_time(self, time):
+#        # first get current time
+#        curr_time = time
+#        # compute the time elapsed since the last read
+#        elapsed_time = curr_time - self._time
+#        # now compute the current population based on the model
+#        x = self._x / (1. + self._k * elapsed_time * self._x)
+#        # update the class variables before returning the values
+#        self._x = x
+#        self._time = curr_time
+#       
+#        return self._time
+       
+    def update_x(self, elapsed_time):
         # now compute the current population based on the model
         x = self._x / (1. + self._k * elapsed_time * self._x)
         # update the class variables before returning the values
         self._x = x
-        self._time = curr_time
-     
-        return self._x
-
-    def update_time(self):
-        # first get current time
-        curr_time = time.time()
-        # compute the time elapsed since the last read
-        elapsed_time = curr_time - self._time
-        # now compute the current population based on the model
-        x = self._x / (1. + self._k * elapsed_time * self._x)
-        # update the class variables before returning the values
-        self._x = x
-        self._time = curr_time
-       
-        return self._time
-       
 
     def reset(self):
         self._x = self._init_x
-        self._time = time.time()
+        self._time = self._init_t
  
 
 class VABSystemThirdOrderReaction(object):
@@ -349,7 +395,7 @@ class VABSystemThirdOrderReaction(object):
     constant (that includes the stoichiometric coefficient, a). """
     
     
-    def __init__(self, init_x, k):
+    def __init__(self, init_x, k, init_t=0):
         # set the initial population based on passed data
         if init_x > 0:
             self._x = float(init_x)
@@ -357,7 +403,9 @@ class VABSystemThirdOrderReaction(object):
             raise ValueError('Invalid initial concentration assignment. Must be greater than 0')
 
         # set the time corresponding to that initial concentration
-        self._time = time.time()
+        self._time = init_t
+        self._init_t = init_t
+
 
         #set remaining attributes
         self._k = float(k)
@@ -366,38 +414,44 @@ class VABSystemThirdOrderReaction(object):
     """ define a function that returns the current concentration given
     the concentration at some earlier time, time_i.
     """
-    def update_x(self):
-        # first get current time
-        curr_time = time.time()
-        # compute the time elapsed since the last read
-        elapsed_time = curr_time - self._time
+#    def update_x(self, time):
+#        # first get current time
+#        curr_time = time
+#        # compute the time elapsed since the last read
+#        elapsed_time = curr_time - self._time
+#        # now compute the current population based on the model
+#        x = self._x / math.pow((1. + 2. * self._k * elapsed_time *
+#            math.pow(self._x,2)),0.5)
+#        # update the class variables before returning the values
+#        self._x = x
+#        self._time = curr_time
+#       
+#        return self._x
+#
+#    def update_time(self, time):
+#        # first get current time
+#        curr_time = time
+#        # compute the time elapsed since the last read
+#        elapsed_time = curr_time - self._time
+#        # now compute the current population based on the model
+#        x = self._x / math.pow((1. + 2. * self._k * elapsed_time *
+#            math.pow(self._x,2)),0.5)
+#        # update the class variables before returning the values
+#        self._x = x
+#        self._time = curr_time
+#       
+#        return self._time
+       
+    def update_x(self, elapsed_time):
         # now compute the current population based on the model
         x = self._x / math.pow((1. + 2. * self._k * elapsed_time *
             math.pow(self._x,2)),0.5)
         # update the class variables before returning the values
         self._x = x
-        self._time = curr_time
-       
-        return self._x
-
-    def update_time(self):
-        # first get current time
-        curr_time = time.time()
-        # compute the time elapsed since the last read
-        elapsed_time = curr_time - self._time
-        # now compute the current population based on the model
-        x = self._x / math.pow((1. + 2. * self._k * elapsed_time *
-            math.pow(self._x,2)),0.5)
-        # update the class variables before returning the values
-        self._x = x
-        self._time = curr_time
-       
-        return self._time
-       
 
     def reset(self):
         self._x = self._init_x
-        self._time = time.time()
+        self._time = self._init_t
 
 
 class VABSystemInterface( object ):
@@ -774,13 +828,29 @@ class SymModel( object ):
     polynomials were fit
     """
     
-    def __init__(self, index_var, target_var, sampled_data, polynomials = [],
+    def __init__(self, index_var, target_var, sys_id, sampled_data, polynomials = [],
             epsilon=None):
         self._polynomials = polynomials
         self._index_var = index_var
         self._target_var = target_var
         self._sampled_data = sampled_data
         self._epsilon = epsilon
+        self._sys_id = sys_id
 
     def Update(self, polynomials):
         self._polynomials = polynomials
+
+
+class Category( object ):
+    """ Holds a list of system ids  belonging to the same dynamical kind along with
+    a paradigm model for that kind.
+    """
+    def __init__(self, systems=set([]), paradigm=None):
+        self._systems = systems
+        self._paradigm = paradigm
+
+    def add_system(self, sys):
+        self._systems = self._systems.union(set([sys]))
+
+    def update_paradigm(self, new_paradigm_system):
+        self._paradigm = new_paradigm_system
