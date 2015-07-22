@@ -648,7 +648,7 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
             mmse_candidate = np.mean(np.array(mse))
 
             # if significantly better, keep it. If not, keep the old and halt.
-            if (mmse - mmse_candidate) > epsilon:
+            if (mmse - mmse_candidate) / mmse > epsilon:
                 mmse = mmse_candidate
                 best_fit_order = order
                 best_fit = fit
@@ -882,6 +882,7 @@ def CompareModels(model1, model2):
             x = training_set[:,0]
             y = training_set[:,1]
             fit = np.polyfit(x, y, 1)
+           
             # compute error of fit against partitition p
             x = partition[p][:,0]
             y = partition[p][:,1]
@@ -928,7 +929,7 @@ def CompareModels(model1, model2):
             mmse_candidate = np.mean(np.array(mse))
 
             # if significantly better, keep it. If not, keep the old and halt.
-            if (mmse - mmse_candidate) > min(model1._epsilon, model2._epsilon):
+            if (mmse - mmse_candidate) / mmse > min(model1._epsilon, model2._epsilon): 
                 mmse = mmse_candidate
                 best_fit_order = order
                 best_fit = fit
@@ -1031,6 +1032,31 @@ def Classify(system_ids, models):
         # if the system doesn't fit a known category, make a new one
         if categorized == False:
             classes.append(Category(set([sys_id]), models[sys_id]))
+
+    # go back and try to classify any singletons
+    revised_classes = []
+    singletons = []
+    for c in classes:
+        if len(c._systems) == 1:
+            singletons.append(c)
+        else:
+            revised_classes.append(c)
+    for s in singletons:
+        sys_id = s._systems.pop()
+        categorized = False
+        for c in revised_classes:
+            # compare the unknown system to the paradigm
+            result = CompareModels(models[sys_id], c._paradigm)
+            if result != None:
+                categorized = True
+                c.add_system(sys_id)
+                c.update_paradigm(result)
+                break
+        # if the system doesn't fit a known category, make a new one
+        if categorized == False:
+            revised_classes.append(Category(set([sys_id]), models[sys_id]))
+
+    classes = revised_classes
 
     # return the list of classes
     return classes

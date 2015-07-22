@@ -196,11 +196,11 @@ def testCompareModels(noise_stdev=0.001, proportional=False, epsilon=10**(-4)):
 
     # build ROIs
     ROI1 = dict([(1, [0.,np.log(2.)]),(2,[0.1,1.])])
-    ROI2 = dict([(1, [0.,1./0.1]),(2,[0.1,1])])
-    ROI3 = dict([(1, [0.,3. / (2.)]),(2,[0.1,1])])
+    ROI2 = dict([(1, [0.,1./1.]),(2,[0.1,1])])
+    ROI3 = dict([(1, [0.,3. / (2.*1.**2)]),(2,[0.1,1])])
     ROI4 = dict([(1, [0.,np.log(2.)/5.]),(2,[0.1,1])])
-    ROI5 = dict([(1, [0.,1./(5. * 0.1)]),(2,[0.1,1])])
-    ROI6 = dict([(1, [0., 3./(10.)]),(2,[0.1,1])])
+    ROI5 = dict([(1, [0.,1./(5. * 1.)]),(2,[0.1,1])])
+    ROI6 = dict([(1, [0., 3./(10.*1.**2)]),(2,[0.1,1])])
 
     # get two sets of data for sys1
     [data11, data12] = [TimeSampleData(1,2,interface1,ROI1),
@@ -238,41 +238,51 @@ def testCompareModels(noise_stdev=0.001, proportional=False, epsilon=10**(-4)):
     print "Expected pattern: y, y, y, n, n, n, y, y, y, n, n, n\n"
     return out
 
-def testClassifier(noise_stdev=0.001, epsilon=10**(-4)):
+def testClassifier(noise_stdev=0.001, epsilon=10**(-4),proportional=False):
     # build sensors and actuators
     tsensor = VABTimeSensor([])
-    xsensor = VABConcentrationSensor([-1,3], noise_stdev)
+    xsensor = VABConcentrationSensor([-1,3], noise_stdev,proportional)
     xact = VABConcentrationActuator([0,1])
+    tact = VABVirtualTimeActuator()
 
     #build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1, tsensor), (2, xsensor)])
-    actuators = dict([(2,xact)])
+    actuators = dict([(1,tact),(2,xact)])
 
     # build three of each type of system with randomly chosen parameters
     systems = []
     for i in range(3):
         systems.append(VABSystemFirstOrderReaction(np.random.uniform(0.1,1.0),
-            np.random.uniform(0.5,1)))
+            np.random.uniform(0.5,5)))
     for i in range(3):
         systems.append(VABSystemSecondOrderReaction(np.random.uniform(0.1,1.0),
-            np.random.uniform(0.5,1)))
+            np.random.uniform(0.5,5)))
     for i in range(3):
         systems.append(VABSystemThirdOrderReaction(np.random.uniform(0.1,1.0),
-            np.random.uniform(0.5,1)))
+            np.random.uniform(0.5,5)))
 
     # build corresponding interfaces
     interfaces = []
     for sys in systems:
         interfaces.append(VABSystemInterface(sensors, actuators, sys))
 
-    # build ROI
-    ROI = dict([(1, [0,1]),(2,[0.1,1])])
+    # build ROIs
+    ROIs = []
+    for counter, sys in enumerate(systems):
+        if counter <3:
+            ROIs.append(dict([(1, [0., np.log(2)/sys._k]),(2, [0.1,1.])]))
+        elif 2 < counter and counter < 6:
+            ROIs.append(dict([(1, [0., 1./(sys._k * 1.)]),(2,[0.1,1.])]))
+        else:
+            ROIs.append(dict([(1, [0.,
+                3./(2.*sys._k*np.power(1.,2))]),(2,[0.1,1.])]))
 
     # collect data
     data = []
     for count, interface in enumerate(interfaces):
-        print "Sampling data for system {}...\n".format(count)
-        data.append(TimeSampleData(1, 2, interface, ROI))
+        print "Sampling data for system {}. ROI for time: {}.\n".format(count, 
+                ROIs[count][1])
+        data.append(TimeSampleData(1, 2, interface, ROIs[count]))
 
     # build models of the data
     models = []
@@ -283,3 +293,94 @@ def testClassifier(noise_stdev=0.001, epsilon=10**(-4)):
     classes = Classify(range(len(systems)), models)
 
     return classes
+
+def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
+    
+    import matplotlib.pyplot as plt
+
+    # build sensors and actuators
+    tsensor = VABTimeSensor([])
+    xsensor = VABConcentrationSensor([0.,10.**23], noise_stdev, True)
+    xact = VABConcentrationActuator([0.,10.**23])
+    tact = VABVirtualTimeActuator()
+
+    #build a dictionary of sensors and a dictionary of actuators
+    sensors = dict([(1, tsensor), (2, xsensor)])
+    actuators = dict([(1,tact),(2,xact)])
+
+    # build systems from data
+    systems = []
+    # first-order
+    # HO3 --> OH + O2 
+    systems.append(VABSystemFirstOrderReaction(10.**(-6), 1.1*10.**5))
+    # second-order
+    # HOI + O3
+    systems.append(VABSystemSecondOrderReaction(10.**(-6),
+            3.6*10.**4))
+    # OI- + O3
+    systems.append(VABSystemSecondOrderReaction(10.**(-6), 1.6*10.**6))
+    # HOI + HOCl
+    systems.append(VABSystemSecondOrderReaction(10.**(-6), 8.2))
+    # HOI + OCl-
+    systems.append(VABSystemSecondOrderReaction(10.**(-6), 52))
+
+    # third-order
+    # HOI + HOCl + HOCl
+    systems.append(VABSystemThirdOrderReaction(10.**(-6),
+            8.3*10.**4))
+
+    # build corresponding interfaces
+    interfaces = []
+    for sys in systems:
+        interfaces.append(VABSystemInterface(sensors, actuators, sys))
+
+    # build ROIs
+    ROIs = []
+    for counter, sys in enumerate(systems):
+        if counter == 0:
+            ROIs.append(dict([(1, [0., np.log(2)/sys._k]),(2,
+                [10.**(-6),10.**(-4)])]))
+        elif counter == 1:
+            ROIs.append(dict([(1, [0., 1./(sys._k *
+                (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+        elif counter == 2:
+            ROIs.append(dict([(1, [0., 1./(sys._k *
+                (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+        elif counter == 3:
+            ROIs.append(dict([(1, [0., 1./(sys._k * (10**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+        elif counter == 4:
+            ROIs.append(dict([(1, [0.,
+                1./(sys._k*10.**(-4))]),(2,[10.**(-6),10.**(-4)])]))
+        elif counter == 5:
+            ROIs.append(dict([(1, [0.,
+                3./(2.*sys._k*(10.**(-4))**2)]),(2,[10.**(-6),10.**(-4)])]))
+
+            
+    # collect data
+    data = []
+    for count, interface in enumerate(interfaces):
+        print "Sampling data for system {}. ROI for time: {}. ROI for concentration: {}.\n".format(count, 
+                ROIs[count][1], ROIs[count][2])
+        data.append(TimeSampleData(1, 2, interface, ROIs[count]))
+
+    # plot the data (raw)
+    for i, frame in enumerate(data):
+        plt.figure(1)
+        plt.subplot(2,3,i+1)
+        t = frame._index_values
+        x = frame._target_values
+        x = np.array(x).transpose()
+        plt.plot(t, x, 'bo')
+        plt.show
+
+    # build models of the data
+    models = []
+    for sys_id, data_frame in enumerate(data):
+        models.append(BuildModel(data_frame, sys_id, epsilon))
+
+    # classify the systems
+    classes = Classify(range(len(systems)), models)
+
+    return classes
+
+
