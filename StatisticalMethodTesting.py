@@ -310,9 +310,11 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
 
     # build systems from data
     systems = []
+
     # first-order
     # HO3 --> OH + O2 
     systems.append(VABSystemFirstOrderReaction(10.**(-6), 1.1*10.**5))
+    
     # second-order
     # HOI + O3
     systems.append(VABSystemSecondOrderReaction(10.**(-6),
@@ -364,14 +366,15 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
         data.append(TimeSampleData(1, 2, interface, ROIs[count]))
 
     # plot the data (raw)
-    for i, frame in enumerate(data):
-        plt.figure(1)
-        plt.subplot(2,3,i+1)
-        t = frame._index_values
-        x = frame._target_values
-        x = np.array(x).transpose()
-        plt.plot(t, x, 'bo')
-        plt.show
+#    plt.figure(1)
+#    plt.subplots(2,3,sharey=True)
+#    for i, frame in enumerate(data):
+#        plt.subplot(2,3,i+1)
+#        t = frame._index_values
+#        x = frame._target_values
+#        x = np.array(x).transpose()
+#        plt.plot(t, x, 'bo')
+#    plt.show
 
     # build models of the data
     models = []
@@ -380,6 +383,67 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
 
     # classify the systems
     classes = Classify(range(len(systems)), models)
+
+    # build text for annotating plots
+    annot = [[]] * 6
+    annot[0] = [r'$HO_3 \rightarrow OH + O_2$', 3*10**(-6), 0.8*10**(-4)]
+    annot[1] = [r'$HOI + O_3 \rightarrow IO_3^- $', 0.1, 0.8*10**(-4)]
+    annot[2] = [r'$OI^- + O_3 \rightarrow IO_3^- $', 3*10**(-3), 0.8*10**(-4)]
+    annot[3] = [r'$HOI + HOCl \rightarrow IO_3^- $', 600, 0.8*10**(-4)]
+    annot[4] = [r'$HOI + OCl \rightarrow IO_3^- $', 75, 0.8*10**(-4)]
+    annot[5] = [r'$HOI + HOCl + HOCl \rightarrow IO_3^- $', 450, 0.8*10**(-4)]
+    
+    # plot the data (without indicating classification
+    f, ax = plt.subplots(2,3,sharey=True)
+    ax = ax.flatten()
+    f.set_size_inches(12,8)
+    for i, c in enumerate(classes):
+        for sys in c._systems:
+#            plt.subplot(2,3,sys)
+            t = data[sys]._index_values
+            x = data[sys]._target_values
+            x = np.array(x).transpose()
+            current_axes = ax[sys]
+            current_axes.plot(t, x, 'bo')
+            current_axes.set_xlabel('time [s]')
+            # make axes display in exponential notation in desired range
+            current_axes.get_yaxis().get_major_formatter().set_powerlimits((-3,
+                3))
+            current_axes.get_xaxis().get_major_formatter().set_powerlimits((-3,
+                3))
+            # annotate
+            current_axes.text(annot[sys][1], annot[sys][2], annot[sys][0],
+                    fontsize=12)
+            if sys == 0:
+                current_axes.set_ylabel('[X] [moles/L]')
+    f.savefig('./outputs/fig1.png', dpi=300)
+
+    # replot the data (classified)
+    colors = ['bo','go','ro']
+#    plt.figure(2)
+    f, ax = plt.subplots(2,3,sharey=True)
+    ax = ax.flatten()
+    f.set_size_inches(12,8)
+    for i, c in enumerate(classes):
+        for sys in c._systems:
+#            plt.subplot(2,3,sys)
+            t = data[sys]._index_values
+            x = data[sys]._target_values
+            x = np.array(x).transpose()
+            current_axes = ax[sys]
+            current_axes.plot(t, x, colors[i])
+            # make axes display in exponential notation in desired range
+            current_axes.get_yaxis().get_major_formatter().set_powerlimits((-3,
+                3))
+            current_axes.get_xaxis().get_major_formatter().set_powerlimits((-3,
+                3))           
+            current_axes.set_xlabel('time [s]')
+            # annotate
+            current_axes.text(annot[sys][1], annot[sys][2], annot[sys][0],
+                    fontsize=12)
+            if sys == 0:
+                current_axes.set_ylabel('[X] [moles/L]')
+    f.savefig('./outputs/fig2.png', dpi=300)
 
     return classes
 
