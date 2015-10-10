@@ -4,6 +4,16 @@ import copy
 import random
 import numpy as np
 
+
+class VABSensor( object ):
+    def __init__(self, dynamic_range):
+        self._init_value = None
+        self._range = dynamic_range
+
+    def get_range(self):
+        return self._range
+
+
 #Virtual Actuators
 class VABVirtualTimeActuator(VABSensor):
     def __init__(self, initial_time=0):
