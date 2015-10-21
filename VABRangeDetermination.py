@@ -6,6 +6,7 @@ Created on Sep 30, 2015
 
 # VABRangeDetermination.py
 import numpy as np
+import math
 
 class sect (object):
     """ Class that represents a section of the original dataset.
@@ -29,6 +30,8 @@ class sect (object):
 
 def trisect(item):
     if item.data.size < 3:
+        # we can't split an atom, so return the item in triplicate.
+        # this forces the algorithm into stopping.
         return [item, item, item]
         
     size = item.data.size
@@ -42,10 +45,10 @@ def trisect(item):
     delta = sect(third, score(third), start + firstInd * 2)
     return [alpha, beta, delta]
 
-def score(item):
-    min = np.amin(item)
-    max = np.amax(item)
-    score = abs(max-min)/item.size
+def score(array):
+    min = np.amin(array)
+    max = np.amax(array)
+    score = abs(max-min)/(array.size/math.sqrt(array.size))
     return score
 
 def aIsMoreLike(a, b, c):
