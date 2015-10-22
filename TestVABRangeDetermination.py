@@ -8,10 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from VABClasses import *
 from VABProcess import *
+import math
 
 def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
-    
-    import matplotlib.pyplot as plt
 
     # build sensors and actuators
     tsensor = VABTimeSensor([])
@@ -93,26 +92,49 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
 
     return data
 
-# a = np.array([2,3,4,5,5.5,6,6.5,7,6.5,6,5.5,5,4,3,2,1.5,1,1,1.5,1])
+def funcFillArray(function, length, delta=1, start=0):
+    res = np.zeros(length)
+    x = start
+    for i in range(0, length):
+        res[i] = function(x)
+        x += delta
+    return res
+
+inLog = lambda x: 1/math.log(x+1)
+
+parabola = lambda x: math.pow(x, 2)
+
+def bump(x):
+    if abs(x) < 1:
+        return  math.pow(math.e, -(1/(1-math.pow(x,2))))
+    else:
+        return 0
+
+b = np.array([2,3,4,5,5.5,6,6.5,7,6.5,6,5.5,5,4,3,2,1.5,1,1,1.5,1])
 a = np.array([2303, 210, 110, 75, 57, 46, 38, 33, 29, 26, 23, 21, 20, 18, 17, 16, 15, 14, 13, 13, 12, 12, 11, 11, 10, 10, 9, 9, 9, 9, 8, 8, 8, 8, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5])
-data = CLMPSdemo()[1]._target_values
+c = funcFillArray(math.sin, 1000, .1)
+d = funcFillArray(inLog, 50, .1, .1)
+e = funcFillArray(parabola, 50, 1, -24)
+f = funcFillArray(bump, 50, .0625, -1.5)
+#data = CLMPSdemo()[1]._target_values
 
-n = -1
-for array in data:
-    n = n + 1
-    print n
-    result = V.findRange(array)
-    plt.plot(array, "b")
-    stop = (int)(result.start+result.data.size)
-    start = (int)(result.start)
-    plt.plot(range(start, stop), result.data, "r")
+#for array in data:
+#    result = V.findRange(array)
+#    plt.plot(array, "b")
+#    stop = (int)(result.start+result.data.size)
+#    start = (int)(result.start)
+#    plt.plot(range(start, stop), result.data, "r")
 #i=3
-#result = V.findRange(a)
-#plt.plot(a, "b")
-#stop = (int)(result.start+result.data.size)
-#start = (int)(result.start)
-#plt.plot(range(start, stop), result.data, "r")
 
+test = a
 
+result = V.findRange(test)
+plt.plot(test, "b")
+stop = (int)(result.start+result.data.size)
+start = (int)(result.start)
+
+plt.plot(range(start, stop), result.data, "r")
+plt.plot(np.diff(test), "y")
+plt.plot(np.diff(test, n=2), "g")
 
 plt.show()
