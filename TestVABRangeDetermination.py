@@ -78,18 +78,7 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
         print "Sampling data for system {}. ROI for time: {}. ROI for concentration: {}.\n".format(count, 
                 ROIs[count][1], ROIs[count][2])
         data.append(TimeSampleData(1, 2, interface, ROIs[count]))
-
-    # plot the data (raw)
-#    plt.figure(1)
-#    plt.subplots(2,3,sharey=True)
-#    for i, frame in enumerate(data):
-#        plt.subplot(2,3,i+1)
-#        t = frame._index_values
-#        x = frame._target_values
-#        x = np.array(x).transpose()
-#        plt.plot(t, x, 'bo')
-#    plt.show
-
+        
     return data
 
 def funcFillArray(function, length, delta=1, start=0):
@@ -126,7 +115,7 @@ f = funcFillArray(bump, 50, .0625, -1.5)
 #    plt.plot(range(start, stop), result.data, "r")
 #i=3
 
-test = a
+test = d
 
 result = V.findRange(test)
 plt.plot(test, "b")

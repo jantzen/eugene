@@ -46,10 +46,34 @@ def trisect(item):
     return [alpha, beta, delta]
 
 def score(array):
-    min = np.amin(array)
-    max = np.amax(array)
-    score = abs(max-min)/(array.size/math.sqrt(array.size))
-    return score
+    
+    score1 = 0
+    score2 = 0
+    score3 = 0
+    # max-min seems very similar to using discrete differencing.
+    # perhaps using the average value of the first difference is better?
+    if array.size > 1:
+        min1 = np.amin(array)
+        max1 = np.amax(array)
+        score1 = abs(max1-min1)/(array.size/math.sqrt(array.size))
+        diff1 = np.diff(array)
+    
+        if diff1.size > 1:
+            min2 = np.amin(diff1)
+            max2 = np.amax(diff1)
+            score2 = np.average(diff1)
+            #score2 = abs(max2-min2)/(diff1.size/math.sqrt(diff1.size))
+            diff2 = np.diff(array, n=2)
+    
+            if diff2.size > 1:
+                min3 = np.amin(diff2)
+                max3 = np.amax(diff2)
+                score3 = abs(max3-min3)/(diff2.size/math.sqrt(diff2.size))
+    
+    print score1
+    print score2
+    print "-------------------"
+    return score1+score2
 
 def aIsMoreLike(a, b, c):
     if(abs(a-b)<abs(a-c)):
