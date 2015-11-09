@@ -7,6 +7,7 @@ Created on Sep 30, 2015
 # VABRangeDetermination.py
 import numpy as np
 import math
+import VABProcess as vp
 
 class sect (object):
     """ Class that represents a section of the original dataset.
@@ -132,3 +133,28 @@ def findRange(item):
                 finished = False
                 
     return best
+
+def findMonotone(item, start = 0):
+    # item is an array of format array([y0, y1, ..., yn])
+    index = start
+    previous = item[index]
+    climb = -1
+    
+    for datum in item[index+1:]:
+        index = index + 1
+        if datum > previous:
+            if index == start + 1:
+                # this is our second piece of data, we're climbing
+                climb = True
+                # look for a max
+            elif climb == False:
+                return index
+        elif datum < previous:
+            if index == start + 1:
+                # this is our second piece of data, we're climbing
+                climb = False
+                # look for a min
+            elif climb == True:
+                return index
+        previous = datum
+        
