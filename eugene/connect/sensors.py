@@ -63,3 +63,31 @@ class VABConcentrationSensor(VABSensor):
             else:
                 return concentration
 
+class VABVoltageSensor(VABSensor):
+    def __init__(self, dynamic_range, noise_stdev=0, proportional=False):
+        self._range = dynamic_range
+        self._noise_stdev = noise_stdev
+
+
+    def read(self, sys):
+        
+        if len(self._range) != 9:       # Is the right range (0-10) specified? 
+            raise ValueError('No sensor range specified.')
+        else:
+            # start with what our noise looks like.     
+            if self._noise_stdev == 0:
+                voltage = sys._v
+            elif self.proportional:  # if the noise is proportional...
+                v = sys._v
+                noise = np.random.normal(0, self._noise_stdev * v)
+                voltage = v + noise
+            else: 
+                voltage = sys._v + np.random.normal(0,self._noise_stdev)   
+            # now check that the voltage falls within sensor range
+            if voltage > self._range(9) or voltage < self._range(0):
+                return 'Error, that\'s not in range!'
+            else:
+                return voltage
+                
+                
+        

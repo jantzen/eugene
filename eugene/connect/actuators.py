@@ -26,6 +26,7 @@ class VABVirtualTimeActuator(VABSensor):
 
     def time(self, sys):
         return sys._time
+    
 
 #Real Actuators
 class VABConcentrationActuator(VABSensor):
@@ -36,3 +37,9 @@ class VABConcentrationActuator(VABSensor):
 #       what if "system = None"
         sys._time = sys._init_t
 
+
+# Actuator to kick virtual circuit, based on concentration material       
+class VABVoltageActuator(VABSensor):
+    def set(self, sys, value):
+        sys._v = value
+        sys._time = sys._init_t    
