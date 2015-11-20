@@ -5,7 +5,6 @@ import scipy.stats as stats
 # SymModel
 
 #Functions:
-#  BuildModel  
 #  BuildSymModel
 #  CompareModels
 
@@ -29,14 +28,16 @@ class SymModel( object ):
         polynomials were fit
     """
     
-    def __init__(self, index_var, target_var, sys_id, sampled_data, polynomials = [],
-            epsilon=None):
-        self._polynomials = polynomials
+    def __init__(self, index_var, target_var, sys_id, sampled_data, polynomials
+            = [], sse=None, NumberOfSamples=0, epsilon=None):
         self._index_var = index_var
         self._target_var = target_var
-        self._sampled_data = sampled_data
-        self._epsilon = epsilon
         self._sys_id = sys_id
+        self._sampled_data = sampled_data
+        self._polynomials = polynomials
+        self._sse = sse
+        self._NumberOfSamples = NumberOfSamples
+        self._epsilon = epsilon
 
     def Update(self, polynomials):
         self._polynomials = polynomials
@@ -45,11 +46,6 @@ class SymModel( object ):
 ###################################################################
 ###################################################################
 #Functions
-
-def BuildModel(data_frame, sys_id, epsilon=0):
-    model = BuildSymModel(data_frame, 1, 2, sys_id, epsilon)
-
-    return model
 
 def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
     # from the raw curves of target vs. index, build tranformation 
@@ -61,7 +57,10 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
     # to choose the order
 #    pdb.set_trace()
     polynomials = []
+    SSerrors = []
     sampled_data = []
+    NumberOfSamples = 0
+
     for curve in ordinates:
         # first try a linear fit
         order = 1
@@ -153,33 +152,21 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
         y = data[:,1]
         best_fit = np.polyfit(x, y, best_fit_order)
         polynomials.append(best_fit)
+
+        # compute the sum of squared errors for the best fit and append to the
+        # list
+        sse = 0
+        for i in range(len(x)):
+            sse += (np.polyval(best_fit, x[i]) - y[i])**2
+        SSerrors.append(sse)
         
-#        # compute and save coeficient of determination
-#        SStot = np.sum(np.power(curve - np.mean(y),2))
-#        SSres = np.sum(np.power(np.polyval(best_fit, x) - y, 2))
-#        R2 = 1. - SSres/SStot
-#        R2vals.append(R2)
-#   
-#    # for the best-fit polynomials, use random subsets of the data to sample
-#    # values of the coefficient of determination
-#    R2_samples = [[] for i in range(len(polynomials))]
-#    for i, poly in enumerate(polynomials):
-#        y_complete = ordinates[i]
-#        data_complete = np.vstack((abscissa, y_complete))
-#        data_complete = data_complete.transpose()
-#        for j in range(20):
-#            np.random.shuffle(data_complete)
-#            x = data_complete[1:int(len(data_complete)/2.),0]
-#            y = data_complete[1:int(len(data_complete)/2.),1]
-#            m = np.polyval(poly, x)
-#            SStot = np.sum(np.power(y - np.mean(y),2))
-#            SSres = np.sum(np.power(m - y, 2))
-#            R2 = 1. - SSres/SStot
-#            R2_samples[i].append(R2)
         sampled_data.append(data)
+        NumberOfSamples += len(x)
     
     # build and output a SymModel object
-    return SymModel(index_var, target_var, sys_id, sampled_data, polynomials, epsilon)
+    sse = sum(SSerrors)
+    return SymModel(index_var, target_var, sys_id, sampled_data, polynomials,
+            sse, NumberOfSamples, epsilon)
 
 
 def CompareModels(model1, model2):
@@ -192,6 +179,8 @@ def CompareModels(model1, model2):
     # initialize containers for data that may be passed out
     combined_sampled_data = []
     combined_polynomials = []
+    SSerrors = []
+    NumberOfSamples = 0
 
     for counter, poly1 in enumerate(model1._polynomials):
         # import relevant data
@@ -285,67 +274,94 @@ def CompareModels(model1, model2):
         # using the best-fit order, fit the full data set
         x = data[:,0]
         y = data[:,1]
-        null_hyp = np.polyfit(x, y, best_fit_order)
+        best_fit = np.polyfit(x, y, best_fit_order)
+        combined_polynomials.append(best_fit)
 
-        # save the best fit polynomial
-        combined_polynomials.append(null_hyp)
-
-        # now use the same 'model' (the same order polynomial) to fit each data
-        # set individually
-        poly1 = np.polyfit(data1[:,0], data1[:,1], best_fit_order)
-        poly2 = np.polyfit(data2[:,0], data2[:,1], best_fit_order)
-
-        # compute sum of squares (SS) and degrees of freedom (df) for the null
-        # hypothesis: both data sets are described by the same polynomial
-
-        # first, construct a function to norm the data
-        norm = lambda x: (x - np.mean(data[:,1])) / (np.max(data[:,1]) -
-            np.min(data[:,1])) 
-
-        # SS null
-        SSnull = 0
-        for i in range(len(data)):
-            x = data[i,0]
-            y = data[i,1]
-            SSnull += np.power(norm(y) - norm(np.polyval(null_hyp, x)), 2.)
-
-        # df null
-        df_null = len(data) - len(null_hyp)
-
-        # SS alt
-        SSalt = 0
-        for i in range(len(data1)):
-            x = data1[i, 0]
-            y = data1[i, 1]
-            SSalt += np.power(norm(y) - norm(np.polyval(poly1, x)), 2.)
-
-        for i in range(len(data2)):
-            x = data2[i, 0]
-            y = data2[i, 1]
-            SSalt += np.power(norm(y) - norm(np.polyval(poly2, x)), 2.)
+        # compute the sum of squared errors for the best fit and append to the
+        # list
+        sse = 0
+        for i in range(len(x)):
+            sse += (np.polyval(best_fit, x[i]) - y[i])**2
+        SSerrors.append(sse)
         
-        # df alt
-        df_alt = len(data1) - len(poly1) + len(data2) - len(poly2)
-
-        # F-statistic
-        F = ((SSnull - SSalt)/SSalt)/((float(df_null) -
-            float(df_alt))/float(df_alt))
-
-        # p-value
-        p = 1. - stats.f.cdf(F, (df_null - df_alt), df_alt) 
-
-        p_vals.append(p)
+        combined_sampled_data.append(data)
+        NumberOfSamples += len(x)
+ 
+#        null_hyp = np.polyfit(x, y, best_fit_order)
+#
+#        # save the best fit polynomial
+#        combined_polynomials.append(null_hyp)
+#
+#        # now use the same 'model' (the same order polynomial) to fit each data
+#        # set individually
+#        poly1 = np.polyfit(data1[:,0], data1[:,1], best_fit_order)
+#        poly2 = np.polyfit(data2[:,0], data2[:,1], best_fit_order)
+#
+#        # compute sum of squares (SS) and degrees of freedom (df) for the null
+#        # hypothesis: both data sets are described by the same polynomial
+#
+#        # first, construct a function to norm the data
+#        norm = lambda x: (x - np.mean(data[:,1])) / (np.max(data[:,1]) -
+#            np.min(data[:,1])) 
+#
+#        # SS null
+#        SSnull = 0
+#        for i in range(len(data)):
+#            x = data[i,0]
+#            y = data[i,1]
+#            SSnull += np.power(norm(y) - norm(np.polyval(null_hyp, x)), 2.)
+#
+#        # df null
+#        df_null = len(data) - len(null_hyp)
+#
+#        # SS alt
+#        SSalt = 0
+#        for i in range(len(data1)):
+#            x = data1[i, 0]
+#            y = data1[i, 1]
+#            SSalt += np.power(norm(y) - norm(np.polyval(poly1, x)), 2.)
+#
+#        for i in range(len(data2)):
+#            x = data2[i, 0]
+#            y = data2[i, 1]
+#            SSalt += np.power(norm(y) - norm(np.polyval(poly2, x)), 2.)
+#        
+#        # df alt
+#        df_alt = len(data1) - len(poly1) + len(data2) - len(poly2)
+#
+#        # F-statistic
+#        F = ((SSnull - SSalt)/SSalt)/((float(df_null) -
+#            float(df_alt))/float(df_alt))
+#
+#        # p-value
+#        p = 1. - stats.f.cdf(F, (df_null - df_alt), df_alt) 
+#
+#        p_vals.append(p)
 
 #    pdb.set_trace()
 
     # if most of the p_vals exceed alpha = 0.05, then conclude that the models
     # are equivalent and return the new combined model; otherwise, return an
     # empty list. 
-    p_vals = np.array(p_vals)
-    if (np.sum(np.greater(p_vals, np.ones(p_vals.shape)*0.05)) >
-         round(len(p_vals)/2.)):
-        return SymModel(model1._index_var, model1._target_var, model1._sys_id,
-                combined_sampled_data, combined_polynomials,
-                min(model1._epsilon, model2._epsilon))
+#    p_vals = np.array(p_vals)
+#    if (np.sum(np.greater(p_vals, np.ones(p_vals.shape)*0.05)) >
+#         round(len(p_vals)/2.)):
+#        return SymModel(model1._index_var, model1._target_var, model1._sys_id,
+#                combined_sampled_data, combined_polynomials,
+#                min(model1._epsilon, model2._epsilon))
+#    else:
+#        return None
+
+    # if the mse of the individual models is not significantly less than that of the 
+    # combined model, return the combined model; otherwise, return an empty list
+    mse_individual = (model1._sse + model2._sse)/(model1._NumberOfSamples +
+            model2._NumberOfSamples)
+    mse_combined = sum(SSerrors)/NumberOfSamples
+    if (mse_individual - mse_combined)/mse_combined > min(model1._epsilon,
+            model2._epsilon):
+        return SymModel(model1._index_var, model1._target_var,
+                model1._sys_id, combined_sampled_data,
+                combined_polynomials,sum(SSerrors),NumberOfSamples,min(model1._epsilon,
+                    model2._epsilon))
     else:
         return None
