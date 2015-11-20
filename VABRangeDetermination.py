@@ -29,6 +29,20 @@ class sect (object):
     def setStart(self, val):
         self.start = val
 
+def curveFind(item):
+    data = np.zeros(item.size)
+    rise = item[-1]-item[0]
+    run = item.size - 1
+    
+    line = lambda x: (rise/run)*x+item[0]
+    
+    i = 0
+    for datum in item:
+        data[i] = datum - line(i)
+        i = i + 1
+        
+    return data
+
 def trisect(item):
     if item.data.size < 3:
         # we can't split an atom, so return the item in triplicate.
