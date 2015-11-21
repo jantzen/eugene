@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.stats as stats
+import warnings
 
 #Classes:
 # SymModel
@@ -28,15 +29,12 @@ class SymModel( object ):
         polynomials were fit
     """
     
-    def __init__(self, index_var, target_var, sys_id, sampled_data, polynomials
-            = [], sse=None, NumberOfSamples=0, epsilon=None):
+    def __init__(self, index_var, target_var, sys_id, sampled_data, polynomials = [], epsilon=None):
         self._index_var = index_var
         self._target_var = target_var
         self._sys_id = sys_id
         self._sampled_data = sampled_data
         self._polynomials = polynomials
-        self._sse = sse
-        self._NumberOfSamples = NumberOfSamples
         self._epsilon = epsilon
 
     def Update(self, polynomials):
@@ -57,9 +55,7 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
     # to choose the order
 #    pdb.set_trace()
     polynomials = []
-    SSerrors = []
     sampled_data = []
-    NumberOfSamples = 0
 
     for curve in ordinates:
         # first try a linear fit
@@ -72,7 +68,7 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
         partition = np.array_split(data, 10)
 
         # compute the error using each partition as validation set
-        mse = []
+        square_error = []
         for p in range(len(partition)):
             # build training data
             training_set = np.empty([0,2],dtype='float64')
@@ -87,13 +83,11 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
             # compute error of fit against partitition p
             x = partition[p][:,0]
             y = partition[p][:,1]
-            sum_square_error = 0
             for i in range(len(x)):
-                sum_square_error += (np.polyval(fit, x[i]) - y[i])**2
-            mse.append(sum_square_error/len(x))
+                square_error.append((np.polyval(fit, x[i]) - y[i])**2)
 
         # compute mean square error for first order
-        mmse = np.mean(np.array(mse))
+        mse = np.mean(np.array(square_error))
         best_fit_order = order
 
         # assess fits for higher-order polynomials until the minimum is passed
@@ -109,7 +103,7 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
             partition = np.array_split(data, 10)
     
             # compute the error using each partition as validation set
-            mse = []
+            square_error = []
             for p in range(len(partition)):
                # build training data
                training_set = np.empty([0,2],dtype='float64')
@@ -123,17 +117,15 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
                # compute error of fit against partition p
                x = partition[p][:,0]
                y = partition[p][:,1]
-               sum_square_error = 0
                for i in range(len(x)):
-                   sum_square_error += (np.polyval(fit, x[i]) - y[i])**2
-               mse.append(sum_square_error/len(x))
+                   square_error.append((np.polyval(fit, x[i]) - y[i])**2)
 
             # compute mean square error for current order
-            mmse_candidate = np.mean(np.array(mse))
+            mse_candidate = np.mean(np.array(square_error))
 
             # if significantly better, keep it. If not, keep the old and halt.
-            if (mmse - mmse_candidate) / mmse > epsilon:
-                mmse = mmse_candidate
+            if (mse - mse_candidate) / mse > epsilon:
+                mse = mse_candidate
                 best_fit_order = order
                 best_fit = fit
 
@@ -153,34 +145,27 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
         best_fit = np.polyfit(x, y, best_fit_order)
         polynomials.append(best_fit)
 
-        # compute the sum of squared errors for the best fit and append to the
-        # list
-        sse = 0
-        for i in range(len(x)):
-            sse += (np.polyval(best_fit, x[i]) - y[i])**2
-        SSerrors.append(sse)
-        
         sampled_data.append(data)
-        NumberOfSamples += len(x)
-    
+
     # build and output a SymModel object
-    sse = sum(SSerrors)
-    return SymModel(index_var, target_var, sys_id, sampled_data, polynomials,
-            sse, NumberOfSamples, epsilon)
+    return SymModel(index_var, target_var, sys_id, sampled_data, polynomials            , epsilon)
 
 
-def CompareModels(model1, model2):
+def CompareModels(model1, model2, delta=10**(-3)):
     """ Tests whether the models (and the systems they model) are equivalent. If
     so, it returns a combined model.
     """
 #    pdb.set_trace()
-    p_vals = []
 
+    # Turn off warnings from polyfit
+    warnings.simplefilter('ignore', np.RankWarning)
+
+
+# FIND BEST FITS FOR JOINT MODEL
+    
     # initialize containers for data that may be passed out
     combined_sampled_data = []
     combined_polynomials = []
-    SSerrors = []
-    NumberOfSamples = 0
 
     for counter, poly1 in enumerate(model1._polynomials):
         # import relevant data
@@ -200,7 +185,7 @@ def CompareModels(model1, model2):
         partition = np.array_split(data, 10)
 
         # compute the error using each partition as validation set
-        mse = []
+        square_error = []
         for p in range(len(partition)):
             # build training data
             training_set = np.empty([0,2],dtype='float64')
@@ -216,13 +201,11 @@ def CompareModels(model1, model2):
             # compute error of fit against partitition p
             x = partition[p][:,0]
             y = partition[p][:,1]
-            sum_square_error = 0
             for i in range(len(x)):
-                sum_square_error += (np.polyval(fit, x[i]) - y[i])**2
-            mse.append(sum_square_error/len(x))
+                square_error.append((np.polyval(fit, x[i]) - y[i])**2)
 
         # compute mean square error for first order
-        mmse = np.mean(np.array(mse))
+        mse = np.mean(np.array(square_error))
         best_fit_order = order
 
         # assess fits for higher-order polynomials until the minimum is passed
@@ -236,7 +219,7 @@ def CompareModels(model1, model2):
             partition = np.array_split(data, 10)
     
             # compute the error using each partition as validation set
-            mse = []
+            square_error = []
             for p in range(len(partition)):
                # build training data
                training_set = np.empty([0,2],dtype='float64')
@@ -250,17 +233,15 @@ def CompareModels(model1, model2):
                # compute error of fit against partition p
                x = partition[p][:,0]
                y = partition[p][:,1]
-               sum_square_error = 0
                for i in range(len(x)):
-                   sum_square_error += (np.polyval(fit, x[i]) - y[i])**2
-               mse.append(sum_square_error/len(x))
+                   square_error.append((np.polyval(fit, x[i]) - y[i])**2)
 
             # compute mean square error for current order
-            mmse_candidate = np.mean(np.array(mse))
+            mse_candidate = np.mean(np.array(square_error))
 
             # if significantly better, keep it. If not, keep the old and halt.
-            if (mmse - mmse_candidate) / mmse > min(model1._epsilon, model2._epsilon): 
-                mmse = mmse_candidate
+            if (mse - mse_candidate) / mse > min(model1._epsilon, model2._epsilon): 
+                mse = mse_candidate
                 best_fit_order = order
                 best_fit = fit
 
@@ -277,91 +258,134 @@ def CompareModels(model1, model2):
         best_fit = np.polyfit(x, y, best_fit_order)
         combined_polynomials.append(best_fit)
 
-        # compute the sum of squared errors for the best fit and append to the
-        # list
-        sse = 0
-        for i in range(len(x)):
-            sse += (np.polyval(best_fit, x[i]) - y[i])**2
-        SSerrors.append(sse)
-        
         combined_sampled_data.append(data)
-        NumberOfSamples += len(x)
- 
-#        null_hyp = np.polyfit(x, y, best_fit_order)
-#
-#        # save the best fit polynomial
-#        combined_polynomials.append(null_hyp)
-#
-#        # now use the same 'model' (the same order polynomial) to fit each data
-#        # set individually
-#        poly1 = np.polyfit(data1[:,0], data1[:,1], best_fit_order)
-#        poly2 = np.polyfit(data2[:,0], data2[:,1], best_fit_order)
-#
-#        # compute sum of squares (SS) and degrees of freedom (df) for the null
-#        # hypothesis: both data sets are described by the same polynomial
-#
-#        # first, construct a function to norm the data
-#        norm = lambda x: (x - np.mean(data[:,1])) / (np.max(data[:,1]) -
-#            np.min(data[:,1])) 
-#
-#        # SS null
-#        SSnull = 0
-#        for i in range(len(data)):
-#            x = data[i,0]
-#            y = data[i,1]
-#            SSnull += np.power(norm(y) - norm(np.polyval(null_hyp, x)), 2.)
-#
-#        # df null
-#        df_null = len(data) - len(null_hyp)
-#
-#        # SS alt
-#        SSalt = 0
-#        for i in range(len(data1)):
-#            x = data1[i, 0]
-#            y = data1[i, 1]
-#            SSalt += np.power(norm(y) - norm(np.polyval(poly1, x)), 2.)
-#
-#        for i in range(len(data2)):
-#            x = data2[i, 0]
-#            y = data2[i, 1]
-#            SSalt += np.power(norm(y) - norm(np.polyval(poly2, x)), 2.)
-#        
-#        # df alt
-#        df_alt = len(data1) - len(poly1) + len(data2) - len(poly2)
-#
-#        # F-statistic
-#        F = ((SSnull - SSalt)/SSalt)/((float(df_null) -
-#            float(df_alt))/float(df_alt))
-#
-#        # p-value
-#        p = 1. - stats.f.cdf(F, (df_null - df_alt), df_alt) 
-#
-#        p_vals.append(p)
 
-#    pdb.set_trace()
+# USING BEST FITS FOR JOINT AND INDIVIDUAL MODELS, ESTIMATE ERROR
 
-    # if most of the p_vals exceed alpha = 0.05, then conclude that the models
-    # are equivalent and return the new combined model; otherwise, return an
-    # empty list. 
-#    p_vals = np.array(p_vals)
-#    if (np.sum(np.greater(p_vals, np.ones(p_vals.shape)*0.05)) >
-#         round(len(p_vals)/2.)):
-#        return SymModel(model1._index_var, model1._target_var, model1._sys_id,
-#                combined_sampled_data, combined_polynomials,
-#                min(model1._epsilon, model2._epsilon))
-#    else:
-#        return None
+# INDIVIDUAL MODELS
+    # stack the data for each separate model
+    # x00 y00 x01 y01 x02 y02 ...
+    # x10 y10 x11 y11 x12 y12 ...
+    # ...
+    # so all of the (xi0, yi0) describe a curve
+    data1 = np.concatenate(model1._sampled_data, 1)
+    data2 = np.concatenate(model2._sampled_data, 1)
+
+    # partition the data
+    np.random.shuffle(data1)
+    np.random.shuffle(data2)
+    partition1 = np.array_split(data1, 10)
+    partition2 = np.array_split(data2, 10)
+
+    # compute the overall error using each partition as validation set
+    square_errors = []
+    for p in range(len(partition1)):
+        # build training data
+        s1 = np.shape(data1)[1]
+        s2 = np.shape(data2)[1]
+        training_set1 = np.empty([0,s1],dtype='float64')
+        training_set2 = np.empty([0,s2],dtype='float64')
+        for i in range(len(partition1)):
+            if i != p:
+                training_set1 = np.concatenate((training_set1, partition1[i]), 0)
+                training_set2 = np.concatenate((training_set2, partition2[i]), 0)
+        # loop over curves in the partition    
+        for counter, poly1 in enumerate(model1._polynomials):
+            # import relevant data
+            poly2 = model2._polynomials[counter]
+
+            # determine what order polynomial to fit
+            order1 = len(poly1) - 1
+            order2 = len(poly2) - 1
+
+            # determine which columns of stacked data to use
+            x_col = 2*(counter - 1)
+
+            # fit polynomials
+            x1 = training_set1[:,x_col]
+            y1 = training_set1[:,(x_col+1)]
+            fit1 = np.polyfit(x1, y1, order1)
+  
+            x2 = training_set2[:,x_col]
+            y2 = training_set2[:,(x_col+1)]
+            fit2 = np.polyfit(x2, y2, order2)
+      
+            # compute error of fit against partitition p
+            x1 = partition1[p][:,x_col]
+            y1 = partition1[p][:,(x_col+1)]
+            x2 = partition2[p][:,x_col]
+            y2 = partition2[p][:,(x_col+1)]
+            for i in range(len(x1)):
+                square_errors.append((np.polyval(fit1, x1[i]) - y1[i])**2)
+            for i in range(len(x2)):
+                square_errors.append((np.polyval(fit2, x2[i]) - y2[i])**2)
+    # FOR DEBUGGING ONLY
+    print "Length of square_errors, individual: {0}".format(len(square_errors))
+
+    # compute mean square error for individual models 
+    mse_ind = np.mean(np.array(square_errors))
+
+# JOINT MODEL 
+# stack the data 
+    # x00 y00 x01 y01 x02 y02 ...
+    # x10 y10 x11 y11 x12 y12 ...
+    # ...
+    # so all of the (xi0, yi0) describe a curve
+    # data1 = np.concatenate(model1._sampled_data, 1)
+    # data2 = np.concatenate(model2._sampled_data, 1)
+    # data = np.concatenate((data1,data2))
+    data = np.concatenate(combined_sampled_data, 1)
+
+    # partition the data
+    np.random.shuffle(data)
+    partition = np.array_split(data, 10)
+
+    # compute the overall error using each partition as validation set
+    square_errors = []
+    for p in range(len(partition)):
+        # build training data
+        s = np.shape(data)[1]
+        training_set = np.empty([0,s],dtype='float64')
+        for i in range(len(partition)):
+            if i != p:
+                training_set = np.concatenate((training_set, partition[i]), 0)
+        # loop over curves in the partition    
+        for counter, poly in enumerate(combined_polynomials):
+
+            # determine what order polynomial to fit
+            order = len(poly)-1
+
+            # determine which columns of stacked data to use
+            x_col = 2*(counter - 1)
+
+            # fit polynomials
+            x = training_set[:,x_col]
+            y = training_set[:,(x_col+1)]
+            fit = np.polyfit(x, y, order)
+  
+            # compute error of fit against partitition p
+            x = partition[p][:,x_col]
+            y = partition[p][:,(x_col+1)]
+            for i in range(len(x)):
+                square_errors.append((np.polyval(fit, x[i]) - y[i])**2)
+
+# FOR DEBUGGING ONLY
+    print "Length of square_errors, individual: {0}".format(len(square_errors))
+               
+    # compute mean square error for the joint model 
+    mse_joint = np.mean(np.array(square_errors))
+
+    # FOR DEBUGGING ONLY
+    print "Individual mse: {0}, Joint mse: {1}".format(mse_ind, mse_joint)
 
     # if the mse of the individual models is not significantly less than that of the 
     # combined model, return the combined model; otherwise, return an empty list
-    mse_individual = (model1._sse + model2._sse)/(model1._NumberOfSamples +
-            model2._NumberOfSamples)
-    mse_combined = sum(SSerrors)/NumberOfSamples
-    if (mse_individual - mse_combined)/mse_combined > min(model1._epsilon,
-            model2._epsilon):
+   
+    if mse_joint < mse_ind:
+#    if (mse_ind - mse_joint)/mse_joint > delta:
         return SymModel(model1._index_var, model1._target_var,
                 model1._sys_id, combined_sampled_data,
-                combined_polynomials,sum(SSerrors),NumberOfSamples,min(model1._epsilon,
+                combined_polynomials,min(model1._epsilon,
                     model2._epsilon))
     else:
         return None
