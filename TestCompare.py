@@ -76,7 +76,7 @@ def BuildModel(data_frame, sys_id, epsilon=0):
 
 
 def testCompareModels(noise_stdev=0.001, proportional=False, epsilon=10**(-4),
-        delta=10**(-3)):
+        resolution=[100,10]):
     # set up systems, sensors, and actuators
     sys1 = VABSystemFirstOrderReaction(1,1)
     sys2 = VABSystemSecondOrderReaction(1,1)
@@ -110,19 +110,19 @@ def testCompareModels(noise_stdev=0.001, proportional=False, epsilon=10**(-4),
     ROI6 = dict([(1, [0., 3./(10.*1.**2)]),(2,[0.1,1])])
 
     # get two sets of data for sys1
-    [data11, data12] = [eu.interface.TimeSampleData(1,2,interface1,ROI1),
-            eu.interface.TimeSampleData(1,2,interface1,ROI1)]
+    [data11, data12] = [eu.interface.TimeSampleData(1,2,interface1,ROI1,
+        resolution), eu.interface.TimeSampleData(1,2,interface1,ROI1,resolution)]
 
     # get a set of data for sys2 and sys3
-    data21 = eu.interface.TimeSampleData(1,2,interface2,ROI2)
-    data22 = eu.interface.TimeSampleData(1,2,interface2,ROI2)
-    data31 = eu.interface.TimeSampleData(1,2,interface3,ROI3)
-    data32 = eu.interface.TimeSampleData(1,2,interface3,ROI3)
+    data21 = eu.interface.TimeSampleData(1,2,interface2,ROI2,resolution)
+    data22 = eu.interface.TimeSampleData(1,2,interface2,ROI2,resolution)
+    data31 = eu.interface.TimeSampleData(1,2,interface3,ROI3,resolution)
+    data32 = eu.interface.TimeSampleData(1,2,interface3,ROI3,resolution)
     
     # get data for systems 4 through 6
-    data41 = eu.interface.TimeSampleData(1,2,interface4,ROI4)
-    data51 = eu.interface.TimeSampleData(1,2,interface5,ROI5)
-    data61 = eu.interface.TimeSampleData(1,2,interface6,ROI6)
+    data41 = eu.interface.TimeSampleData(1,2,interface4,ROI4,resolution)
+    data51 = eu.interface.TimeSampleData(1,2,interface5,ROI5,resolution)
+    data61 = eu.interface.TimeSampleData(1,2,interface6,ROI6,resolution)
 
     # build models
     [model11, model12] = [BuildModel(data11, 1, epsilon), BuildModel(data12, 1,
@@ -135,8 +135,7 @@ def testCompareModels(noise_stdev=0.001, proportional=False, epsilon=10**(-4),
             BuildModel(data51, 5, epsilon), BuildModel(data61, 6, epsilon)]
 
     # compare models
-    out = [eu.compare.CompareModels(model11, model12, delta), eu.compare.CompareModels(model21, model22, delta), eu.compare.CompareModels(model31, model32, delta), eu.compare.CompareModels(model11, model21, delta), eu.compare.CompareModels(model11, model31, delta), eu.compare.CompareModels(model21, model31, delta),
-            eu.compare.CompareModels(model11, model41, delta), eu.compare.CompareModels(model21, model51, delta), eu.compare.CompareModels(model31, model61, delta), eu.compare.CompareModels(model11, model51, delta), eu.compare.CompareModels(model11, model61, delta), eu.compare.CompareModels(model21, model61, delta)]
+    out = [eu.compare.CompareModels(model11, model12), eu.compare.CompareModels(model21, model22), eu.compare.CompareModels(model31, model32), eu.compare.CompareModels(model11, model21), eu.compare.CompareModels(model11, model31), eu.compare.CompareModels(model21, model31), eu.compare.CompareModels(model11, model41), eu.compare.CompareModels(model21, model51), eu.compare.CompareModels(model31, model61), eu.compare.CompareModels(model11, model51), eu.compare.CompareModels(model11, model61), eu.compare.CompareModels(model21, model61)]
 
     print "Expected pattern: y, y, y, n, n, n, y, y, y, n, n, n\n"
     return out
