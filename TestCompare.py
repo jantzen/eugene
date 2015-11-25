@@ -12,9 +12,9 @@ def SampleReactionData(noise_stdev=0):
     sys2 = VABSystemSecondOrderReaction(1,1)
     sys3 = VABSystemThirdOrderReaction(1,1)
     sys4 = VABSystemSecondOrderReaction(0.5,2)
-    tsensor = eu.connect.sensors.VABTimeSensor([])
-    xsensor = eu.connect.sensors.VABConcentrationSensor([0,3], noise_stdev)
-    xact = eu.connect.actuators.VABConcentrationActuator([0,1])
+    tsensor = eu.sensors.VABTimeSensor([])
+    xsensor = eu.sensors.VABConcentrationSensor([0,3], noise_stdev)
+    xact = eu.actuators.VABConcentrationActuator([0,1])
 
     #build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1, tsensor), (2, xsensor)])
@@ -42,10 +42,10 @@ def SampleSecondOrderReactionData(noise_stdev=0):
     sys2 = VABSystemSecondOrderReaction(0.1,1)
     sys3 = VABSystemSecondOrderReaction(1,0.1)
     sys4 = VABSystemSecondOrderReaction(0.5,2)
-    tsensor = eu.connect.sensors.VABTimeSensor([])
-    xsensor = eu.connect.sensors.VABConcentrationSensor([0,3], noise_stdev)
-    xact = eu.connect.actuators.VABConcentrationActuator([0,1])
-    tact = eu.connect.actuators.VABVirtualTimeActuator()
+    tsensor = eu.sensors.VABTimeSensor([])
+    xsensor = eu.sensors.VABConcentrationSensor([0,3], noise_stdev)
+    xact = eu.actuators.VABConcentrationActuator([0,1])
+    tact = eu.actuators.VABVirtualTimeActuator()
 
     #build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1, tsensor), (2, xsensor)])
@@ -84,10 +84,10 @@ def testCompareModels(noise_stdev=0.001, proportional=False, epsilon=10**(-4),
     sys4 = VABSystemFirstOrderReaction(1,5)
     sys5 = VABSystemSecondOrderReaction(1,5)
     sys6 = VABSystemThirdOrderReaction(1,5)
-    tsensor = eu.connect.sensors.VABTimeSensor([])
-    xsensor = eu.connect.sensors.VABConcentrationSensor([-1,3], noise_stdev, proportional)
-    xact = eu.connect.actuators.VABConcentrationActuator([0,1])
-    tact = eu.connect.actuators.VABVirtualTimeActuator()
+    tsensor = eu.sensors.VABTimeSensor([])
+    xsensor = eu.sensors.VABConcentrationSensor([-1,3], noise_stdev, proportional)
+    xact = eu.actuators.VABConcentrationActuator([0,1])
+    tact = eu.actuators.VABVirtualTimeActuator()
 
     #build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1, tsensor), (2, xsensor)])
