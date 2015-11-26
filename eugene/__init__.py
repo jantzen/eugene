@@ -1,12 +1,6 @@
-#compare
-from . import compare
-#categorize
-from . import categorize
+from .src import categorize
+from .src import compare
+from .src import interface
 
-
-#interface
-from . import interface
-#sensors
-from .connect import sensors
-#actuators
-from .connect import actuators
+from .src.connect import sensors
+from .src.connect import actuators
