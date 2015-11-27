@@ -15,26 +15,23 @@ from numpy import linspace
 class JerkCircuit(object):
     # Provides data corresponding to a particular circuit.
     cdict = circuitparams.cdict  
+    
     def __init__(self, rowNum):
-        self._Ais = self.cdict[rowNum][0]
-        self._initXs = self.cdict[rowNum][1]
+        if type(rowNum) == int and rowNum < len(self.cdict):
             
-        try:   
-            print(type(self._Ais))
-            print(type(self._initXs))
-            assert type(self._Ais) == np.ndarray and type(self._initXs) == np.ndarray
-                                          
+            self._Ais = self.cdict[rowNum][0]
+            self._initXs = self.cdict[rowNum][1]
         
+            """
+            from earlier, no longer needed AFAIK
+            
             def get_Ais(self):
-                return self._Ais
-                
+                return self._Ais                
             
             def get_initXs(self):
-                return self._initXs
+                return self._initXs"""
                 
-        except type(self._Ais) != np.ndarray or \
-               type(self._initXs) != np.ndarray:
-            
+        else:             
             print "UNACCEPTABLE. ONE MILLION YEARS DUNGEON."
 
 
@@ -60,6 +57,6 @@ class JerkCircuit(object):
         return x
 
 # just for demo     
-Wilson = JerkCircuit(0)       
+Wilson = JerkCircuit(1)
 Vanessa = Wilson.JerkSolver()
 print Vanessa
