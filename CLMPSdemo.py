@@ -9,15 +9,15 @@ def BuildModel(data_frame, sys_id, epsilon=0):
     return model
 
 
-def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
+def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4), resolution=[100,3]):
     
     import matplotlib.pyplot as plt
 
     # build sensors and actuators
-    tsensor = eu.connect.sensors.VABTimeSensor([])
-    xsensor = eu.connect.sensors.VABConcentrationSensor([0.,10.**23], noise_stdev, True)
-    xact = eu.connect.actuators.VABConcentrationActuator([0.,10.**23])
-    tact = eu.connect.actuators.VABVirtualTimeActuator()
+    tsensor = eu.sensors.VABTimeSensor([])
+    xsensor = eu.sensors.VABConcentrationSensor([0.,10.**23], noise_stdev, True)
+    xact = eu.actuators.VABConcentrationActuator([0.,10.**23])
+    tact = eu.actuators.VABVirtualTimeActuator()
 
     #build a dictionary of sensors and a dictionary of actuators
     sensors = dict([(1, tsensor), (2, xsensor)])
@@ -78,9 +78,10 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
     for count, interface in enumerate(interfaces):
         print "Sampling data for system {}. ROI for time: {}. ROI for concentration: {}.\n".format(count, 
                 ROIs[count][1], ROIs[count][2])
-        data.append(eu.interface.TimeSampleData(1, 2, interface, ROIs[count]))
-
-    # plot the data (raw)
+        data.append(eu.interface.TimeSampleData(1, 2, interface, ROIs[count],
+            resolution))
+    
+# plot the data (raw)
 #    plt.figure(1)
 #    plt.subplots(2,3,sharey=True)
 #    for i, frame in enumerate(data):
@@ -134,7 +135,7 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
     f.savefig('./outputs/fig1.png', dpi=300)
 
     # replot the data (classified)
-    colors = ['bo','go','ro']
+    colors = ['bo','go','ro','co']
 #    plt.figure(2)
     f, ax = plt.subplots(2,3,sharey=True)
     ax = ax.flatten()
