@@ -1,7 +1,7 @@
 # CLMPSdemo
 
 import eugene as eu
-from eugene.virtual_sys.chemical_sys import *
+from eugene.src.virtual_sys.chemical_sys import *
 
 def BuildModel(data_frame, sys_id, epsilon=0):
     model = eu.compare.BuildSymModel(data_frame, 1, 2, sys_id, epsilon)

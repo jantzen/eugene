@@ -21,3 +21,5 @@ out
 notes/
 
 outputs/
+*.project
+*.pydevproject
