@@ -28,6 +28,17 @@ class sect (object):
         
     def setStart(self, val):
         self.start = val
+        
+def autoEmpD(array):
+    if (array.size % 2) == 0:
+        array = array[0:-1]
+     
+    deriv = np.zeros(array.size-5)   
+    for i in range(0, array.size-5):
+        sub = array[i:i+5]
+        deriv[i] = vp.EmpiricalDeriv(sub)
+    
+    return deriv
 
 def curveFind(item):
     data = np.zeros(item.size)
