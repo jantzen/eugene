@@ -1,7 +1,7 @@
 # CLMPSdemo
 
 import eugene as eu
-from eugene.virtual_sys.chemical_sys import *
+from eugene.src.virtual_sys.chemical_sys import *
 
 def BuildModel(data_frame, sys_id, epsilon=0):
     model = eu.compare.BuildSymModel(data_frame, 1, 2, sys_id, epsilon)
@@ -9,13 +9,14 @@ def BuildModel(data_frame, sys_id, epsilon=0):
     return model
 
 
-def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4), resolution=[100,3]):
+def CLMPSdemo(noise_stdev=10.**(-6), epsilon=10**(-4), resolution=[300,3],alpha=1):
     
     import matplotlib.pyplot as plt
 
     # build sensors and actuators
     tsensor = eu.sensors.VABTimeSensor([])
-    xsensor = eu.sensors.VABConcentrationSensor([0.,10.**23], noise_stdev, True)
+    xsensor = eu.sensors.VABConcentrationSensor([-10.**23,10.**23], noise_stdev,
+            False)
     xact = eu.actuators.VABConcentrationActuator([0.,10.**23])
     tact = eu.actuators.VABVirtualTimeActuator()
 

@@ -166,9 +166,10 @@ def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
             epsilon)
 
 
-def CompareModels(model1, model2, delta=10**(-3)):
-    """ Tests whether the models (and the systems they model) are equivalent. If
-        so, it returns a combined model.
+def CompareModels(model1, model2, alpha=1.):
+    """ Tests whether the models (and the systems they model) are equivalent.
+    Returns 0 if they are indistinguishable (of the same dynamical kind as far
+    as we can tell) and 1 otherwise.
     """
 
     # Turn off warnings from polyfit
@@ -193,6 +194,12 @@ def CompareModels(model1, model2, delta=10**(-3)):
         data2.append(curve)
     data2 = np.concatenate(data2, 1)
 
+    # in order to estimate the base error when both systems belong to the same
+    # kind, separate each data set in two (and treat each pair as its own
+    # comparison problem)
+    base_error_data1 = np.array_split(data1, 2)
+    base_error_data2 = np.array_split(data2, 2)
+
     epsilon = min(model1._epsilon, model2._epsilon)
 
     # OUTER CROSS-VALIDATION LOOP
@@ -202,9 +209,19 @@ def CompareModels(model1, model2, delta=10**(-3)):
     partition1 = np.array_split(data1, 10)
     partition2 = np.array_split(data2, 10)
 
+    base_error_partition1a = np.array_split(base_error_data1[0], 10)
+    base_error_partition1b = np.array_split(base_error_data1[1], 10)
+    base_error_partition2a = np.array_split(base_error_data2[0], 10)
+    base_error_partition2b = np.array_split(base_error_data2[1], 10)
+
     # Prepare empty arrays to store squared errors for each test partition
     SE_sep = []
     SE_joint = []
+
+    SE_base_error1_sep = []
+    SE_base_error1_joint = []
+    SE_base_error2_sep = []
+    SE_base_error2_joint = []
 
     # Loop over partitions, using each as a test set once
     for p in range(10):
@@ -213,6 +230,14 @@ def CompareModels(model1, model2, delta=10**(-3)):
         training_set_sep1 = np.empty([0, cols],dtype='float64')
         training_set_sep2 = np.empty([0, cols],dtype='float64')
         training_set_joint = np.empty([0, cols],dtype='float64')
+
+        training_set_base_error1a = np.empty([0, cols], dtype='float64')
+        training_set_base_error1b = np.empty([0, cols], dtype='float64')
+        training_set_base_error1_joint = np.empty([0, cols], dtype='float64')
+        training_set_base_error2a = np.empty([0, cols], dtype='float64')
+        training_set_base_error2b = np.empty([0, cols], dtype='float64')
+        training_set_base_error2_joint = np.empty([0, cols], dtype='float64')
+ 
         for i in range(10):
             if i != p:
                 training_set_sep1 = np.concatenate((training_set_sep1,
@@ -222,11 +247,34 @@ def CompareModels(model1, model2, delta=10**(-3)):
                 training_set_joint = np.concatenate((training_set_joint,
                     partition1[i], partition2[i]), 0)
 
+                training_set_base_error1a = np.concatenate((training_set_base_error1a,
+                    base_error_partition1a[i]),0)
+                training_set_base_error1b = np.concatenate((training_set_base_error1b,
+                    base_error_partition1b[i]),0)
+                training_set_base_error1_joint = np.concatenate((
+                    training_set_base_error1_joint, base_error_partition1a[i], 
+                    base_error_partition1b[i]), 0)
+                training_set_base_error2a = np.concatenate((training_set_base_error2a,
+                    base_error_partition2a[i]),0)
+                training_set_base_error2b = np.concatenate((training_set_base_error2b,
+                    base_error_partition2b[i]),0)
+                training_set_base_error2_joint = np.concatenate((
+                    training_set_base_error2_joint, base_error_partition2a[i], 
+                    base_error_partition2b[i]), 0)
+ 
+
         # TRAIN THE PREDICTORS
         ########################################################################
         polynomials_sep1 = []
         polynomials_sep2 = []
         polynomials_joint = []
+
+        polynomials_base_error1a = []
+        polynomials_base_error1b = []
+        polynomials_base_error1_joint = []
+        polynomials_base_error2a = []
+        polynomials_base_error2b = []
+        polynomials_base_error2_joint = []
         
         # Loop over curves in the training set
         for index in range(cols/2):
@@ -238,6 +286,27 @@ def CompareModels(model1, model2, delta=10**(-3)):
             polynomials_sep1.append(FitPolyCV(curve_sep1, epsilon))
             polynomials_sep2.append(FitPolyCV(curve_sep2, epsilon))
             polynomials_joint.append(FitPolyCV(curve_joint, epsilon))
+
+            curve_base_error1a = training_set_base_error1a[:,x_col:(x_col+2)]
+            curve_base_error1b = training_set_base_error1b[:,x_col:(x_col+2)]
+            curve_base_error1_joint = training_set_base_error1_joint[:,x_col:(x_col+2)]
+            curve_base_error2a = training_set_base_error2a[:,x_col:(x_col+2)]
+            curve_base_error2b = training_set_base_error2b[:,x_col:(x_col+2)]
+            curve_base_error2_joint = training_set_base_error2_joint[:,x_col:(x_col+2)]
+ 
+            polynomials_base_error1a.append(FitPolyCV(curve_base_error1a,
+                epsilon))
+            polynomials_base_error1b.append(FitPolyCV(curve_base_error1b,
+                epsilon))
+            polynomials_base_error1_joint.append(FitPolyCV(curve_base_error1_joint, 
+                epsilon))
+            polynomials_base_error2a.append(FitPolyCV(curve_base_error2a,
+                epsilon))
+            polynomials_base_error2b.append(FitPolyCV(curve_base_error2b,
+                epsilon))
+            polynomials_base_error2_joint.append(FitPolyCV(curve_base_error2_joint, 
+                epsilon))
+ 
             
         # TEST THE PREDICTORS
         ########################################################################
@@ -253,6 +322,28 @@ def CompareModels(model1, model2, delta=10**(-3)):
             y_joint = np.concatenate((partition1[p][:,(x_col+1)], 
                 partition2[p][:,(x_col+1)]))
 
+            x_base_error1a = base_error_partition1a[p][:,x_col]
+            y_base_error1a = base_error_partition1a[p][:,(x_col+1)]
+            x_base_error1b = base_error_partition1b[p][:,x_col]
+            y_base_error1b = base_error_partition1b[p][:,(x_col+1)]
+            x_base_error1_joint = np.concatenate((
+                base_error_partition1a[p][:,x_col],
+                base_error_partition1b[p][:,x_col]))
+            y_base_error1_joint = np.concatenate((
+                base_error_partition1a[p][:,(x_col+1)],
+                base_error_partition1b[p][:,(x_col+1)]))
+            x_base_error2a = base_error_partition2a[p][:,x_col]
+            y_base_error2a = base_error_partition2a[p][:,(x_col+1)]
+            x_base_error2b = base_error_partition2b[p][:,x_col]
+            y_base_error2b = base_error_partition2b[p][:,(x_col+1)]
+            x_base_error2_joint = np.concatenate((
+                base_error_partition2a[p][:,x_col],
+                base_error_partition2b[p][:,x_col]))
+            y_base_error2_joint = np.concatenate((
+                base_error_partition2a[p][:,(x_col+1)],
+                base_error_partition2b[p][:,(x_col+1)]))
+            
+
             for i in range(len(x_sep1)):
                 SE_sep.append((np.polyval(polynomials_sep1[index],
                         x_sep1[i]) - y_sep1[i])**2)
@@ -266,33 +357,72 @@ def CompareModels(model1, model2, delta=10**(-3)):
                     x_joint[i]) - y_joint[i])**2)
 
 
+            for i in range(len(x_base_error1a)):
+                SE_base_error1_sep.append((np.polyval(polynomials_base_error1a[index],
+                    x_base_error1a[i]) - y_base_error1a[i])**2)
+
+            for i in range(len(x_base_error1b)):
+                SE_base_error1_sep.append((np.polyval(polynomials_base_error1b[index],
+                    x_base_error1b[i]) - y_base_error1b[i])**2)
+
+            for i in range(len(x_base_error1_joint)):
+                SE_base_error1_joint.append((np.polyval(polynomials_base_error1_joint[index],
+                    x_base_error1_joint[i]) - y_base_error1_joint[i])**2)
+
+            for i in range(len(x_base_error2a)):
+                SE_base_error2_sep.append((np.polyval(polynomials_base_error2a[index],
+                    x_base_error2a[i]) - y_base_error2a[i])**2)
+
+            for i in range(len(x_base_error2b)):
+                SE_base_error2_sep.append((np.polyval(polynomials_base_error2b[index],
+                    x_base_error2b[i]) - y_base_error2b[i])**2)
+
+            for i in range(len(x_base_error2_joint)):
+                SE_base_error2_joint.append((np.polyval(polynomials_base_error2_joint[index],
+                    x_base_error2_joint[i]) - y_base_error2_joint[i])**2)
+
+
+
     ############################################################################
 
     # Compute the mean square error for each predictor
     MSE_sep = np.mean(SE_sep)
     MSE_joint = np.mean(SE_joint)
 
+    # From the base error rates, compute an estimate of the difference between
+    # joint and separate models given that the systems actually belong
+    # to the same kind
+    MSE_base_error1_sep = np.mean(SE_base_error1_sep)
+    MSE_base_error1_joint = np.mean(SE_base_error1_joint)
+    MSE_base_error2_sep = np.mean(SE_base_error2_sep)
+    MSE_base_error2_joint = np.mean(SE_base_error2_joint)
+
+    expected_difference = max(abs(MSE_base_error1_sep - MSE_base_error1_joint),
+            abs(MSE_base_error2_sep - MSE_base_error2_joint))
+
+
     # FOR DEBUGGING ONLY
-    print "MSE_sep = {0}, MSE_joint = {1}".format(MSE_sep, MSE_joint)
+    print "MSE_sep = {0}, MSE_joint = {1}, MSE_base1 sep = {2}, MSE_base1 joint = {3}, MSE_base2 sep = {4}, MSE_base2 joint = {5}, expected difference = {6}".format(MSE_sep, MSE_joint, MSE_base_error1_sep, MSE_base_error1_joint, MSE_base_error2_sep, MSE_base_error2_joint, expected_difference)
 
     # Compare and return
-    if MSE_joint > MSE_sep:
-        return None
+    if MSE_joint > MSE_sep + alpha * expected_difference:
+        return 1
 
     else:
-        # Use full joint data set to fit new polynomials and return as a
-        # SymModel
-        data = np.concatenate((data1, data2))
-        
-        # Loop over curves in the data
-        cols = np.shape(data)[1]
-        for index in range(cols/2):
-            x_col = 2 * index
-            curve = data[:,x_col:(x_col+2)]
-            combined_sampled_data.append(curve)
-            combined_polynomials.append(FitPolyCV(curve, epsilon))
-
-        # Build and return the SymModel object
-        return SymModel(model1._index_var, model1._target_var,
-                model1._sys_id, combined_sampled_data,
-                combined_polynomials, epsilon)
+        return 0
+#        # Use full joint data set to fit new polynomials and return as a
+#        # SymModel
+#        data = np.concatenate((data1, data2))
+#        
+#        # Loop over curves in the data
+#        cols = np.shape(data)[1]
+#        for index in range(cols/2):
+#            x_col = 2 * index
+#            curve = data[:,x_col:(x_col+2)]
+#            combined_sampled_data.append(curve)
+#            combined_polynomials.append(FitPolyCV(curve, epsilon))
+#
+#        # Build and return the SymModel object
+#        return SymModel(model1._index_var, model1._target_var,
+#                model1._sys_id, combined_sampled_data,
+#                combined_polynomials, epsilon)
