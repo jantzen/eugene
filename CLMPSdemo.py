@@ -9,7 +9,8 @@ def BuildModel(data_frame, sys_id, epsilon=0):
     return model
 
 
-def CLMPSdemo(noise_stdev=10.**(-6), epsilon=10**(-4), resolution=[300,3],alpha=1):
+def CLMPSdemo(noise_stdev=10.**(-6), epsilon=10**(-4),
+        resolution=[300,3],alpha=1,conc_lb=10.**(-6)):
     
     import matplotlib.pyplot as plt
 
@@ -57,21 +58,21 @@ def CLMPSdemo(noise_stdev=10.**(-6), epsilon=10**(-4), resolution=[300,3],alpha=
     for counter, sys in enumerate(systems):
         if counter == 0:
             ROIs.append(dict([(1, [0., np.log(2)/sys._k]),(2,
-                [10.**(-6),10.**(-4)])]))
+                [conc_lb,10.**(-4)])]))
         elif counter == 1:
             ROIs.append(dict([(1, [0., 1./(sys._k *
-                (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+                (10.**(-4)))]),(2,[conc_lb,10.**(-4)])]))
         elif counter == 2:
             ROIs.append(dict([(1, [0., 1./(sys._k *
-                (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+                (10.**(-4)))]),(2,[conc_lb,10.**(-4)])]))
         elif counter == 3:
-            ROIs.append(dict([(1, [0., 1./(sys._k * (10**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1./(sys._k * (10**(-4)))]),(2,[conc_lb,10.**(-4)])]))
         elif counter == 4:
             ROIs.append(dict([(1, [0.,
-                1./(sys._k*10.**(-4))]),(2,[10.**(-6),10.**(-4)])]))
+                1./(sys._k*10.**(-4))]),(2,[conc_lb,10.**(-4)])]))
         elif counter == 5:
             ROIs.append(dict([(1, [0.,
-                3./(2.*sys._k*(10.**(-4))**2)]),(2,[10.**(-6),10.**(-4)])]))
+                3./(2.*sys._k*(10.**(-4))**2)]),(2,[conc_lb,10.**(-4)])]))
 
             
     # collect data
