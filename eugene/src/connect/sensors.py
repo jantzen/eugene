@@ -90,8 +90,6 @@ class VABVoltageSensor(VABSensor):
             else:
                 return voltage
                 
-                
-        
 
 class PopulationSensor(VABSensor):
     def __init__(self, dynamic_range, noise_stdev=0, proportional=False):
@@ -117,4 +115,3 @@ class PopulationSensor(VABSensor):
             else:
                 return population
 
->>>>>>> 8a4e3a6122c1ff250f2beabbbbf73a0708e36d4e
