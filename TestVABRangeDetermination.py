@@ -115,7 +115,7 @@ f = funcFillArray(bump, 50, .0625, -1.5)
 #    plt.plot(range(start, stop), result.data, "r")
 #i=3
 
-test = d
+test = f
 
 result = V.findRange(test)
 plt.plot(test, "b")
@@ -128,6 +128,6 @@ plt.plot(range(start, stop), result.data, "r")
 
 #monotone = V.findMonotone(c)
 #plt.plot(test[0:monotone], "y")
-trans = V.curveFind(test)
+trans = V.curveFind2(test)
 plt.plot(trans, "y")
 plt.show()
