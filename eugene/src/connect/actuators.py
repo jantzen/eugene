@@ -1,6 +1,4 @@
 import math
-import time
-import copy
 import random
 import numpy as np
 
@@ -27,7 +25,6 @@ class VABVirtualTimeActuator(VABSensor):
     def time(self, sys):
         return sys._time
 
-#Real Actuators
 class VABConcentrationActuator(VABSensor):
     def set(self, sys, value):
         sys._x = value
@@ -36,3 +33,7 @@ class VABConcentrationActuator(VABSensor):
 #       what if "system = None"
         sys._time = sys._init_t
 
+class PopulationActuator(VABSensor):
+    def set(self, sys, value):
+        sys._x = value
+        sys._time = sys._init_t

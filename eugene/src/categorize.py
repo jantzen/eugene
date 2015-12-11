@@ -64,10 +64,12 @@ def Classify(system_ids, models):
                 result = compare.CompareModels(models[sys_id], models[system])
                 if result == 1:
                     same_category = False
+                    print '{0} is different from {1}'.format(sys_id, system)
                     break
             if same_category:
                 c.add_system(sys_id)
                 categorized = True
+                print '{0} is the same as {1}'.format(sys_id, c._systems)
                 break
 
         # if the system doesn't fit a known category, make a new one
