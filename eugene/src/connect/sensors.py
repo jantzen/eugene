@@ -63,6 +63,7 @@ class VABConcentrationSensor(VABSensor):
             else:
                 return concentration
 
+
 class VABVoltageSensor(VABSensor):
     def __init__(self, dynamic_range, noise_stdev=0, proportional=False):
         self._range = dynamic_range
@@ -91,3 +92,29 @@ class VABVoltageSensor(VABSensor):
                 
                 
         
+
+class PopulationSensor(VABSensor):
+    def __init__(self, dynamic_range, noise_stdev=0, proportional=False):
+        self._range = dynamic_range
+        self._noise_stdev = noise_stdev
+        self._proportional = proportional
+    
+    def read(self, sys):
+        if len(self._range) != 2:
+            raise ValueError('No sensor range specified.')
+        else:
+            if self._noise_stdev == 0:
+                population = sys._x
+            elif self._proportional:
+                x = sys._x
+                noise = np.random.normal(0, self._noise_stdev * x)
+                population = x + noise
+            else:
+                population = sys._x + np.random.normal(0,
+                        self._noise_stdev)
+            if population > self._range[1] or population < self._range[0]:
+                return 'outofrange'
+            else:
+                return population
+
+>>>>>>> 8a4e3a6122c1ff250f2beabbbbf73a0708e36d4e
