@@ -3,7 +3,7 @@
 # from VABProcess import *
 # from VABClasses import *
 import eugene as eu
-from eugene.virtual_sys.chemical_sys import *
+from eugene.src.virtual_sys.chemical_sys import *
 
 
 def SampleReactionData(noise_stdev=0):
@@ -76,7 +76,7 @@ def BuildModel(data_frame, sys_id, epsilon=0):
 
 
 def testCompareModels(noise_stdev=0.001, proportional=False, epsilon=10**(-4),
-        resolution=[100,10]):
+        resolution=[100,10], alpha=1.):
     # set up systems, sensors, and actuators
     sys1 = VABSystemFirstOrderReaction(1,1)
     sys2 = VABSystemSecondOrderReaction(1,1)
@@ -137,5 +137,5 @@ def testCompareModels(noise_stdev=0.001, proportional=False, epsilon=10**(-4),
     # compare models
     out = [eu.compare.CompareModels(model11, model12), eu.compare.CompareModels(model21, model22), eu.compare.CompareModels(model31, model32), eu.compare.CompareModels(model11, model21), eu.compare.CompareModels(model11, model31), eu.compare.CompareModels(model21, model31), eu.compare.CompareModels(model11, model41), eu.compare.CompareModels(model21, model51), eu.compare.CompareModels(model31, model61), eu.compare.CompareModels(model11, model51), eu.compare.CompareModels(model11, model61), eu.compare.CompareModels(model21, model61)]
 
-    print "Expected pattern: y, y, y, n, n, n, y, y, y, n, n, n\n"
+    print "Expected pattern: 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1"
     return out
