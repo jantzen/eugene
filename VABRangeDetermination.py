@@ -53,6 +53,41 @@ def curveFind(item):
         i = i + 1
         
     return data
+    
+def curveFind2(item):    
+    result = np.zeros(item.size)
+    x1 = 0
+    x2 = item.size-1
+    data = item - item[0]
+    y1 = data[0]
+    y2 = data[-1]
+    ix = 0
+    iy = 0
+    
+    magnitude = lambda a1, b1, a2, b2: math.sqrt(math.pow((a2-a1),2) + math.pow((b2-b1),2))
+    
+    mag = magnitude(x1, y1, x2, y2)
+    if mag <= 0:
+        # short segment
+        return mag
+    
+    for i in range(0, data.size):
+        px = i
+        py = data[i]
+        u = (((px - x1) * (x2-x1)) + ((py - y1) * (y2 - y1))) / mag
+        if (u < 1*10**-5) or (u > 1):
+            ix = magnitude(px, py, x1, y1)
+            iy = magnitude(px, py, x2, y2)
+            s = (mag+ix+iy)/2
+            result[i] = (2.0*math.sqrt(s*(s-mag)*(s-ix)*(s-iy)))/mag
+        else:
+            ix = x1 + u * (x2 - x1)
+            iy = y1 + u * (y2 - y1)
+            result[i] = magnitude(px, py, ix, iy)
+        ix = 0
+        iy = 0
+            
+    return result
 
 def trisect(item):
     if item.data.size < 3:
