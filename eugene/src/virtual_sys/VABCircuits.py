@@ -21,19 +21,10 @@ class JerkCircuit(object):
             
             self._Ais = self.cdict[rowNum][0]
             self._initXs = self.cdict[rowNum][1]
-        
-            """
-            from earlier, no longer needed AFAIK
-            
-            def get_Ais(self):
-                return self._Ais                
-            
-            def get_initXs(self):
-                return self._initXs"""
+    
                 
         else:             
             print "UNACCEPTABLE. ONE MILLION YEARS DUNGEON."
-
 
     #now set up deriv to pass to odeint  
     
@@ -52,7 +43,7 @@ class JerkCircuit(object):
         # returns an array containing the values for x, xdot, xdoot at 
         #  the times in t, beginning with their initial conditions      
         t0 = 0
-        t = linspace(t0, 1, 100)
+        t = np.arange(t0, 11)
         x = odeint(self.deriv,self._initXs,t)
         return x
 
