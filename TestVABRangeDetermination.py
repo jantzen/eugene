@@ -104,7 +104,8 @@ a = np.array([2303, 210, 110, 75, 57, 46, 38, 33, 29, 26, 23, 21, 20, 18, 17, 16
 c = funcFillArray(math.sin, 1000, .1)
 d = funcFillArray(inLog, 50, .1, .1)
 e = funcFillArray(parabola, 50, 1, -24)
-f = funcFillArray(bump, 50, .0625, -1.5)
+f = funcFillArray(parabola, 50, 1, 50)
+g = funcFillArray(bump, 50, .0625, -1.5)
 #data = CLMPSdemo()[1]._target_values
 
 #for array in data:

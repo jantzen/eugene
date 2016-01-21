@@ -75,7 +75,7 @@ def curveFind2(item):
         px = i
         py = data[i]
         u = (((px - x1) * (x2-x1)) + ((py - y1) * (y2 - y1))) / mag
-        if (u < 1*10**-5) or (u > 1):
+        if (u < 1*10**-5) or (u >= 1):
             ix = magnitude(px, py, x1, y1)
             iy = magnitude(px, py, x2, y2)
             s = (mag+ix+iy)/2
