@@ -10,7 +10,9 @@ eugene/src/interface.py
 eugene/src/connect/__init__.py
 eugene/src/connect/actuators.py
 eugene/src/connect/sensors.py
+eugene/src/virtual_sys/VABCircuits.py
 eugene/src/virtual_sys/__init__.py
-eugene/src/virtual_sys/chaotic_circuit_sys.py
 eugene/src/virtual_sys/chemical_sys.py
+eugene/src/virtual_sys/circuitparams.py
+eugene/src/virtual_sys/growth_sys.py
 eugene/tests/__init__.py

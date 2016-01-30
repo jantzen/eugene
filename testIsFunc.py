@@ -2,103 +2,83 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
+import eugene as eu
+import eugene.src.virtual_sys.chemical_sys as cs
 from isFunction import isFunc
 
 ########################################################################
 ########################################################################
 #create function data sets
-####from Collin's "TestVABRangeDetermination.py (12/25/15)
-           #do we want to maybe put this function (and other 
-           #sorts of things like it) in a utilities folder/file/package?
-def funcFillArray(function, length, delta=1, start=0):
-    res = np.zeros(length)
-    x = start
-    for i in range(0, length):
-        res[i] = function(x)
-        x += delta
-    return res
-####
+def getDataFrames():
+    """
+       make 3 data samples that is a function.
+       make 1 (3) data samples that is not a function.
+       return list of data samples.  
+       -currently returns list of one DataSample, for simplicity.
+    """
 
-def getDataSets():
-    delta=0.20
-    length = 50
-    ##################################
-    ##################################
-    #equations, & target arrays
-
-    log1 = lambda x: 4 *  math.log(x+1)
-    log1Arr = funcFillArray(log1, length, delta)
-
-    #sin function
-    sine = funcFillArray(math.sin, length, delta)
+    #make ONE function data set
+    tsensor = eu.sensors.VABTimeSensor([])
+    csensor = eu.sensors.VABConcentrationSensor([0.,10.**23], 
+                                                noise_stdev=10.**(-9))
+                                                # noise_stdev=10.**(-6))
+                                                #-> 'outofrange' values
+    #if concentration > range[1] or concentration < range[0], then
+         #return 'outofrange'
+         #^ in eu.sensors->Line61
 
 
-    parabola = lambda x: math.pow(x, 2)
-    parab = funcFillArray(parabola, length, delta)
-    parabola2 = lambda x: -math.pow(x, 2) + 4 * x
-    parab2 = funcFillArray(parabola2, length, delta)
-    parabola3 = lambda x: (x+10)*(x-3)*(x+3)*(x-7.5)
-    parab3 = funcFillArray(parabola3, length, delta)    
-    parabola4 = lambda x: ((x-5)**2 - 4)**2
-    parab4 = funcFillArray(parabola4, length, delta)    
-    ##################################
-    ##################################
-    #function arrays - delcarations
-    f1 = np.empty([length, 2])
-    f2 = np.empty([length, 2])
-    f3 = np.empty([length, 2])
-    f4 = np.empty([length, 2])
-    f5 = np.empty([length, 2])
-    f6 = np.empty([length, 2])
-    #not function arrays
-    nf1 = np.empty([length, 2])
-    nf2 = np.empty([length, 2])
-    nf3 = np.empty([length, 2])
 
-    #fill arrays
-    count = 0.
-    for i in range(length):
-        f1[i] = [count, log1Arr[i]]
-        f2[i] = [count, sine[i]]
-        f3[i] = [count, parab[i]]
-        f4[i] = [count, parab2[i]]
-        f5[i] = [count, parab3[i]]
-        f6[i] = [count, parab4[i]]
+    sensors = dict([(1, tsensor), (2, csensor)])
+    tact = eu.actuators.VABVirtualTimeActuator()
+    cact = eu.actuators.VABConcentrationActuator([])
+    actuators = dict([(1, tact), (2, cact)])
+    sf1 = cs.VABSystemFirstOrderReaction(10.**(-6), 1.1*10.**5) 
+    sf2 = cs.VABSystemFirstOrderReaction(10.**(-6), 2.1*10.**5) 
+    sf3 = cs.VABSystemThirdOrderReaction(10.**(-6), 8.3*10.**4) 
+    
+    ifaces = []
+    datas = []
+    ifaces.append(eu.interface.VABSystemInterface(sensors, actuators, sf1))
+    ifaces.append(eu.interface.VABSystemInterface(sensors, actuators, sf2))
+    ifaces.append(eu.interface.VABSystemInterface(sensors, actuators, sf3))
+    ROIs = [dict([(1, [0., np.log(2)/sf1._k]),
+                  (2, [10.**(-6),10.**(-4)])]),
+            dict([(1, [0., np.log(2)/sf2._k]),
+                  (2, [10.**(-6),10.**(-4)])]),
+            dict([(1, [0., 3./(2.*sf3._k*(10.**(-4))**2)]),
+                  (2,[10.**(-6),10.**(-4)])])]
 
-        nf1[i] = [sine[i]*10, count] #this is not a function!
-        nf2[i] = [parab3[i], count]
-        nf3[i] = [parab4[i], count]
+    for r, iface in enumerate(ifaces):
+        datas.append(eu.interface.TimeSampleData(1,2, iface, ROIs[r]))
 
-        count += delta
+    #make ONE non-function data set
+
+    #return list of DataFrames
+    return datas
 
 
-    return [f1, f2, f3, f4, f5, f6, nf1, nf2, nf3]
-
-
-#def getNoisyDataSets()
+def debugDF(df):
+    """
+       sometimes the values in df._target_values = 'outofrange'
+       which is <type numpy.string_>
+    """
+    #print x,y if type(df._target_values[x][y]) == str
 
 ########################################################################
 ########################################################################
 ########################################################################
 
+#Three cases to test for:
+#   1. no flag points -> this is a function
+#   2. 1 pair of flag points -> parallel points equal -> this is a function
+#   3. 1 pair of flag points -> parallel points UNequal -> NOT a function
 
-#get list of datasets, some are funcs and other aren't
-dss = getDataSets()
+#right now, only case 1 is covered
+def testIsFunc():
+    dfs = getDataFrames()
 
-# for ds in dss:
-#     isFunc(ds)
-#     print
+    for df in dfs:
+        assert True, isFunc(df)
 
-assert True, isFunc(dss[0])
-assert True, isFunc(dss[1])
-assert True, isFunc(dss[2])
-assert True, isFunc(dss[3])
-assert True, isFunc(dss[4])
-assert True, isFunc(dss[5])
-print "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\n"
-assert False, isFunc(dss[6])
-assert False, isFunc(dss[7])
-assert False, isFunc(dss[8])
-
-isFunc(dss[0])
-isFunc(dss[6])
+        
