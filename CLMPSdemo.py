@@ -104,12 +104,12 @@ def CLMPSdemo(noise_stdev=10.**(-6), epsilon=10**(-4),
 
     # build text for annotating plots
     annot = [[]] * 6
-    annot[0] = [r'$HO_3 \rightarrow OH + O_2$', 3*10**(-6), 0.8*10**(-4)]
-    annot[1] = [r'$HOI + O_3 \rightarrow IO_3^- $', 0.1, 0.8*10**(-4)]
-    annot[2] = [r'$OI^- + O_3 \rightarrow IO_3^- $', 3*10**(-3), 0.8*10**(-4)]
-    annot[3] = [r'$HOI + HOCl \rightarrow IO_3^- $', 600, 0.8*10**(-4)]
-    annot[4] = [r'$HOI + OCl \rightarrow IO_3^- $', 75, 0.8*10**(-4)]
-    annot[5] = [r'$HOI + HOCl + HOCl \rightarrow IO_3^- $', 450, 0.8*10**(-4)]
+    annot[0] = [r'$HO_3 \rightarrow OH + O_2$', 3*10**(-6), 0.65*10**(-4)]
+    annot[1] = [r'$HOI + O_3 \rightarrow IO_3^- $', 0.1, 0.65*10**(-4)]
+    annot[2] = [r'$OI^- + O_3 \rightarrow IO_3^- $', 3*10**(-3), 0.65*10**(-4)]
+    annot[3] = [r'$HOI + HOCl \rightarrow IO_3^- $', 600, 0.65*10**(-4)]
+    annot[4] = [r'$HOI + OCl \rightarrow IO_3^- $', 75, 0.65*10**(-4)]
+    annot[5] = [r'$HOI + HOCl + HOCl \rightarrow IO_3^- $', 450, 0.65*10**(-4)]
     
     # plot the data (without indicating classification
     f, ax = plt.subplots(2,3,sharey=True)

@@ -1,6 +1,9 @@
 import numpy as np
 import scipy.stats as stats
-import warnings
+import scipy.optimize as opt
+#import warnings
+import math
+import copy
 import pdb
 
 #Classes:
@@ -10,8 +13,6 @@ import pdb
 #  FitPolyCV
 #  BuildSymModel
 #  CompareModels
-
-
 
 
 ###################################################################
@@ -43,18 +44,130 @@ class SymModel( object ):
         self._polynomials = polynomials
 
 
+class nPolynomial( object ):
+    """ A representation of a polynmial of degree d and number of variables n.
+    """
+    
+    def __init__(self, n, d, params=None):
+        self._num_vars = n
+        self._degree = d
+        if params == None:
+            self._params = np.zeros(math.factorial(n +
+                d) / math.factorial(d) / math.factorial(n))
+        else:
+            self._params = params
+       
+
+        self._exponents = exponents
+         
+
+#    def Eval(self, x, params=None):
+#        # Evaluate the polynomial given params at the point x
+#        if params == None:
+#            params = self._params
+
+           
+
+
+        
+
+
 ###################################################################
 ###################################################################
 #Functions
 
 
+def exponents(n, d):
+    """ This function computes the exponents (as n-tuples) for each term in a
+        polynomial in n variables of degree d.
+    """
+    try:
+        assert type(n) == int and n > 0 and type(d) == int and d>0
+    
+        if n == 1:
+            out = []
+            for i in range(d+1):
+                out.append([i])
+            return out
+        else:
+            out_old = exponents(n-1, d)
+            out_new = []
+            for i in range(len(out_old)):
+                for j in range(d+1):
+                    if sum(out_old[i]) + j <= d:
+                        temp = copy.deepcopy(out_old[i])
+                        temp.extend([j])
+                        out_new.append(temp)
+                    else:
+                        break
+            return out_new
+    except AssertionError:
+        print "Improper input to exponents function. n and d must be positive integers."
+
+
+def npoly_val(params, exponents, x_vals):
+    """ Returns the value of an n-variable polynomial at the point given by
+        x_vals
+    """
+    sum_of_terms = 0
+    for i, param in enumerate(params):
+        term = param
+        for j, x in enumerate(x_vals): 
+            term = term * pow(x, exponents[i][j])
+        sum_of_terms += term
+
+    return sum_of_terms
+
+
+def residuals(params, exponents, xdata, ydata):
+    """ For use with surface_fit. Given a polynomial in n variables, a set of n-dimensional xdata, 
+        and a set of ydata, compute the residuals with respect to the y values
+        computed from the poynomial.
+    """
+    resids = []
+    num_vars = len(xdata)
+    for i, y in enumerate(ydata):
+        point_val = []
+        for j in range(num_vars):
+            point_val.append(xdata[j][i])
+        expected = npoly_val(params, exponents, point_val)
+        resids.append(y - expected)
+     
+    return resids
+
+
+def surface_fit(xdata, ydata, order):
+    """ Takes a set of x0, x1, ..., xn, y data in the form of n+1 np arrays  (with the
+        indpendent variable in the first n) and fits a polynomial surface of the
+        indicated order using least-squares.
+    """
+    # compute necessary number of params. For a polynomial in n variables of
+    # degree d, there are (n+d)C(d) terms
+    num_vars = len(xdata) 
+    num_params = math.factorial(num_vars +
+            order)/math.factorial(num_vars)/math.factorial(order)
+    params_guess = np.ones(num_params)
+
+    # get the exponents for each term
+    exps = exponents(num_vars, order)
+
+    params = opt.leastsq(residuals, params_guess, args=(exps, xdata, ydata))
+
+    return params
+        
 
 def FitPolyCV(data, epsilon=0):
-    """ Takes a set of x,y data in the form of two columns (x in the first, y in the
-        second) and fits a polynomial of order determined by 10-fold
-        cross-validation
+    """ Takes a set of x,y data in the form of n+1 columns (x in the first n, y in the
+        last) and fits a polynomial surface in n-variables of order determined by 10-fold
+        cross-validation.
     """
-    
+
+    # Determine the number of independent variables
+    x_vars = data.shape[1] - 1
+ 
+    # Turn off warnings from polyfit
+#    warnings.simplefilter('ignore', np.RankWarning)
+
     np.random.shuffle(data)
     partition = np.array_split(data, 10)
 
@@ -62,80 +175,96 @@ def FitPolyCV(data, epsilon=0):
     order = 1
         
     # compute the error using each partition as validation set
-    square_error = []
+    fit_residuals = []
     for p in range(len(partition)):
         # build training data
-        training_set = np.empty([0,2],dtype='float64')
+        training_set = np.empty([0,(x_vars + 1)],dtype='float64')
         for i in range(len(partition)):
             if i != p:
                 training_set = np.concatenate((training_set, partition[i]), 0)
         
-        # fit polynomial
-        x = training_set[:,0]
-        y = training_set[:,1]
-        fit = np.polyfit(x, y, 1)
+        # fit polynomial surface in x_vars number of variables
+        
+        # restructure the xdata into a list of np.arrays
+        x = []
+        for i in range(x_vars):
+            x.append(training_set[:,i])
+        y = training_set[:, x_vars]
+        # Note: the n-variable polynomial surface is represented by a list of
+        # parameters. The terms to which each parameter corresponds is
+        # implicitly given by the order in which the exponents function produces
+        # terms for d-order polynomial in n variables.
+        params, cov = surface_fit(x, y, order)
+
         # compute error of fit against partitition p
-        x = partition[p][:,0]
-        y = partition[p][:,1]
-        for i in range(len(x)):
-            square_error.append((np.polyval(fit, x[i]) - y[i])**2)
+        x = []
+        for i in range(x_vars):
+            x.append(partition[p][:,i])
+        y = partition[p][:,x_vars]
+        fit_residuals.extend(residuals(params, exponents(x_vars, order), x, y))
 
     # compute mean square error for first order
-    mse = np.mean(np.array(square_error))
+    mse = np.mean(pow(np.array(fit_residuals),2))
     best_fit_order = order
 
     # assess fits for higher-order polynomials until the minimum is passed
     loop = True
 
+#    pdb.set_trace()
+
     while loop:
         order += 1
         # partition the data
-        # data = np.vstack((times, curve))
-        # data = data.transpose()
         np.random.shuffle(data)
         partition = np.array_split(data, 10)
 
         # compute the error using each partition as validation set
-        square_error = []
+        fit_residuals = []
         for p in range(len(partition)):
-           # build training data
-           training_set = np.empty([0,2],dtype='float64')
-           for i in range(len(partition)):
-               if i != p:
-                   training_set = np.concatenate((training_set, partition[i]), 0)
-           # fit polynomial
-           x = training_set[:,0]
-           y = training_set[:,1]
-           fit = np.polyfit(x, y, order)
-           # compute error of fit against partition p
-           x = partition[p][:,0]
-           y = partition[p][:,1]
-           for i in range(len(x)):
-               square_error.append((np.polyval(fit, x[i]) - y[i])**2)
+            # build training data
+            training_set = np.empty([0,(x_vars + 1)],dtype='float64')
+            for i in range(len(partition)):
+                if i != p:
+                    training_set = np.concatenate((training_set, partition[i]), 0)
 
+            # fit polynomial surface in x_vars number of variables
+            # restructure the xdata into a list of np.arrays
+            x = []
+            for i in range(x_vars):
+                x.append(training_set[:,i]) 
+            y = training_set[:,x_vars]
+            params, cov = surface_fit(x, y, order)
+
+            # compute error of fit against partition p
+            x = []
+            for i in range(x_vars):
+                x.append(partition[p][:,i])
+            y = partition[p][:,x_vars]
+            fit_residuals.extend(residuals(params, exponents(x_vars, order), x, y))
+   
         # compute mean square error for current order
-        mse_candidate = np.mean(np.array(square_error))
+        mse_candidate = np.mean(pow(np.array(fit_residuals),2))
 
         # if significantly better, keep it. If not, keep the old and halt.
         if (mse - mse_candidate) / mse > epsilon:
             mse = mse_candidate
             best_fit_order = order
-            best_fit = fit
 
         else:
             loop = False
             
-        # shouldn't this cap be the only place where loop = Flase?
         # cap the complexity
         if order >= 10:
             loop = False
 
     # using the best-fit order, fit the full data set
-    x = data[:,0]
-    y = data[:,1]
-    best_fit = np.polyfit(x, y, best_fit_order)
+    x = []
+    for i in range(x_vars):
+        x.append(data[:,i])
+    y = data[:,x_vars]
+    best_fit_params, cov = surface_fit(x, y, best_fit_order)
 
-    return best_fit
+    return best_fit_params
 
  
 def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
