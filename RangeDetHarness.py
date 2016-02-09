@@ -53,6 +53,11 @@ def DemoWithRange(noise_stdev=5., epsilon=10**(-4),
         data[0]._target_values[i] = ranged
         i += 1
         
+    # select samples based off of:
+    #   longest of Pareto frontier
+    
+    #construct new ROI based on range determination.
+        
     # build models of the data
     models = []
     for sys_id, data_frame in enumerate(data):
