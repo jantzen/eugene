@@ -2,6 +2,7 @@
 README.txt
 setup.py
 eugene/__init__.py
+eugene/scripts_demos/__init__.py
 eugene/src/TEMP_unorganized.py
 eugene/src/__init__.py
 eugene/src/categorize.py
