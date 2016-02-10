@@ -18,23 +18,81 @@ import eugene as eu
 #####################################################################
 #####################################################################
 
-def LGExperiment(noise_stdev=0):
+def LGExperiment(noise_stdev, systems_rs, systems_ks):
     """
-    ..(For now) it is assumed we use only three total systems:
-      two K1 systems & one K2 system.
+    @short Description--------------------------------
+    Runs simulated LogisticGrowth experiments for (Quail?) Biological 
+    Populations.
+    <Returns meaningful data>
+
+    @params:------------------------------------------
+    noise_stdev Is the standard Gaussian noise deviation.
+
+    systems_rs Is an np.ndarray (assumed: size = 3). The element at each 
+    index corresponds to each of the three systems. An "r" is not a variable
+    that differentiates (these kinds of) natural kinds.
+
+    systems_ks Is an np.ndarray (assumed: size = 2). The first element is
+    the K value for one kind of LogisticGrowthModel. The second element 
+    is the K value for 
+
+    @return-------------------------------------------
+    ....meaningful data.... list of classes determined out of the
+    three simulated systems.
+
     """
-    con = 0 #CONFUSED
+    ### local variabls
+    con = 0.0 #CONFUSED    (where does Janzten get these numbers from??)
+    epsilon=10**(-4)
+    resolution=[300,3]
+    alpha=1
+    ###
 
-
+    ###
     #index sensor & actuator
     isensor = eu.sensors.VABTimeSensor([])
     iact = eu.actuators.VABVirtualTimeActuator()
     #target sensor & actuator
     tsensor = eu.sensors.PopulationSensor([con, con], noise_stdev, False)
+    #tsensor = eu.sensors.PopulationSensor([-10.**23, 10.**23], noise_stdev, 
+    #                                      False)   ^XOR ?
     tact = eu.actuators.PopulationActuator([con, con])
     
     sensors = dict([(1, isensor), (2, tsensor)])
     actuators = dict([(1, iact), (2, tact)])
+    ###
 
+    ###
+    systems = []
+    #LGModel().__init__(self, r, init_x, K, alpha, beta, gamma, init_t)
+    systems.append(LogisticGrowthModel(systems_rs[0], 1, 1, 1, 1, 1, 1))
+    systems.append(LogisticGrowthModel(systems_rs[0], 1, 1, 1, 1, 1, 1))
+    systems.append(LogisticGrowthModel(systems_rs[1], 1, 1, 1, 1, 1, 1))
+    
+    interfaces = []
+    for sys in systems:
+        interfaces.append(eu.interface.VABSystemInterface(sensors, actuators, sys))
+    #blaahhhh - in case you were wondering how we find ROI, we're not 
+    #           supposed to: this is where Collin's AutoRangeDet thing 
+    #           comes in.
+    ROI = dict([(1,[con, 20.]), (2, [con, 65.])])
+    ###    
+
+
+    ### collect data!
+    data = []
+    for count, iface in enumerate(interfaces):
+        data.append(eu.interface.TimeSampleData(1, 2, iface, ROI, resolution))
+    ###
+
+    ### Eugene, use your magic powers of witchcraft & wizardry! :P hah...
+    models = []
+    for sys_id, data_frame in enumerate(data):
+        models.append(BuildModel(data_frame, sys_id, epsilon))
+
+    classes = eu.categorize.Classify(range(len(systems)), models)
+    ### Hell yeah!
+
+    return classes
 
 #####################################################################
