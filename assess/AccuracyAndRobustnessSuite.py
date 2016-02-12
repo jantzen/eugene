@@ -1,10 +1,11 @@
 # import matplotlib.pyplot as plt
 
 import sys
-sys.path.insert(0, 'C\vabacon')
-import eugene as eu
+import random
 import numpy as np
 
+# sys.path.insert(0, 'C\vabacon')
+import eugene as eu
 """Accuracy and Robustness Suite
 
 Sets up four experiments demonstrating accuracy and robustness: one showing 
@@ -13,20 +14,37 @@ under noise with increasing deviations from normality; one showing performance
 as it varies with increasing similarity among systems; one showing performance
 as it changes with variation in r-values versus k values.""" 
 
-# establish values for r's and k's
-systems_rs = np.ndarray(.5,1,2)
-systems_ks = np.ndarray(50, 100)
-
 ########
 #Functions:
 
 def SimpleNoiseExperiment():
    # basic noise experiment
-    standard_devs = [0, 1., 2., 4., 6., 8., 10.] 
+    standard_devs = [0.1, 1., 2., 4., 6., 8., 10.]
+    sys1 = [1, 1, 1, 1, 1, 1, 0]
+    sys2 = [1, 1, 2, 1, 1, 1, 0]
+    twoSys = [sys1, sys2]
+
+    noise_bracket = []
     for noiselevel in standard_devs: 
-        return(LGExperiment(noiselevel, systems_rs, systems_ks))
+        bracket = []
+        first = random.randint(1,2)
+        second  = random.randint(1,2)
+        #10 trials per noise level
+        for x in range(10):
+            bracket.append(LGExperiment(noiselevel, 
+                                        twoSys[first],
+                                        twoSys[second]))
+        noise_bracket.append(bracket)
+
+    #temporary return value
+    return noise_bracket
            
         
+
+
+
+
+
 def FullNoiseExperiment(r_range, k_pairs):   
     # vary which pairs we're using so we can have different kinds of 
     # systems we're comparing
@@ -39,7 +57,7 @@ def FullNoiseExperiment(r_range, k_pairs):
 #####################################################################
 #####################################################################
 
-def LGExperiment(noise_stdev, systems_rs, systems_ks):
+def LGExperiment(noise_stdev, sp1, sp2):
     # re: below - It doesn't have to be quail. I just liked looking at papers
     # about quail. - Jack
     """
@@ -51,17 +69,8 @@ def LGExperiment(noise_stdev, systems_rs, systems_ks):
       noise_stdev reflects the (square root of the) variance of our Gaussian
       distribution. In a noise experiment, we steadily increase this value. 
 
-
-      systems_rs Is an np.ndarray (assumed: size = 3). The element at each 
-      index corresponds to each of the three systems. An "r" is not a 
-      variable that differentiates (these kinds of) natural kinds.
-
-      systems_ks Is an np.ndarray (assumed: size = 2). The first element is
-      the K value for one kind of LogisticGrowthModel. The second element 
-      is the K value for the next kind of model. (This is the one on which
-      we expect different kinds; AFAIK different carrying capacities reflect
-      very different systems.)
-
+      sp1 = parameters for first system
+      sp2 = parameters for second system
 
     @return-------------------------------------------
       ....meaningful data.... list of classes determined out of the
@@ -127,4 +136,4 @@ def LGExperiment(noise_stdev, systems_rs, systems_ks):
     return classes
 
 #####################################################################
-n
+
