@@ -21,24 +21,24 @@ import eugene as eu
 def LGExperiment(noise_stdev, systems_rs, systems_ks):
     """
     @short Description--------------------------------
-    Runs simulated LogisticGrowth experiments for (Quail?) Biological 
-    Populations.
-    <Returns meaningful data>
+      Runs simulated LogisticGrowth experiments for (Quail?) Biological 
+      Populations.
+      <Returns meaningful data>
 
     @params:------------------------------------------
-    noise_stdev Is the standard Gaussian noise deviation.
+      noise_stdev Is the standard Gaussian noise deviation.
 
-    systems_rs Is an np.ndarray (assumed: size = 3). The element at each 
-    index corresponds to each of the three systems. An "r" is not a variable
-    that differentiates (these kinds of) natural kinds.
+      systems_rs Is an np.ndarray (assumed: size = 3). The element at each 
+      index corresponds to each of the three systems. An "r" is not a variable
+      that differentiates (these kinds of) natural kinds.
 
-    systems_ks Is an np.ndarray (assumed: size = 2). The first element is
-    the K value for one kind of LogisticGrowthModel. The second element 
-    is the K value for 
+      systems_ks Is an np.ndarray (assumed: size = 2). The first element is
+      the K value for one kind of LogisticGrowthModel. The second element 
+      is the K value for 
 
     @return-------------------------------------------
-    ....meaningful data.... list of classes determined out of the
-    three simulated systems.
+      ....meaningful data.... list of classes determined out of the
+      three simulated systems.
 
     """
     ### local variabls
@@ -65,7 +65,6 @@ def LGExperiment(noise_stdev, systems_rs, systems_ks):
     ###
     systems = []
     #LGModel().__init__(self, r, init_x, K, alpha, beta, gamma, init_t)
-    systems.append(LogisticGrowthModel(systems_rs[0], 1, 1, 1, 1, 1, 1))
     systems.append(LogisticGrowthModel(systems_rs[0], 1, 1, 1, 1, 1, 1))
     systems.append(LogisticGrowthModel(systems_rs[1], 1, 1, 1, 1, 1, 1))
     
