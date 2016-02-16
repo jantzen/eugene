@@ -115,3 +115,33 @@ class PopulationSensor(VABSensor):
             else:
                 return population
 
+
+class CCVoltageSensor(VABSensor):
+    """ For use with simulated chaotic circuits. The passed value deriv
+    indicates which derivative of voltage the sensor should measure.
+    """
+    def __init__(self, dynamic_range, deriv, noise_stdev=0, proportional=False):
+        self._range = dynamic_range
+        self._noise_stdev = noise_stdev
+        self._proportional = proportional
+        self._deriv = deriv
+ 
+    def read(self, sys):
+        if len(self._range) != 2:
+            raise ValueError('No sensor range specified.')
+        else:
+            if self._noise_stdev == 0:
+                out = sys._x[self._deriv]
+            elif self._proportional:
+                x = sys._x[self._deriv]
+                noise = np.random.normal(0, self._noise_stdev * x)
+                out = x + noise
+            else:
+                out = sys._x[self._deriv] + np.random.normal(0,
+                        self._noise_stdev)
+            if out > self._range[1] or out < self._range[0]:
+                return 'outofrange'
+            else:
+                return out
+
+       

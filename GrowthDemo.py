@@ -1,16 +1,17 @@
 # GrowthDemo
 
+import pdb
 import eugene as eu
 from eugene.src.virtual_sys.growth_sys import *
 
 def BuildModel(data_frame, sys_id, epsilon=0):
-    model = eu.compare.BuildSymModel(data_frame, 1, 2, sys_id, epsilon)
+    model = eu.compare.BuildSymModel(data_frame, 1, [2], sys_id, epsilon)
 
     return model
 
 
-def GrowthDemo(noise_stdev=1., epsilon=10**(-4),
-        resolution=[300,4],alpha=1):
+def GrowthDemo(noise_stdev=0.1, epsilon=10**(-4),
+        resolution=[900,3],alpha=1):
     
     import matplotlib.pyplot as plt
 
@@ -29,8 +30,8 @@ def GrowthDemo(noise_stdev=1., epsilon=10**(-4),
     systems = []
 
     systems.append(LogisticGrowthModel(0.2, 5., 65., 1., 1., 1., 0.))
-    systems.append(LogisticGrowthModel(0.6, 5., 65., 0.7, 2.5, 2., 0.))
     systems.append(LogisticGrowthModel(0.1, 5., 65., 1., 1., 1., 0.))
+    systems.append(LogisticGrowthModel(0.6, 5., 65., 0.7, 2.5, 2., 0.))
 
     # build corresponding interfaces
     interfaces = []
@@ -43,9 +44,28 @@ def GrowthDemo(noise_stdev=1., epsilon=10**(-4),
     # collect data
     data = []
     for count, interface in enumerate(interfaces):
-        print "Sampling data for system {}. ROI for time: {}. ROI for concentration: {}.\n".format(count, ROI[1], ROI[2])
-        data.append(eu.interface.TimeSampleData(1, 2, interface, ROI,
+        print "Sampling data for system {}. ROI for time: {}. ROI for population: {}.\n".format(count, ROI[1], ROI[2])
+        data.append(eu.interface.TimeSampleData(1, [2], interface, ROI,
             resolution))
+
+
+#    # plot the raw data 
+#    f, ax = plt.subplots(1,3,sharey=True)
+#    ax = ax.flatten()
+#    f.set_size_inches(12,8)
+#    for sys in range(len(systems)):
+#        t = data[sys]._index_values
+#        x = np.hstack(data[sys]._target_values)
+#        current_axes = ax[sys]
+#        current_axes.plot(t, x, 'bo')
+#        current_axes.set_xlabel('time')
+#        # annotate
+##        current_axes.text(annot[sys][1], annot[sys][2], annot[sys][0],
+##                fontsize=12)
+#        if sys == 0:
+#            current_axes.set_ylabel('population')
+#    f.savefig('./outputs/pop_growth_fig1.png', dpi=300)
+
 
     # build models of the data
     models = []
@@ -67,8 +87,7 @@ def GrowthDemo(noise_stdev=1., epsilon=10**(-4),
     for i, c in enumerate(classes):
         for sys in c._systems:
             t = data[sys]._index_values
-            x = data[sys]._target_values
-            x = np.array(x).transpose()
+            x = np.hstack(data[sys]._target_values)
             current_axes = ax[sys]
             current_axes.plot(t, x, 'bo')
             current_axes.set_xlabel('time')
@@ -81,7 +100,6 @@ def GrowthDemo(noise_stdev=1., epsilon=10**(-4),
 
     # replot the data (classified)
     colors = ['bo','go','ro','co']
-#    plt.figure(2)
     f, ax = plt.subplots(1,3,sharey=True)
     ax = ax.flatten()
     f.set_size_inches(12,8)
@@ -89,8 +107,7 @@ def GrowthDemo(noise_stdev=1., epsilon=10**(-4),
         for sys in c._systems:
 #            plt.subplot(2,3,sys)
             t = data[sys]._index_values
-            x = data[sys]._target_values
-            x = np.array(x).transpose()
+            x = np.hstack(data[sys]._target_values)
             current_axes = ax[sys]
             current_axes.plot(t, x, colors[i])
             current_axes.set_xlabel('time')
@@ -110,5 +127,4 @@ def GrowthDemo(noise_stdev=1., epsilon=10**(-4),
     f.savefig('./outputs/pop_growth_fig2.png', dpi=300)
 
     return classes
-
 

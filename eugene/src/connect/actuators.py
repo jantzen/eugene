@@ -35,15 +35,22 @@ class VABConcentrationActuator(VABSensor):
         sys._time = sys._init_t
 
 
-
-# Actuator to kick virtual circuit, based on concentration material       
-class VABVoltageActuator(VABSensor):
-    def set(self, sys, value):
-        sys._v = value
-        sys._time = sys._init_t    
-
 class PopulationActuator(VABSensor):
     def set(self, sys, value):
         sys._x = value
         sys._time = sys._init_t
+
+
+class CCVoltageActuator(VABSensor):
+    """ For use with simulated chaotic circuits. The passed parameter 'deriv'
+        indicates which derivative of the voltage is to be set.
+    """
+    def __init__(self, dynamic_range, deriv):
+        self._init_value = None
+        self._range = dynamic_range   
+        self._deriv = deriv
+
+    def set(self, sys, value):
+        sys._x[self._deriv] = value
+        sys._time = sys._init_t    
 

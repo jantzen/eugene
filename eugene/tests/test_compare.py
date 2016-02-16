@@ -1,6 +1,7 @@
 import eugene as eu
 import numpy as np
 import pdb
+from eugene.src.virtual_sys.chaotic_circuits import *
 
 def test_exponents():
     assert eu.compare.exponents(1, 2) == [[0],[1],[2]]
@@ -28,7 +29,6 @@ def test_residuals():
 
     ydata1a = []
     ydata1b = []
-#    pdb.set_trace()
     for i, x in enumerate(xdata1[0]):
         y = 0
         for j, p in enumerate(params1):
@@ -80,7 +80,7 @@ def test_FitPolyCV():
     xdata = np.linspace(0,10,100).reshape(100,1)
     ydata = 10. - 2. * xdata + 0.5 * xdata**2
     data = np.hstack((xdata, ydata))
-    params = eu.compare.FitPolyCV(data)
+    params = eu.compare.FitPolyCV(data)[0]
     assert (abs(params - np.array([10., -2., 0.5])) < 10**(-5)).all()
 
     x0 = np.random.rand(100,1) * 10.
@@ -88,5 +88,41 @@ def test_FitPolyCV():
     y = (1. + 13. * x1 - 17. * pow(x1, 2) + 0.1 * x0 - 100 * x0 * x1 + 5. * pow(x0,
         2))
     data = np.hstack((x0, x1, y))
-    params = eu.compare.FitPolyCV(data)
+    params = eu.compare.FitPolyCV(data)[0]
     assert (abs(params - np.array([1., 13., -17., 0.1, -100., 5.])) < 10**(-5)).all()
+
+def test_BuildSymModel():
+    # build sensors and actuators
+    noise_stdev = 10**(-4)
+    resolution = [300, 1]
+
+    tsensor = eu.sensors.VABTimeSensor([])
+    xsensor0 = eu.sensors.CCVoltageSensor([-10**23,10.**23], 0, noise_stdev, False)
+    xsensor1 = eu.sensors.CCVoltageSensor([-10**23,10.**23], 1, noise_stdev, False)
+    xsensor2 = eu.sensors.CCVoltageSensor([-10**23,10.**23], 2, noise_stdev, False)
+    xact0 = eu.actuators.CCVoltageActuator([0.,10.**23], 0)
+    xact1 = eu.actuators.CCVoltageActuator([0.,10.**23], 0)
+    xact2 = eu.actuators.CCVoltageActuator([0.,10.**23], 0)
+    tact = eu.actuators.VABVirtualTimeActuator()
+
+    #build a dictionary of sensors and a dictionary of actuators
+    sensors = dict([(3, tsensor), (0, xsensor0), (1, xsensor1), (2, xsensor2)])
+    actuators = dict([(3,tact),(0,xact0), (1,xact1), (2,xact2)])
+
+    # build system 
+    sys = ChaoticCircuit(5)
+
+    # build corresponding interfaces
+    interface = eu.interface.VABSystemInterface(sensors, actuators, sys)
+
+    # build ROI
+    ROI = dict([(3,[0., 10.]), (0, np.array([0.,-9.22617])), (1,
+        np.array([0.,3.86821])), (2, np.array([0.,2.60234]))])
+            
+    # collect data
+    data = eu.interface.TimeSampleData(3, [0,1,2], interface,
+            ROI, resolution, target_value_points=True)
+
+    model = eu.compare.BuildSymModel(data, 3, [0,1,2],0,0.1)
+
+    return data, model

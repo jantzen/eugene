@@ -10,6 +10,10 @@ import pdb
 # SymModel
 
 #Functions:
+#  exponents
+#  npoly_val
+#  residuals
+#  surface_fit
 #  FitPolyCV
 #  BuildSymModel
 #  CompareModels
@@ -21,20 +25,32 @@ import pdb
 
 
 class SymModel( object ):
-    """ An object holding a collection of polynomial models, each 
-        corresponding to a symmetry labeled by a distinct value of what
-        is presumed to be a single, real-valued parameter - in other 
-        words, 
-        An object holding a collection of members of a Lie group of symmetries. 
-        Each polynomial is represented by an ndarray containing the 
-        polynomial coefficients, highest power first.
-        sampled_data: an r x 2 array of values to which the corresponding
-        polynomials were fit
+    """ An object for holding implicit numerical models of one ore more symmetry
+        transformations. Each transformation is reprsented as a vector function
+        of the target variables.
+
+        index_var: the variable which functioned as the index for the sampled
+        data; values of this variable are not preserved or represented in the
+        symmetry model.
+
+        target_vars: a list containing id numbers for each of the target
+        variables measured and intervened upon
+
+        sys_id: the id of the system from which the stored measurements were
+        taken
+
+        sampled_data: an (m-1)-element list of p x (n+1) arrays, where n is the
+        number of target variables and p is the number of samples (length of
+        array of index variable values)
+
+        polynomials: an (m-1)-element list of n-element arrays, where m is the
+        number of initial conditions sampled and n is the number
+        of target variables.
     """
     
-    def __init__(self, index_var, target_var, sys_id, sampled_data, polynomials = [], epsilon=None):
+    def __init__(self, index_var, target_vars, sys_id, sampled_data, polynomials = [], epsilon=None):
         self._index_var = index_var
-        self._target_var = target_var
+        self._target_vars = target_vars
         self._sys_id = sys_id
         self._sampled_data = sampled_data
         self._polynomials = polynomials
@@ -146,7 +162,7 @@ def surface_fit(xdata, ydata, order):
     num_vars = len(xdata) 
     num_params = math.factorial(num_vars +
             order)/math.factorial(num_vars)/math.factorial(order)
-    params_guess = np.ones(num_params)
+    params_guess = np.zeros(num_params)
 
     # get the exponents for each term
     exps = exponents(num_vars, order)
@@ -165,9 +181,6 @@ def FitPolyCV(data, epsilon=0):
     # Determine the number of independent variables
     x_vars = data.shape[1] - 1
  
-    # Turn off warnings from polyfit
-#    warnings.simplefilter('ignore', np.RankWarning)
-
     np.random.shuffle(data)
     partition = np.array_split(data, 10)
 
@@ -209,8 +222,6 @@ def FitPolyCV(data, epsilon=0):
 
     # assess fits for higher-order polynomials until the minimum is passed
     loop = True
-
-#    pdb.set_trace()
 
     while loop:
         order += 1
@@ -254,8 +265,11 @@ def FitPolyCV(data, epsilon=0):
             loop = False
             
         # cap the complexity
-        if order >= 10:
+        if x_vars * order >= 10:
             loop = False
+	
+	#DEBUGGING
+#	print "In PolyFitCV, current order = {}, mse = {}.".format(order, mse)
 
     # using the best-fit order, fit the full data set
     x = []
@@ -264,34 +278,58 @@ def FitPolyCV(data, epsilon=0):
     y = data[:,x_vars]
     best_fit_params, cov = surface_fit(x, y, best_fit_order)
 
-    return best_fit_params
+    return [best_fit_params, order]
 
  
-def BuildSymModel(data_frame, index_var, target_var, sys_id, epsilon=0):
-    # from the raw curves of target vs. index, build tranformation 
-    # curves (e.g., target1 vs. target2)
+def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
+    # from the raw blocks (Sets of curves of target vs. index variables), build transformation 
+    # vector function (e.g., [target1', target2', target3'] = f([target1,
+    # target2, target3]))
     abscissa = data_frame._target_values[0]
     ordinates = data_frame._target_values[1:]
     
-    # for each curve, fit a polynomial using 10-fold cross-validation
-    # to choose the order
+    # for each block, fit a polynomial surface for each variable using 10-fold cross-validation
+    # to choose the order (n n-variable polynomials for each of the m-1 blocks)
     polynomials = []
     sampled_data = []
+    
+    # DEBUGGING
+    b = 0
+    for block in ordinates:
+        # extract the columns
+        [num_rows, num_cols] = block.shape
+        columns = []
+        for i in range(num_cols):
+            columns.append(block[:,i].reshape(num_rows,1))
 
-    for curve in ordinates:
         # format the data
-        data = np.vstack((abscissa, curve))
-        data = data.transpose()
+        data = []
+        for col in columns:
+            data.append(np.hstack((abscissa, col)))
 
-        # fit a polynomial of the best order determined by 10-fold CV
-        best_fit = FitPolyCV(data, epsilon)
+        # for each variable, fit a polynomial surface of the best order determined by 10-fold CV
+        block_polys = []
+	# DEBUGGING
+	v = 0
+        for d in data:
+ 	    #DEBUGGING
+	    print "Currently working on sample {}, variable {}.".format(b, v)
+
+            best_fit = FitPolyCV(d, epsilon)
+            block_polys.append(best_fit)
+
+	    v+=1
 
         # add to data arrays to pass out in final SymModel
-        polynomials.append(best_fit)
+        polynomials.append(block_polys)
         sampled_data.append(data)
+    
+	# DEBUGGING
+	b += 1
+
 
     # build and output a SymModel object
-    return SymModel(index_var, target_var, sys_id, sampled_data, polynomials, 
+    return SymModel(index_var, target_vars, sys_id, sampled_data, polynomials, 
             epsilon)
 
 
@@ -300,28 +338,33 @@ def CompareModels(model1, model2, alpha=1.):
     Returns 0 if they are indistinguishable (of the same dynamical kind as far
     as we can tell) and 1 otherwise.
     """
+    # determine values of some key parameters (for controlling loops)
+    if len(model1._target_vars) == len(model2._target_vars):
+        num_vars = len(model1._target_vars)
+    else:
+        raise ValueError('Models do not refer to the same number of target variables.')
 
-    # Turn off warnings from polyfit
-    warnings.simplefilter('ignore', np.RankWarning)
+    m = len(model1._sampled_data)
 
     # initialize containers for data that may be passed out
     combined_sampled_data = []
     combined_polynomials = []
 
     # PREPARE THE DATA
-    data1 = []
-    data2 = []
+    rows1 = model1._sampled_data[0][0].shape[0]
+    data1 = np.empty([rows1, 0],dtype='float64')
+    rows2 = model2._sampled_data[0][0].shape[0]
+    data2 = np.empty([rows2, 0],dtype='float64')
 
-    # for each sampled curve, randomize the data
-    for curve in model1._sampled_data:
-        np.random.shuffle(curve)
-        data1.append(curve)
-    data1 = np.concatenate(data1, 1)
+    # for each sampled block, randomize the data
+    for sample in range(m):
+        for block in model1._sampled_data[sample]:
+            np.random.shuffle(block)
+            data1 = np.hstack((data1, block))
 
-    for curve in model2._sampled_data:
-        np.random.shuffle(curve)
-        data2.append(curve)
-    data2 = np.concatenate(data2, 1)
+        for block in model2._sampled_data[sample]:
+            np.random.shuffle(block)
+            data2 = np.hstack((data2, block))
 
     # in order to estimate the base error when both systems belong to the same
     # kind, separate each data set in two (and treat each pair as its own
@@ -330,6 +373,7 @@ def CompareModels(model1, model2, alpha=1.):
     base_error_data2 = np.array_split(data2, 2)
 
     epsilon = min(model1._epsilon, model2._epsilon)
+
 
     # OUTER CROSS-VALIDATION LOOP
     ############################################################################
@@ -377,16 +421,16 @@ def CompareModels(model1, model2, alpha=1.):
                     partition1[i], partition2[i]), 0)
 
                 training_set_base_error1a = np.concatenate((training_set_base_error1a,
-                    base_error_partition1a[i]),0)
+                    base_error_partition1a[i]), 0)
                 training_set_base_error1b = np.concatenate((training_set_base_error1b,
-                    base_error_partition1b[i]),0)
+                    base_error_partition1b[i]), 0)
                 training_set_base_error1_joint = np.concatenate((
                     training_set_base_error1_joint, base_error_partition1a[i], 
                     base_error_partition1b[i]), 0)
                 training_set_base_error2a = np.concatenate((training_set_base_error2a,
-                    base_error_partition2a[i]),0)
+                    base_error_partition2a[i]), 0)
                 training_set_base_error2b = np.concatenate((training_set_base_error2b,
-                    base_error_partition2b[i]),0)
+                    base_error_partition2b[i]), 0)
                 training_set_base_error2_joint = np.concatenate((
                     training_set_base_error2_joint, base_error_partition2a[i], 
                     base_error_partition2b[i]), 0)
@@ -394,123 +438,171 @@ def CompareModels(model1, model2, alpha=1.):
 
         # TRAIN THE PREDICTORS
         ########################################################################
-        polynomials_sep1 = []
-        polynomials_sep2 = []
-        polynomials_joint = []
+        polynomials_sep1 = [[] for i in range(m)]
+        polynomials_sep2 = [[] for i in range(m)]
+        polynomials_joint = [[] for i in range(m)]
 
-        polynomials_base_error1a = []
-        polynomials_base_error1b = []
-        polynomials_base_error1_joint = []
-        polynomials_base_error2a = []
-        polynomials_base_error2b = []
-        polynomials_base_error2_joint = []
+        polynomials_base_error1a = [[] for i in range(m)]
+        polynomials_base_error1b = [[] for i in range(m)]
+        polynomials_base_error1_joint = [[] for i in range(m)]
+        polynomials_base_error2a = [[] for i in range(m)]
+        polynomials_base_error2b = [[] for i in range(m)]
+        polynomials_base_error2_joint = [[] for i in range(m)]
         
-        # Loop over curves in the training set
-        for index in range(cols/2):
-            x_col = 2 * index
-            curve_sep1 = training_set_sep1[:,x_col:(x_col+2)]
-            curve_sep2 = training_set_sep2[:,x_col:(x_col+2)]
-            curve_joint = training_set_joint[:,x_col:(x_col+2)]
+        # Loop over blocks in the training set
+        # There should be (m-1) x n blocks, where m is number of initial
+        # conditions sampled
+        for i in range(m):
+            for block in range(num_vars):
+                block_start = m * block * (num_vars + 1)
+                block_sep1 = training_set_sep1[:,block_start:(block_start + num_vars + 1)]
+                block_sep2 = training_set_sep2[:,block_start:(block_start + num_vars + 1)]
+                block_joint = training_set_joint[:,block_start:(block_start + num_vars + 1)]
 
-            polynomials_sep1.append(FitPolyCV(curve_sep1, epsilon))
-            polynomials_sep2.append(FitPolyCV(curve_sep2, epsilon))
-            polynomials_joint.append(FitPolyCV(curve_joint, epsilon))
+                polynomials_sep1[i].append(FitPolyCV(block_sep1, epsilon))
+                polynomials_sep2[i].append(FitPolyCV(block_sep2, epsilon))
+                polynomials_joint[i].append(FitPolyCV(block_joint, epsilon))
 
-            curve_base_error1a = training_set_base_error1a[:,x_col:(x_col+2)]
-            curve_base_error1b = training_set_base_error1b[:,x_col:(x_col+2)]
-            curve_base_error1_joint = training_set_base_error1_joint[:,x_col:(x_col+2)]
-            curve_base_error2a = training_set_base_error2a[:,x_col:(x_col+2)]
-            curve_base_error2b = training_set_base_error2b[:,x_col:(x_col+2)]
-            curve_base_error2_joint = training_set_base_error2_joint[:,x_col:(x_col+2)]
+                block_base_error1a = training_set_base_error1a[:,block_start:(block_start + num_vars 
+                    + 1)]
+                block_base_error1b = training_set_base_error1b[:,block_start:(block_start + num_vars 
+                    + 1)]
+                block_base_error1_joint = training_set_base_error1_joint[:,block_start:(block_start 
+                    + num_vars + 1)]
+                block_base_error2a = training_set_base_error2a[:,block_start:(block_start + num_vars 
+                    + 1)]
+                block_base_error2b = training_set_base_error2b[:,block_start:(block_start + num_vars 
+                    + 1)]
+                block_base_error2_joint = training_set_base_error2_joint[:,block_start:(block_start 
+                    + num_vars + 1)]
  
-            polynomials_base_error1a.append(FitPolyCV(curve_base_error1a,
-                epsilon))
-            polynomials_base_error1b.append(FitPolyCV(curve_base_error1b,
-                epsilon))
-            polynomials_base_error1_joint.append(FitPolyCV(curve_base_error1_joint, 
-                epsilon))
-            polynomials_base_error2a.append(FitPolyCV(curve_base_error2a,
-                epsilon))
-            polynomials_base_error2b.append(FitPolyCV(curve_base_error2b,
-                epsilon))
-            polynomials_base_error2_joint.append(FitPolyCV(curve_base_error2_joint, 
-                epsilon))
+                polynomials_base_error1a[i].append(FitPolyCV(block_base_error1a,
+                    epsilon))
+                polynomials_base_error1b[i].append(FitPolyCV(block_base_error1b,
+                    epsilon))
+                polynomials_base_error1_joint[i].append(FitPolyCV(block_base_error1_joint, 
+                    epsilon))
+                polynomials_base_error2a[i].append(FitPolyCV(block_base_error2a,
+                    epsilon))
+                polynomials_base_error2b[i].append(FitPolyCV(block_base_error2b,
+                    epsilon))
+                polynomials_base_error2_joint[i].append(FitPolyCV(block_base_error2_joint, 
+                    epsilon))
  
             
         # TEST THE PREDICTORS
         ########################################################################
-        # Loop over curves in the test set
-        for index in range(cols/2):
-            x_col = 2 * index
-            x_sep1 = partition1[p][:,x_col]
-            y_sep1 = partition1[p][:,(x_col+1)]
-            x_sep2 = partition2[p][:,x_col]
-            y_sep2 = partition2[p][:,(x_col+1)]
-            x_joint = np.concatenate((partition1[p][:,x_col], 
-                partition2[p][:,x_col]))
-            y_joint = np.concatenate((partition1[p][:,(x_col+1)], 
-                partition2[p][:,(x_col+1)]))
+        # Loop over blocks in the test set (the index i ranges over blocks of
+        # sampled data)
+        for i in range(m):
+            for block in range(num_vars):
+                block_start = m * block * (num_vars + 1)
 
-            x_base_error1a = base_error_partition1a[p][:,x_col]
-            y_base_error1a = base_error_partition1a[p][:,(x_col+1)]
-            x_base_error1b = base_error_partition1b[p][:,x_col]
-            y_base_error1b = base_error_partition1b[p][:,(x_col+1)]
-            x_base_error1_joint = np.concatenate((
-                base_error_partition1a[p][:,x_col],
-                base_error_partition1b[p][:,x_col]))
-            y_base_error1_joint = np.concatenate((
-                base_error_partition1a[p][:,(x_col+1)],
-                base_error_partition1b[p][:,(x_col+1)]))
-            x_base_error2a = base_error_partition2a[p][:,x_col]
-            y_base_error2a = base_error_partition2a[p][:,(x_col+1)]
-            x_base_error2b = base_error_partition2b[p][:,x_col]
-            y_base_error2b = base_error_partition2b[p][:,(x_col+1)]
-            x_base_error2_joint = np.concatenate((
-                base_error_partition2a[p][:,x_col],
-                base_error_partition2b[p][:,x_col]))
-            y_base_error2_joint = np.concatenate((
-                base_error_partition2a[p][:,(x_col+1)],
-                base_error_partition2b[p][:,(x_col+1)]))
-            
+                x_sep1 = partition1[p][:,block_start:(block_start+num_vars)]
+                y_sep1 = partition1[p][:,(block_start+num_vars+1)]
+                x_sep2 = partition2[p][:,block_start:(block_start+num_vars)]
+                y_sep2 = partition2[p][:,(block_start+num_vars+1)]
+                x_joint = np.concatenate((partition1[p][:,block_start:(block_start+num_vars)], 
+                    partition2[p][:,block_start:(block_start+num_vars)]))
+                y_joint = np.concatenate((partition1[p][:,(block_start+num_vars+1)], 
+                    partition2[p][:,(block_start+num_vars+1)]))
 
-            for i in range(len(x_sep1)):
-                SE_sep.append((np.polyval(polynomials_sep1[index],
-                        x_sep1[i]) - y_sep1[i])**2)
+                x_base_error1a = base_error_partition1a[p][:,block_start:(block_start+num_vars)]
+                y_base_error1a = base_error_partition1a[p][:,(block_start+num_vars+1)]
+                x_base_error1b = base_error_partition1b[p][:,block_start:(block_start+num_vars)]
+                y_base_error1b = base_error_partition1b[p][:,(block_start+num_vars+1)]
+                x_base_error1_joint = np.concatenate((
+                    base_error_partition1a[p][:,block_start:(block_start+num_vars)],
+                    base_error_partition1b[p][:,block_start:(block_start+num_vars)]))
+                y_base_error1_joint = np.concatenate((
+                    base_error_partition1a[p][:,(block_start+num_vars+1)],
+                    base_error_partition1b[p][:,(block_start+num_vars+1)]))
 
-            for i in range(len(x_sep2)):
-                SE_sep.append((np.polyval(polynomials_sep2[index],
-                        x_sep2[i]) - y_sep2[i])**2)
-            
-            for i in range(len(x_joint)):
-                SE_joint.append((np.polyval(polynomials_joint[index],
-                    x_joint[i]) - y_joint[i])**2)
+                x_base_error2a = base_error_partition2a[p][:,block_start:(block_start+num_vars)]
+                y_base_error2a = base_error_partition2a[p][:,(block_start+num_vars+1)]
+                x_base_error2b = base_error_partition2b[p][:,block_start:(block_start+num_vars)]
+                y_base_error2b = base_error_partition2b[p][:,(block_start+num_vars+1)]
+                x_base_error2_joint = np.concatenate((
+                    base_error_partition2a[p][:,block_start:(block_start+num_vars)],
+                    base_error_partition2b[p][:,block_start:(block_start+num_vars)]))
+                y_base_error2_joint = np.concatenate((
+                    base_error_partition2a[p][:,(block_start+num_vars+1)],
+                    base_error_partition2b[p][:,(block_start+num_vars+1)]))
+                
+                # the index j runs over particular sample points
+                for j in range(x_sep1.shape[0]):
+                    for v in range(num_vars):
+                        predicted = npoly_val(polynomials_sep1[i][v][0],
+                            exponents(num_vars,polynomials_sep1[i][v][1]), 
+                            x_sep1[j,0:num_vars])
+                        actual = y_sep1[j]
+                        SE_sep.append(pow((predicted - actual),2))
 
+                for j in range(x_sep2.shape[0]):
+                    for v in range(num_vars):
+                        predicted = npoly_val(polynomials_sep2[i][v][0],
+                            exponents(num_vars,polynomials_sep2[i][v][1]), 
+                            x_sep2[j,0:num_vars])
+                        actual = y_sep2[j]
+                        SE_sep.append(pow((predicted - actual),2))
 
-            for i in range(len(x_base_error1a)):
-                SE_base_error1_sep.append((np.polyval(polynomials_base_error1a[index],
-                    x_base_error1a[i]) - y_base_error1a[i])**2)
+                for j in range(x_joint.shape[0]):
+                    for v in range(num_vars):
+                        predicted = npoly_val(polynomials_joint[i][v][0],
+                            exponents(num_vars,polynomials_joint[i][v][1]), 
+                            x_joint[j,0:num_vars])
+                        actual = y_joint[j]
+                        SE_joint.append(pow((predicted - actual),2))
 
-            for i in range(len(x_base_error1b)):
-                SE_base_error1_sep.append((np.polyval(polynomials_base_error1b[index],
-                    x_base_error1b[i]) - y_base_error1b[i])**2)
+                for j in range(x_base_error1a.shape[0]):
+                    for v in range(num_vars):
+                        predicted = npoly_val(polynomials_base_error1a[i][v][0],
+                            exponents(num_vars,polynomials_base_error1a[i][v][1]), 
+                            x_base_error1a[j,0:num_vars])
+                        actual = y_base_error1a[j]
+                        SE_base_error1_sep.append(pow((predicted - actual),2))
 
-            for i in range(len(x_base_error1_joint)):
-                SE_base_error1_joint.append((np.polyval(polynomials_base_error1_joint[index],
-                    x_base_error1_joint[i]) - y_base_error1_joint[i])**2)
+                for j in range(x_base_error1b.shape[0]):
+                    for v in range(num_vars):
+                        predicted = npoly_val(polynomials_base_error1b[i][v][0],
+                            exponents(num_vars,polynomials_base_error1b[i][v][1]), 
+                            x_base_error1b[j,0:num_vars])
+                        actual = y_base_error1b[j]
+                        SE_base_error1_sep.append(pow((predicted - actual),2))
 
-            for i in range(len(x_base_error2a)):
-                SE_base_error2_sep.append((np.polyval(polynomials_base_error2a[index],
-                    x_base_error2a[i]) - y_base_error2a[i])**2)
+                for j in range(x_base_error1_joint.shape[0]):
+                    for v in range(num_vars):
+                        predicted = npoly_val(polynomials_base_error1_joint[i][v][0],
+                            exponents(num_vars,polynomials_base_error1_joint[i][v][1]), 
+                            x_base_error1_joint[j,0:num_vars])
+                        actual = y_base_error1_joint[j]
+                        SE_base_error1_joint.append(pow((predicted - actual),2))
 
-            for i in range(len(x_base_error2b)):
-                SE_base_error2_sep.append((np.polyval(polynomials_base_error2b[index],
-                    x_base_error2b[i]) - y_base_error2b[i])**2)
+                for j in range(x_base_error2a.shape[0]):
+                    for v in range(num_vars):
+                        predicted = npoly_val(polynomials_base_error2a[i][v][0],
+                            exponents(num_vars,polynomials_base_error2a[i][v][1]), 
+                            x_base_error2a[j,0:num_vars])
+                        actual = y_base_error2a[j]
+                        SE_base_error2_sep.append(pow((predicted - actual),2))
 
-            for i in range(len(x_base_error2_joint)):
-                SE_base_error2_joint.append((np.polyval(polynomials_base_error2_joint[index],
-                    x_base_error2_joint[i]) - y_base_error2_joint[i])**2)
+                for j in range(x_base_error2b.shape[0]):
+                    for v in range(num_vars):
+                        predicted = npoly_val(polynomials_base_error2b[i][v][0],
+                            exponents(num_vars,polynomials_base_error2b[i][v][1]), 
+                            x_base_error2b[j,0:num_vars])
+                        actual = y_base_error2b[j]
+                        SE_base_error2_sep.append(pow((predicted - actual),2))
 
+                for j in range(x_base_error2_joint.shape[0]):
+                    for v in range(num_vars):
+                        predicted = npoly_val(polynomials_base_error2_joint[i][v][0],
+                            exponents(num_vars,polynomials_base_error2_joint[i][v][1]), 
+                            x_base_error2_joint[j,0:num_vars])
+                        actual = y_base_error2_joint[j]
+                        SE_base_error2_joint.append(pow((predicted - actual),2))
 
+#    pdb.set_trace()
 
     ############################################################################
 
@@ -534,24 +626,9 @@ def CompareModels(model1, model2, alpha=1.):
     print "MSE_sep = {0}, MSE_joint = {1}, MSE_base1 sep = {2}, MSE_base1 joint = {3}, MSE_base2 sep = {4}, MSE_base2 joint = {5}, expected difference = {6}".format(MSE_sep, MSE_joint, MSE_base_error1_sep, MSE_base_error1_joint, MSE_base_error2_sep, MSE_base_error2_joint, expected_difference)
 
     # Compare and return
+    # return 1 if significantly different
     if MSE_joint > MSE_sep + alpha * expected_difference:
         return 1
 
     else:
         return 0
-#        # Use full joint data set to fit new polynomials and return as a
-#        # SymModel
-#        data = np.concatenate((data1, data2))
-#        
-#        # Loop over curves in the data
-#        cols = np.shape(data)[1]
-#        for index in range(cols/2):
-#            x_col = 2 * index
-#            curve = data[:,x_col:(x_col+2)]
-#            combined_sampled_data.append(curve)
-#            combined_polynomials.append(FitPolyCV(curve, epsilon))
-#
-#        # Build and return the SymModel object
-#        return SymModel(model1._index_var, model1._target_var,
-#                model1._sys_id, combined_sampled_data,
-#                combined_polynomials, epsilon)
