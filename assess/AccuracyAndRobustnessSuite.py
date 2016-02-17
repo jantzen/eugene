@@ -83,21 +83,18 @@ def LGExperiment(noise_stdev, sp1, sp2):
     con = 0.0 #CONFUSED    (where does Janzten get these numbers from??)
     epsilon=10**(-4)
     resolution=[300,3]
-    alpha=1
     ###
-
-    systems_rs = np.ndarray(.5,1,2)
-    systems_ks = np.ndarray(50, 100)
 
     ###
     #index sensor & actuator
     isensor = eu.sensors.VABTimeSensor([])
     iact = eu.actuators.VABVirtualTimeActuator()
     #target sensor & actuator
-    tsensor = eu.sensors.PopulationSensor([con, con], noiselevel, False)
+    tsensor = eu.sensors.PopulationSensor([10**(-23), 10**23], noiselevel, 
+                                          False)
     #tsensor = eu.sensors.PopulationSensor([-10.**23, 10.**23], noise_stdev, 
     #                                      False)   ^XOR ?
-    tact = eu.actuators.PopulationActuator([con, con])
+    tact = eu.actuators.PopulationActuator([0, 10**23])
     
     sensors = dict([(1, isensor), (2, tsensor)])
     actuators = dict([(1, iact), (2, tact)])
@@ -106,8 +103,12 @@ def LGExperiment(noise_stdev, sp1, sp2):
     ###
     systems = []
     #LGModel().__init__(self, r, init_x, K, alpha, beta, gamma, init_t)
-    systems.append(LogisticGrowthModel(systems_rs[0], 1, 1, 1, 1, 1, 1))
-    systems.append(LogisticGrowthModel(systems_rs[1], 1, 1, 1, 1, 1, 1))
+    systems.append(LogisticGrowthModel(sp1[0], sp1[1], sp1[2], sp1[3],
+                                       sp1[4], sp1[5], sp1[6])
+
+    systems.append(LogisticGrowthModel(sp2[0], sp2[1], sp2[2], sp2[3],
+                                       sp2[4], sp2[5], sp2[6])
+
     
     interfaces = []
     for sys in systems:

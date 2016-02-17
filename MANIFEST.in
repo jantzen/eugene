@@ -1,5 +1,7 @@
 recursive-include eugene/src *.py
+
 recursive-include eugene/src/connect *.py
 recursive-include eugene/src/virtual_sys *.py
+
 recursive-include eugene/tests *.py
 recursive-include eugene/scripts_demos .*py
