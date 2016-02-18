@@ -11,7 +11,7 @@ def BuildModel(data_frame, sys_id, epsilon=0):
 
 
 def GrowthDemo(noise_stdev=0.1, epsilon=10**(-4),
-        resolution=[900,3],alpha=1):
+        resolution=[300,3],alpha=1):
     
     import matplotlib.pyplot as plt
 

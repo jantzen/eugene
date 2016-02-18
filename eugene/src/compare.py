@@ -125,14 +125,18 @@ def npoly_val(params, exponents, x_vals):
     """ Returns the value of an n-variable polynomial at the point given by
         x_vals
     """
-    sum_of_terms = 0
-    for i, param in enumerate(params):
-        term = param
-        for j, x in enumerate(x_vals): 
-            term = term * pow(x, exponents[i][j])
-        sum_of_terms += term
-
-    return sum_of_terms
+    try:
+        sum_of_terms = 0
+        for i, param in enumerate(params):
+            term = param
+            for j, x in enumerate(x_vals): 
+                term = term * pow(x, exponents[i][j])
+            sum_of_terms += term
+    
+        return sum_of_terms
+    except:
+        print 'exponents: {}; i = {}; j = {}; xdata = {}'.format(exponents, i,
+                j, xdata)
 
 
 def residuals(params, exponents, xdata, ydata):
@@ -141,11 +145,18 @@ def residuals(params, exponents, xdata, ydata):
         computed from the poynomial.
     """
     resids = []
-    num_vars = len(xdata)
+    if type(xdata) == list:
+        num_vars = len(xdata)
+    else:
+        num_vars = xdata.shape[1]
+
     for i, y in enumerate(ydata):
         point_val = []
         for j in range(num_vars):
-            point_val.append(xdata[j][i])
+            if type(xdata) == list:
+                point_val.append(xdata[j][i])
+            else:
+                point_val.append(xdata[i,j])
         expected = npoly_val(params, exponents, point_val)
         resids.append(y - expected)
      
@@ -172,11 +183,13 @@ def surface_fit(xdata, ydata, order):
     return params
         
 
-def FitPolyCV(data, epsilon=0):
+def FitPolyCV(passed_data, epsilon=0):
     """ Takes a set of x,y data in the form of n+1 columns (x in the first n, y in the
         last) and fits a polynomial surface in n-variables of order determined by 10-fold
         cross-validation.
     """
+    # Make a local copy of the data
+    data = copy.deepcopy(passed_data)
 
     # Determine the number of independent variables
     x_vars = data.shape[1] - 1
@@ -191,10 +204,13 @@ def FitPolyCV(data, epsilon=0):
     fit_residuals = []
     for p in range(len(partition)):
         # build training data
-        training_set = np.empty([0,(x_vars + 1)],dtype='float64')
+#        training_set = np.empty([0,(x_vars + 1)],dtype='float64')
+        training_set = []
         for i in range(len(partition)):
             if i != p:
-                training_set = np.concatenate((training_set, partition[i]), 0)
+#                training_set = np.concatenate((training_set, partition[i]), 0)
+                training_set.append(partition[i])
+        training_set = np.concatenate(training_set, 0)
         
         # fit polynomial surface in x_vars number of variables
         
@@ -203,6 +219,7 @@ def FitPolyCV(data, epsilon=0):
         for i in range(x_vars):
             x.append(training_set[:,i])
         y = training_set[:, x_vars]
+        
         # Note: the n-variable polynomial surface is represented by a list of
         # parameters. The terms to which each parameter corresponds is
         # implicitly given by the order in which the exponents function produces
@@ -225,6 +242,10 @@ def FitPolyCV(data, epsilon=0):
 
     while loop:
         order += 1
+
+        # FOR DEBUGGING
+        print 'FitPoly trying order {}.'.format(order)
+
         # partition the data
         np.random.shuffle(data)
         partition = np.array_split(data, 10)
@@ -233,10 +254,13 @@ def FitPolyCV(data, epsilon=0):
         fit_residuals = []
         for p in range(len(partition)):
             # build training data
-            training_set = np.empty([0,(x_vars + 1)],dtype='float64')
+#            training_set = np.empty([0,(x_vars + 1)],dtype='float64')
+            training_set = []
             for i in range(len(partition)):
                 if i != p:
-                    training_set = np.concatenate((training_set, partition[i]), 0)
+#                    training_set = np.concatenate((training_set, partition[i]), 0)
+                    training_set.append(partition[i])
+            training_set = np.concatenate(training_set, 0)
 
             # fit polynomial surface in x_vars number of variables
             # restructure the xdata into a list of np.arrays
@@ -293,8 +317,6 @@ def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
     polynomials = []
     sampled_data = []
     
-    # DEBUGGING
-    b = 0
     for block in ordinates:
         # extract the columns
         [num_rows, num_cols] = block.shape
@@ -309,25 +331,15 @@ def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
 
         # for each variable, fit a polynomial surface of the best order determined by 10-fold CV
         block_polys = []
-	# DEBUGGING
-	v = 0
         for d in data:
- 	    #DEBUGGING
-	    print "Currently working on sample {}, variable {}.".format(b, v)
-
             best_fit = FitPolyCV(d, epsilon)
             block_polys.append(best_fit)
 
-	    v+=1
 
         # add to data arrays to pass out in final SymModel
         polynomials.append(block_polys)
         sampled_data.append(data)
     
-	# DEBUGGING
-	b += 1
-
-
     # build and output a SymModel object
     return SymModel(index_var, target_vars, sys_id, sampled_data, polynomials, 
             epsilon)
@@ -352,19 +364,27 @@ def CompareModels(model1, model2, alpha=1.):
 
     # PREPARE THE DATA
     rows1 = model1._sampled_data[0][0].shape[0]
-    data1 = np.empty([rows1, 0],dtype='float64')
+#    data1 = np.empty([rows1, 0],dtype='float64')
+    data1 = []
     rows2 = model2._sampled_data[0][0].shape[0]
-    data2 = np.empty([rows2, 0],dtype='float64')
+#    data2 = np.empty([rows2, 0],dtype='float64')
+    data2 = []
 
     # for each sampled block, randomize the data
     for sample in range(m):
         for block in model1._sampled_data[sample]:
             np.random.shuffle(block)
-            data1 = np.hstack((data1, block))
+#            data1 = np.hstack((data1, block))
+            data1.append(block)
+    
 
         for block in model2._sampled_data[sample]:
             np.random.shuffle(block)
-            data2 = np.hstack((data2, block))
+#            data2 = np.hstack((data2, block))
+            data2.append(block)
+   
+    data1 = np.concatenate(data1, 1)    
+    data2 = np.concatenate(data2, 1)
 
     # in order to estimate the base error when both systems belong to the same
     # kind, separate each data set in two (and treat each pair as its own
@@ -387,7 +407,7 @@ def CompareModels(model1, model2, alpha=1.):
     base_error_partition2a = np.array_split(base_error_data2[0], 10)
     base_error_partition2b = np.array_split(base_error_data2[1], 10)
 
-    # Prepare empty arrays to store squared errors for each test partition
+    # Prepare empty lists to store squared errors for each test partition
     SE_sep = []
     SE_joint = []
 
@@ -398,46 +418,85 @@ def CompareModels(model1, model2, alpha=1.):
 
     # Loop over partitions, using each as a test set once
     for p in range(10):
+        # FOR DEBUGGING
+        print 'Entering training phase {} of 10.'.format(p+1)
+
         # Build training data for each predictive model (separate vs. joint)
         cols = np.shape(partition1[0])[1]
-        training_set_sep1 = np.empty([0, cols],dtype='float64')
-        training_set_sep2 = np.empty([0, cols],dtype='float64')
-        training_set_joint = np.empty([0, cols],dtype='float64')
+#        training_set_sep1 = np.empty([0, cols],dtype='float64')
+#        training_set_sep2 = np.empty([0, cols],dtype='float64')
+#        training_set_joint = np.empty([0, cols],dtype='float64')
+#
+#        training_set_base_error1a = np.empty([0, cols], dtype='float64')
+#        training_set_base_error1b = np.empty([0, cols], dtype='float64')
+#        training_set_base_error1_joint = np.empty([0, cols], dtype='float64')
+#        training_set_base_error2a = np.empty([0, cols], dtype='float64')
+#        training_set_base_error2b = np.empty([0, cols], dtype='float64')
+#        training_set_base_error2_joint = np.empty([0, cols], dtype='float64')
+ 
+        training_set_sep1 = []
+        training_set_sep2 = []
+        training_set_joint = []
 
-        training_set_base_error1a = np.empty([0, cols], dtype='float64')
-        training_set_base_error1b = np.empty([0, cols], dtype='float64')
-        training_set_base_error1_joint = np.empty([0, cols], dtype='float64')
-        training_set_base_error2a = np.empty([0, cols], dtype='float64')
-        training_set_base_error2b = np.empty([0, cols], dtype='float64')
-        training_set_base_error2_joint = np.empty([0, cols], dtype='float64')
+        training_set_base_error1a = []
+        training_set_base_error1b = []
+        training_set_base_error1_joint = []
+        training_set_base_error2a = []
+        training_set_base_error2b = []
+        training_set_base_error2_joint = []
  
         for i in range(10):
             if i != p:
-                training_set_sep1 = np.concatenate((training_set_sep1,
-                    partition1[i]), 0)
-                training_set_sep2 = np.concatenate((training_set_sep2,
-                    partition2[i]), 0)
-                training_set_joint = np.concatenate((training_set_joint,
-                    partition1[i], partition2[i]), 0)
-
-                training_set_base_error1a = np.concatenate((training_set_base_error1a,
-                    base_error_partition1a[i]), 0)
-                training_set_base_error1b = np.concatenate((training_set_base_error1b,
-                    base_error_partition1b[i]), 0)
-                training_set_base_error1_joint = np.concatenate((
-                    training_set_base_error1_joint, base_error_partition1a[i], 
-                    base_error_partition1b[i]), 0)
-                training_set_base_error2a = np.concatenate((training_set_base_error2a,
-                    base_error_partition2a[i]), 0)
-                training_set_base_error2b = np.concatenate((training_set_base_error2b,
-                    base_error_partition2b[i]), 0)
-                training_set_base_error2_joint = np.concatenate((
-                    training_set_base_error2_joint, base_error_partition2a[i], 
-                    base_error_partition2b[i]), 0)
+#                training_set_sep1 = np.concatenate((training_set_sep1,
+#                    partition1[i]), 0)
+#                training_set_sep2 = np.concatenate((training_set_sep2,
+#                    partition2[i]), 0)
+#                training_set_joint = np.concatenate((training_set_joint,
+#                    partition1[i], partition2[i]), 0)
+#
+#                training_set_base_error1a = np.concatenate((training_set_base_error1a,
+#                    base_error_partition1a[i]), 0)
+#                training_set_base_error1b = np.concatenate((training_set_base_error1b,
+#                    base_error_partition1b[i]), 0)
+#                training_set_base_error1_joint = np.concatenate((
+#                    training_set_base_error1_joint, base_error_partition1a[i], 
+#                    base_error_partition1b[i]), 0)
+#                training_set_base_error2a = np.concatenate((training_set_base_error2a,
+#                    base_error_partition2a[i]), 0)
+#                training_set_base_error2b = np.concatenate((training_set_base_error2b,
+#                    base_error_partition2b[i]), 0)
+#                training_set_base_error2_joint = np.concatenate((
+#                    training_set_base_error2_joint, base_error_partition2a[i], 
+#                    base_error_partition2b[i]), 0)
  
+                training_set_sep1.append(partition1[i])
+                training_set_sep2.append(partition2[i])
+                training_set_joint.extend([partition1[i], partition2[i]])
+
+                training_set_base_error1a.append(base_error_partition1a[i])
+                training_set_base_error1b.append(base_error_partition1b[i])
+                training_set_base_error1_joint.extend([base_error_partition1a[i], 
+                    base_error_partition1b[i]])
+                training_set_base_error2a.append(base_error_partition2a[i])
+                training_set_base_error2b.append(base_error_partition2b[i])
+                training_set_base_error2_joint.extend([base_error_partition2a[i], 
+                    base_error_partition2b[i]])
+
+        training_set_sep1 = np.concatenate(training_set_sep1, 0)
+        training_set_sep2 = np.concatenate(training_set_sep2, 0)
+        training_set_joint = np.concatenate(training_set_joint, 0)
+
+        training_set_base_error1a = np.concatenate(training_set_base_error1a, 0)
+        training_set_base_error1b = np.concatenate(training_set_base_error1b, 0)
+        training_set_base_error1_joint = np.concatenate(training_set_base_error1_joint, 0)
+        training_set_base_error2a = np.concatenate(training_set_base_error2a, 0)
+        training_set_base_error2b = np.concatenate(training_set_base_error2b, 0)
+        training_set_base_error2_joint = np.concatenate(training_set_base_error2_joint, 0)
+
 
         # TRAIN THE PREDICTORS
         ########################################################################
+
         polynomials_sep1 = [[] for i in range(m)]
         polynomials_sep2 = [[] for i in range(m)]
         polynomials_joint = [[] for i in range(m)]
@@ -494,6 +553,10 @@ def CompareModels(model1, model2, alpha=1.):
         ########################################################################
         # Loop over blocks in the test set (the index i ranges over blocks of
         # sampled data)
+
+        # FOR DEGUGGING
+        print 'Entering testing phase {} of 10.'.format(p+1)
+
         for i in range(m):
             for block in range(num_vars):
                 block_start = m * block * (num_vars + 1)
@@ -530,77 +593,122 @@ def CompareModels(model1, model2, alpha=1.):
                     base_error_partition2b[p][:,(block_start+num_vars+1)]))
                 
                 # the index j runs over particular sample points
-                for j in range(x_sep1.shape[0]):
-                    for v in range(num_vars):
-                        predicted = npoly_val(polynomials_sep1[i][v][0],
-                            exponents(num_vars,polynomials_sep1[i][v][1]), 
-                            x_sep1[j,0:num_vars])
-                        actual = y_sep1[j]
-                        SE_sep.append(pow((predicted - actual),2))
+#                for j in range(x_sep1.shape[0]):
+#                    predicted = npoly_val(polynomials_sep1[i][block][0],
+#                        exponents(num_vars,polynomials_sep1[i][block][1]), 
+#                        x_sep1[j,0:num_vars])
+#                    actual = y_sep1[j]
+#                    SE_sep.append(pow((predicted - actual),2))
 
-                for j in range(x_sep2.shape[0]):
-                    for v in range(num_vars):
-                        predicted = npoly_val(polynomials_sep2[i][v][0],
-                            exponents(num_vars,polynomials_sep2[i][v][1]), 
-                            x_sep2[j,0:num_vars])
-                        actual = y_sep2[j]
-                        SE_sep.append(pow((predicted - actual),2))
+                resids_sep1 = residuals(polynomials_sep1[i][block][0],
+                        exponents(num_vars, polynomials_sep1[i][block][1]),
+                        x_sep1, y_sep1)
+                SE_sep.extend(pow(np.array(resids_sep1), 2))
+#
+#                for j in range(x_sep2.shape[0]):
+#                    predicted = npoly_val(polynomials_sep2[i][block][0],
+#                        exponents(num_vars,polynomials_sep2[i][block][1]), 
+#                        x_sep2[j,0:num_vars])
+#                    actual = y_sep2[j]
+#                    SE_sep.append(pow((predicted - actual),2))
 
-                for j in range(x_joint.shape[0]):
-                    for v in range(num_vars):
-                        predicted = npoly_val(polynomials_joint[i][v][0],
-                            exponents(num_vars,polynomials_joint[i][v][1]), 
-                            x_joint[j,0:num_vars])
-                        actual = y_joint[j]
-                        SE_joint.append(pow((predicted - actual),2))
+                resids_sep2 = residuals(polynomials_sep2[i][block][0],
+                        exponents(num_vars, polynomials_sep2[i][block][1]),
+                        x_sep2, y_sep2)
+                SE_sep.extend(pow(np.array(resids_sep2), 2))
 
-                for j in range(x_base_error1a.shape[0]):
-                    for v in range(num_vars):
-                        predicted = npoly_val(polynomials_base_error1a[i][v][0],
-                            exponents(num_vars,polynomials_base_error1a[i][v][1]), 
-                            x_base_error1a[j,0:num_vars])
-                        actual = y_base_error1a[j]
-                        SE_base_error1_sep.append(pow((predicted - actual),2))
+#
+#                for j in range(x_joint.shape[0]):
+#                    predicted = npoly_val(polynomials_joint[i][block][0],
+#                        exponents(num_vars,polynomials_joint[i][block][1]), 
+#                        x_joint[j,0:num_vars])
+#                    actual = y_joint[j]
+#                    SE_joint.append(pow((predicted - actual),2))
 
-                for j in range(x_base_error1b.shape[0]):
-                    for v in range(num_vars):
-                        predicted = npoly_val(polynomials_base_error1b[i][v][0],
-                            exponents(num_vars,polynomials_base_error1b[i][v][1]), 
-                            x_base_error1b[j,0:num_vars])
-                        actual = y_base_error1b[j]
-                        SE_base_error1_sep.append(pow((predicted - actual),2))
+                resids_joint = residuals(polynomials_joint[i][block][0],
+                        exponents(num_vars, polynomials_joint[i][block][1]),
+                        x_joint, y_joint)
+                SE_joint.extend(pow(np.array(resids_joint), 2))
 
-                for j in range(x_base_error1_joint.shape[0]):
-                    for v in range(num_vars):
-                        predicted = npoly_val(polynomials_base_error1_joint[i][v][0],
-                            exponents(num_vars,polynomials_base_error1_joint[i][v][1]), 
-                            x_base_error1_joint[j,0:num_vars])
-                        actual = y_base_error1_joint[j]
-                        SE_base_error1_joint.append(pow((predicted - actual),2))
+#
+#                for j in range(x_base_error1a.shape[0]):
+#                    predicted = npoly_val(polynomials_base_error1a[i][block][0],
+#                        exponents(num_vars,polynomials_base_error1a[i][block][1]), 
+#                        x_base_error1a[j,0:num_vars])
+#                    actual = y_base_error1a[j]
+#                    SE_base_error1_sep.append(pow((predicted - actual),2))
 
-                for j in range(x_base_error2a.shape[0]):
-                    for v in range(num_vars):
-                        predicted = npoly_val(polynomials_base_error2a[i][v][0],
-                            exponents(num_vars,polynomials_base_error2a[i][v][1]), 
-                            x_base_error2a[j,0:num_vars])
-                        actual = y_base_error2a[j]
-                        SE_base_error2_sep.append(pow((predicted - actual),2))
+                resids_base_error1a = residuals(polynomials_base_error1a[i][block][0],
+                        exponents(num_vars, polynomials_base_error1a[i][block][1]),
+                        x_base_error1a, y_base_error1a)
+                SE_base_error1_sep.extend(pow(np.array(resids_base_error1a), 2))
 
-                for j in range(x_base_error2b.shape[0]):
-                    for v in range(num_vars):
-                        predicted = npoly_val(polynomials_base_error2b[i][v][0],
-                            exponents(num_vars,polynomials_base_error2b[i][v][1]), 
-                            x_base_error2b[j,0:num_vars])
-                        actual = y_base_error2b[j]
-                        SE_base_error2_sep.append(pow((predicted - actual),2))
+#
+#                for j in range(x_base_error1b.shape[0]):
+#                    predicted = npoly_val(polynomials_base_error1b[i][block][0],
+#                        exponents(num_vars,polynomials_base_error1b[i][block][1]), 
+#                        x_base_error1b[j,0:num_vars])
+#                    actual = y_base_error1b[j]
+#                    SE_base_error1_sep.append(pow((predicted - actual),2))
 
-                for j in range(x_base_error2_joint.shape[0]):
-                    for v in range(num_vars):
-                        predicted = npoly_val(polynomials_base_error2_joint[i][v][0],
-                            exponents(num_vars,polynomials_base_error2_joint[i][v][1]), 
-                            x_base_error2_joint[j,0:num_vars])
-                        actual = y_base_error2_joint[j]
-                        SE_base_error2_joint.append(pow((predicted - actual),2))
+                resids_base_error1b = residuals(polynomials_base_error1b[i][block][0],
+                        exponents(num_vars, polynomials_base_error1b[i][block][1]),
+                        x_base_error1b, y_base_error1b)
+                SE_base_error1_sep.extend(pow(np.array(resids_base_error1b), 2))
+
+#
+#                for j in range(x_base_error1_joint.shape[0]):
+#                    predicted = npoly_val(polynomials_base_error1_joint[i][block][0],
+#                        exponents(num_vars,polynomials_base_error1_joint[i][block][1]), 
+#                        x_base_error1_joint[j,0:num_vars])
+#                    actual = y_base_error1_joint[j]
+#                    SE_base_error1_joint.append(pow((predicted - actual),2))
+
+                resids_base_error1_joint = residuals(polynomials_base_error1_joint[i][block][0],
+                        exponents(num_vars, polynomials_base_error1_joint[i][block][1]),
+                        x_base_error1_joint, y_base_error1_joint)
+                SE_base_error1_joint.extend(pow(np.array(resids_base_error1_joint), 2))
+
+
+#                for j in range(x_base_error2a.shape[0]):
+#                    predicted = npoly_val(polynomials_base_error2a[i][block][0],
+#                        exponents(num_vars,polynomials_base_error2a[i][block][1]), 
+#                        x_base_error2a[j,0:num_vars])
+#                    actual = y_base_error2a[j]
+#                    SE_base_error2_sep.append(pow((predicted - actual),2))
+
+                resids_base_error2a = residuals(polynomials_base_error2a[i][block][0],
+                        exponents(num_vars, polynomials_base_error2a[i][block][1]),
+                        x_base_error2a, y_base_error2a)
+                SE_base_error2_sep.extend(pow(np.array(resids_base_error2a), 2))
+
+
+#                for j in range(x_base_error2b.shape[0]):
+#                    predicted = npoly_val(polynomials_base_error2b[i][block][0],
+#                        exponents(num_vars,polynomials_base_error2b[i][block][1]), 
+#                        x_base_error2b[j,0:num_vars])
+#                    actual = y_base_error2b[j]
+#                    SE_base_error2_sep.append(pow((predicted - actual),2))
+
+                resids_base_error2b = residuals(polynomials_base_error2b[i][block][0],
+                        exponents(num_vars, polynomials_base_error2b[i][block][1]),
+                        x_base_error2b, y_base_error2b)
+                SE_base_error2_sep.extend(pow(np.array(resids_base_error2b), 2))
+
+
+#
+#                for j in range(x_base_error2_joint.shape[0]):
+#                    predicted = npoly_val(polynomials_base_error2_joint[i][block][0],
+#                        exponents(num_vars,polynomials_base_error2_joint[i][block][1]), 
+#                        x_base_error2_joint[j,0:num_vars])
+#                    actual = y_base_error2_joint[j]
+#                    SE_base_error2_joint.append(pow((predicted - actual),2))
+
+                resids_base_error2_joint = residuals(polynomials_base_error2_joint[i][block][0],
+                        exponents(num_vars, polynomials_base_error2_joint[i][block][1]),
+                        x_base_error2_joint, y_base_error2_joint)
+                SE_base_error2_joint.extend(pow(np.array(resids_base_error2_joint), 2))
+
 
 #    pdb.set_trace()
 

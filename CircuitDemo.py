@@ -57,7 +57,7 @@ def CircuitDemo(noise_stdev=.01, epsilon=10**(-4),
         data.append(eu.interface.TimeSampleData(3, [0,1,2], interface,
             ROI[count], resolution, target_value_points=True))
 
-    pdb.set_trace()
+#    pdb.set_trace()
 
     # plot the raw data 
     f, ax = plt.subplots(2,2,sharey=True)
@@ -80,4 +80,13 @@ def CircuitDemo(noise_stdev=.01, epsilon=10**(-4),
 #            current_axes.set_ylabel('voltage')
     f.savefig('./outputs/circuit_fig1.png', dpi=300)
 
+    # build models of the data
+    models = []
+    for sys_id, data_frame in enumerate(data):
+        models.append(BuildModel(data_frame, sys_id, epsilon))
 
+    pdb.set_trace()
+
+    comparison = eu.compare.CompareModels(models[0], models[1])
+
+    print 'Result of comparison: {}'.format(comparison)
