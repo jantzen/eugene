@@ -37,6 +37,11 @@ class sect (object):
         self.start = val
         
 def autoEmpD(array):
+    if (array.size < 5):
+        if (array.size <= 1):
+            return 0
+        return np.diff(array)
+    
     if (array.size % 2) == 0:
         array = array[0:-1]
      
@@ -45,6 +50,8 @@ def autoEmpD(array):
         sub = array[i:i+5]
         deriv[i] = vp.EmpiricalDeriv(sub)
     
+    if deriv.size < 1:
+        return 0
     return deriv
 
 def curveFind(item):
@@ -156,15 +163,17 @@ def score(array):
     score1 = 0
     score2 = 0
     if array.size > 5:
+        emperical = autoEmpD(array)
+        #print emperical
         score1 = np.sqrt(np.mean(np.square(autoEmpD(array))))
     if array.size > 3:
         score2 = np.average(curveFind2(array))
     
     print "Score 1: " + str(score1 * alpha)
     print "Score 2: " + str(score2 * beta)
-    print "Size factor: " + str(1/(gamma ** sizeFactor))
+    print "Size factor: " + str(1/(gamma * sizeFactor))
     
-    score = (alpha*score1 + beta*score2)/(gamma ** sizeFactor)
+    score = (alpha*score1 + beta*score2)/(gamma * sizeFactor)
     
     print "Final Score: " + str(score)
     print "---------------------"
@@ -259,8 +268,8 @@ def selectRange(samples, a=1, b=1, c=1):
 
         for sample2 in samples:
             if i != j:
-                newSect = findRange(sample2[x1:x2])
-                scores[i,j] = newSect.score
+                newScore = score(sample2[x1:x2])
+                scores[i,j] = newScore
             j += 1
         i += 1
 
@@ -270,10 +279,10 @@ def selectRange(samples, a=1, b=1, c=1):
     bestInd = 0
     bestLen = 0
     
-    for score in scorePerRange:
-        if (score > best) or ((score == best) and (len(sects[k].data) > bestLen)):
+    for scored in scorePerRange:
+        if (scored > best) or ((scored == best) and (len(sects[k].data) > bestLen)):
             bestInd = k
-            best = score
+            best = scored
             bestLen = len(sects[k].data)
         k += 1
     

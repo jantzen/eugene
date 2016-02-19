@@ -53,23 +53,35 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
     # build ROIs
     ROIs = []
     for counter, sys in enumerate(systems):
+        #if counter == 0:
+        #    ROIs.append(dict([(1, [0., np.log(2)/sys._k]),(2,
+        #        [10.**(-6),10.**(-4)])]))
+        #elif counter == 1:
+        #    ROIs.append(dict([(1, [0., 1./(sys._k *
+        #        (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+        #elif counter == 2:
+        #    ROIs.append(dict([(1, [0., 1./(sys._k *
+        #        (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+        #elif counter == 3:
+        #    ROIs.append(dict([(1, [0., 1./(sys._k * (10**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+        #elif counter == 4:
+        #    ROIs.append(dict([(1, [0.,
+        #        1./(sys._k*10.**(-4))]),(2,[10.**(-6),10.**(-4)])]))
+        #elif counter == 5:
+        #    ROIs.append(dict([(1, [0.,
+        #        3./(2.*sys._k*(10.**(-4))**2)]),(2,[10.**(-6),10.**(-4)])]))
         if counter == 0:
-            ROIs.append(dict([(1, [0., np.log(2)/sys._k]),(2,
-                [10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., .001]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 1:
-            ROIs.append(dict([(1, [0., 1./(sys._k *
-                (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 2:
-            ROIs.append(dict([(1, [0., 1./(sys._k *
-                (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 3:
-            ROIs.append(dict([(1, [0., 1./(sys._k * (10**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 4:
-            ROIs.append(dict([(1, [0.,
-                1./(sys._k*10.**(-4))]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 5:
-            ROIs.append(dict([(1, [0.,
-                3./(2.*sys._k*(10.**(-4))**2)]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
 
             
     # collect data
@@ -77,7 +89,7 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
     for count, interface in enumerate(interfaces):
         print "Sampling data for system {}. ROI for time: {}. ROI for concentration: {}.\n".format(count, 
                 ROIs[count][1], ROIs[count][2])
-        data.append(TimeSampleData(1, 2, interface, ROIs[count]))
+        data.append(TimeSampleData(1, 2, interface, ROIs[count], resolution=[1000,10]))
         
     return data
 
@@ -124,7 +136,7 @@ k = CLMPSdemo()[1]._target_values
 
 test = k
 
-result = V.selectRange(test, 10, 1, 2)
+result = V.selectRange(test, 1, 1, .01)
 
 stop = (int)(result.start+result.data.size)
 start = (int)(result.start)
