@@ -45,7 +45,8 @@ setup(name='eugene',
       description='AI for automated scientific discovery',
       long_description='',
       requires=['numpy', 'scipy'],
-      #KIM: which versions are valid?
+
+      #classifiers => egg-info/PKG-INFO
       classifiers=['Development Status :: 0 - Beta',
                    'Environment :: Console?',
                    'Intended Audience :: Developers & Scientists',
@@ -68,7 +69,7 @@ setup(name='eugene',
                 'eugene.tests',
                 'eugene.scripts_demos']
 #creates
-#         site-packages/eugene/{src/, tests/}
+#         site-packages/eugene/{src/, tests/, scripts_demos/}
 #   and   site-packages/eugene-0.1.0-py2.7.egg-info/
 
 )
