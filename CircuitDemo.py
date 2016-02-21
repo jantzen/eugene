@@ -5,12 +5,12 @@ import eugene as eu
 from eugene.src.virtual_sys.chaotic_circuits import *
 
 def BuildModel(data_frame, sys_id, epsilon=0):
-    model = eu.compare.BuildSymModel(data_frame, 1, 2, sys_id, epsilon)
+    model = eu.compare.BuildSymModel(data_frame, 3, [0,1,2], sys_id, epsilon)
 
     return model
 
 
-def CircuitDemo(noise_stdev=.01, epsilon=10**(-4),
+def CircuitDemo(noise_stdev=.1, epsilon=10**(-4),
         resolution=[300,1],alpha=1):
     
     import matplotlib.pyplot as plt
@@ -68,10 +68,10 @@ def CircuitDemo(noise_stdev=.01, epsilon=10**(-4),
         x0 = (data[sys]._target_values[0])
         x1 = (data[sys]._target_values[1])
         current_axes = ax[sys]
-        current_axes.plot(t, x0)
+        current_axes.plot(t, x0, 'o')
         current_axes.set_xlabel('time')
         current_axes = ax[sys+2]
-        current_axes.plot(t, x1)
+        current_axes.plot(t, x1, 'o')
         current_axes.set_xlabel('time')
         # annotate
 #        current_axes.text(annot[sys][1], annot[sys][2], annot[sys][0],
@@ -85,7 +85,6 @@ def CircuitDemo(noise_stdev=.01, epsilon=10**(-4),
     for sys_id, data_frame in enumerate(data):
         models.append(BuildModel(data_frame, sys_id, epsilon))
 
-    pdb.set_trace()
 
     comparison = eu.compare.CompareModels(models[0], models[1])
 

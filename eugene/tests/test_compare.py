@@ -75,6 +75,24 @@ def test_surface_fit():
 
     assert (params - np.array([212., 1.5, 1., 3., -5., -2.2]) < 10**(-5)).all()
 
+def test_surface_fit_sparse():
+    xdata = [np.linspace(0,10,20)]
+    ydata = 10. - 2. * xdata[0] + 0.5 * xdata[0]**2
+
+    params, cov = eu.compare.surface_fit(xdata, ydata, 2)
+
+    assert (params -  np.array([10., -2., 0.5]) < 10**(-5)).all()
+
+    xdata = [np.random.rand(100,) * 10., np.random.rand(100,) * 10.]
+    ydata = (212. + 1.5 * xdata[1] + pow(xdata[1], 2) + 3. * xdata[0] - 5. *
+        xdata[0] * xdata[1] - 2.2 * pow(xdata[0],2)) 
+
+    params, cov = eu.compare.surface_fit(xdata, ydata, 2)
+
+
+    assert (params - np.array([212., 1.5, 1., 3., -5., -2.2]) < 10**(-5)).all()
+
+
 
 def test_FitPolyCV():
     xdata = np.linspace(0,10,100).reshape(100,1)
@@ -90,6 +108,7 @@ def test_FitPolyCV():
     data = np.hstack((x0, x1, y))
     params = eu.compare.FitPolyCV(data)[0]
     assert (abs(params - np.array([1., 13., -17., 0.1, -100., 5.])) < 10**(-5)).all()
+
 
 def test_BuildSymModel():
     # build sensors and actuators
