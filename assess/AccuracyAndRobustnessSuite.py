@@ -31,7 +31,6 @@ def BuildModel(data_frame, sys_id, epsilon=0):
 def SimpleNoiseExperiment():
    # basic noise experiment
     standard_devs = [0.1, 1., 2., 4., 6., 8., 10.]
-    standard_devs = [0.1, 0.15, 0.2, 0.25, 0.3, 0.31]
     sys1 = [1, 1, 1, 1, 1, 1, 0]
     sys2 = [1, 1, 2, 1, 1, 1, 0]
     twoSys = [sys1, sys2]
@@ -57,9 +56,15 @@ def SimpleNoiseExperiment():
                                         twoSys[second]))
             
         noise_bracket.append(bracket)
-        print '\n' 'answr:', answers
-        print '\n', 'noise:', bracket, '\n'
-
+        #print results for developing
+        correct = 0
+        for i in range(len(answers)):
+            if (answers[i] == bracket[i]):
+                correct += 1
+        print '\n' + 'noise:', noiselevel
+        print 'answer:', answers
+        print 'eugene:', bracket
+        print 'correct/all: ', correct, '/', len(answers), '\n'
 
     #temporary return value
     return noise_bracket
@@ -115,7 +120,7 @@ def LGExperiment(noise_stdev, sp1, sp2):
     isensor = eu.sensors.VABTimeSensor([])
     iact = eu.actuators.VABVirtualTimeActuator()
     #target sensor & actuator
-    tsensor = eu.sensors.PopulationSensor([10**(-23), 10**23], noise_stdev, 
+    tsensor = eu.sensors.PopulationSensor([-10**(23), 10**23], noise_stdev, 
                                           False)
     #tsensor = eu.sensors.PopulationSensor([-10.**23, 10.**23], noise_stdev, 
     #                                      False)   ^XOR ?
