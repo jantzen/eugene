@@ -142,7 +142,7 @@ def npoly_val(params, exponents, x_vals):
 def residuals(params, exponents, xdata, ydata):
     """ For use with surface_fit. Given a polynomial in n variables, a set of n-dimensional xdata, 
         and a set of ydata, compute the residuals with respect to the y values
-        computed from the poynomial.
+        computed from the poynomial. params is passed as an ndarray.
     """
     resids = []
 
@@ -160,7 +160,11 @@ def residuals(params, exponents, xdata, ydata):
                 point_val.append(xdata[i,j])
         expected = npoly_val(params, exponents, point_val)
         resids.append(y - expected)
-     
+
+        # DEBUGGING
+        if len(ydata) < 20 and abs(y-expected) > 100:
+            pdb.set_trace()
+        
     return resids
 
 
@@ -530,36 +534,35 @@ def CompareModels(model1, model2, alpha=1.):
                 block_start = (block + i * num_vars) * (num_vars + 1)
 
                 x_sep1 = partition1[p][:,block_start:(block_start+num_vars)]
-                y_sep1 = partition1[p][:,(block_start+num_vars):(block_start+num_vars+1)]
+                y_sep1 = partition1[p][:,(block_start+num_vars)]
                 x_sep2 = partition2[p][:,block_start:(block_start+num_vars)]
-                y_sep2 = partition2[p][:,(block_start+num_vars):(block_start+num_vars+1)]
+                y_sep2 = partition2[p][:,(block_start+num_vars)]
                 x_joint = np.concatenate((partition1[p][:,block_start:(block_start+num_vars)], 
                     partition2[p][:,block_start:(block_start+num_vars)]))
-                y_joint = np.concatenate((partition1[p][:,(block_start+num_vars):(block_start+num_vars+1)], partition2[p][:,(block_start+num_vars):(block_start+num_vars+1)]))
+                y_joint = np.concatenate((partition1[p][:,(block_start+num_vars)], partition2[p][:,(block_start+num_vars)]))
 
                 x_base_error1a = base_error_partition1a[p][:,block_start:(block_start+num_vars)]
-                y_base_error1a = base_error_partition1a[p][:,(block_start+num_vars):(block_start+num_vars+1)] 
+                y_base_error1a = base_error_partition1a[p][:,(block_start+num_vars)] 
                 x_base_error1b = base_error_partition1b[p][:,block_start:(block_start+num_vars)]
-                y_base_error1b = base_error_partition1b[p][:,(block_start+num_vars):(block_start+num_vars+1)] 
+                y_base_error1b = base_error_partition1b[p][:,(block_start+num_vars)] 
                 x_base_error1_joint = np.concatenate((
                     base_error_partition1a[p][:,block_start:(block_start+num_vars)],
                     base_error_partition1b[p][:,block_start:(block_start+num_vars)]))
                 y_base_error1_joint = np.concatenate((
-                    base_error_partition1a[p][:,(block_start+num_vars):(block_start+num_vars+1)],
-                    base_error_partition1b[p][:,(block_start+num_vars):(block_start+num_vars+1)]))
+                    base_error_partition1a[p][:,(block_start+num_vars)],
+                    base_error_partition1b[p][:,(block_start+num_vars)]))
 
                 x_base_error2a = base_error_partition2a[p][:,block_start:(block_start+num_vars)]
-                y_base_error2a = base_error_partition2a[p][:,(block_start+num_vars):(block_start+num_vars+1)] 
+                y_base_error2a = base_error_partition2a[p][:,(block_start+num_vars)] 
                 x_base_error2b = base_error_partition2b[p][:,block_start:(block_start+num_vars)]
-                y_base_error2b = base_error_partition2b[p][:,(block_start+num_vars):(block_start+num_vars+1)] 
+                y_base_error2b = base_error_partition2b[p][:,(block_start+num_vars)] 
                 x_base_error2_joint = np.concatenate((
                     base_error_partition2a[p][:,block_start:(block_start+num_vars)],
                     base_error_partition2b[p][:,block_start:(block_start+num_vars)]))
                 y_base_error2_joint = np.concatenate((
-                    base_error_partition2a[p][:,(block_start+num_vars):(block_start+num_vars+1)],
-                    base_error_partition2b[p][:,(block_start+num_vars):(block_start+num_vars+1)]))
+                    base_error_partition2a[p][:,(block_start+num_vars)],
+                    base_error_partition2b[p][:,(block_start+num_vars)]))
                
-#                pdb.set_trace()
 
                 resids_sep1 = residuals(polynomials_sep1[i][block][0],
                         exponents(num_vars, polynomials_sep1[i][block][1]),
@@ -584,11 +587,17 @@ def CompareModels(model1, model2, alpha=1.):
                         x_base_error1a, y_base_error1a)
                 SE_base_error1_sep.extend(pow(np.array(resids_base_error1a), 2))
 
+                print "Max value of SE_base_error1_sep: {}".format(max(
+                    SE_base_error1_sep))
+
 
                 resids_base_error1b = residuals(polynomials_base_error1b[i][block][0],
                         exponents(num_vars, polynomials_base_error1b[i][block][1]),
                         x_base_error1b, y_base_error1b)
                 SE_base_error1_sep.extend(pow(np.array(resids_base_error1b), 2))
+
+                print "Max value of SE_base_error1_sep: {}".format(max(
+                    SE_base_error1_sep))
 
 
                 resids_base_error1_joint = residuals(polynomials_base_error1_joint[i][block][0],

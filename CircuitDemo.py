@@ -11,7 +11,7 @@ def BuildModel(data_frame, sys_id, epsilon=0):
 
 
 def CircuitDemo(noise_stdev=.1, epsilon=10**(-4),
-        resolution=[300,1],alpha=1):
+        resolution=[1000,1],alpha=1):
     
     import matplotlib.pyplot as plt
 
