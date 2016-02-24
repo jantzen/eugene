@@ -85,7 +85,6 @@ class nPolynomial( object ):
            
 
 
-        
 
 
 ###################################################################
@@ -162,30 +161,66 @@ def residuals(params, exponents, xdata, ydata):
         resids.append(y - expected)
 
         # DEBUGGING
-        if len(ydata) < 20 and abs(y-expected) > 100:
-            pdb.set_trace()
+#        if abs(y-expected) > 700:
+#            pdb.set_trace()
         
     return resids
 
+
+#def surface_fit(xdata, ydata, order):
+#    """ Takes a set of x0, x1, ..., xn, y data in the form of n+1 np arrays  (with the
+#        indpendent variable in the first n) and fits a polynomial surface of the
+#        indicated order using least-squares.
+#    """
+#    # compute necessary number of params. For a polynomial in n variables of
+#    # degree d, there are (n+d)C(d) terms
+#    num_vars = len(xdata) 
+#    num_params = math.factorial(num_vars +
+#            order)/math.factorial(num_vars)/math.factorial(order)
+#    params_guess = np.zeros(num_params)
+#
+#    # get the exponents for each term
+#    exps = exponents(num_vars, order)
+#
+#    params = opt.leastsq(residuals, params_guess, args=(exps, xdata, ydata))
+#
+#    return params
 
 def surface_fit(xdata, ydata, order):
     """ Takes a set of x0, x1, ..., xn, y data in the form of n+1 np arrays  (with the
         indpendent variable in the first n) and fits a polynomial surface of the
         indicated order using least-squares.
     """
-    # compute necessary number of params. For a polynomial in n variables of
-    # degree d, there are (n+d)C(d) terms
-    num_vars = len(xdata) 
-    num_params = math.factorial(num_vars +
-            order)/math.factorial(num_vars)/math.factorial(order)
-    params_guess = np.zeros(num_params)
 
-    # get the exponents for each term
-    exps = exponents(num_vars, order)
+    # determine the number of variables
+    num_vars = len(xdata)
 
-    params = opt.leastsq(residuals, params_guess, args=(exps, xdata, ydata))
+    # determine the number of samples
+    samples = len(xdata[0])
+
+    # generate the exponents
+    exp_list = exponents(num_vars, order)
+
+    # generate the matrix M (so that M x = b, where x is a column vector
+    # containing the parameters we wish to estimate and b is a column vector of
+    # y's
+    M = []
+    for s in range(samples):
+        row = []
+        for exps in exp_list:
+            term = 1
+            for i in range(num_vars):
+                term = term * pow(xdata[i][s], exps[i])
+            row.append(term)
+        M.append(np.array(row).reshape(1,len(row)))
+
+    M = np.concatenate(M)
+
+    # compute the best-fit parameters 
+    [params, resids, rank, s] = np.linalg.lstsq(M, ydata)
 
     return params
+
         
 
 def FitPolyCV(passed_data, epsilon=0):
@@ -227,7 +262,7 @@ def FitPolyCV(passed_data, epsilon=0):
         # parameters. The terms to which each parameter corresponds is
         # implicitly given by the order in which the exponents function produces
         # terms for d-order polynomial in n variables.
-        params, cov = surface_fit(x, y, order)
+        params = surface_fit(x, y, order)
 
         # compute error of fit against partitition p
         x = []
@@ -247,7 +282,7 @@ def FitPolyCV(passed_data, epsilon=0):
         order += 1
 
         # FOR DEBUGGING
-#        print 'FitPoly trying order {}.'.format(order)
+        print 'FitPoly trying order {}.'.format(order)
 
         # partition the data
         np.random.shuffle(data)
@@ -269,7 +304,7 @@ def FitPolyCV(passed_data, epsilon=0):
             for i in range(x_vars):
                 x.append(training_set[:,i]) 
             y = training_set[:,x_vars]
-            params, cov = surface_fit(x, y, order)
+            params = surface_fit(x, y, order)
 
             # compute error of fit against partition p
             x = []
@@ -290,7 +325,9 @@ def FitPolyCV(passed_data, epsilon=0):
             loop = False
             
         # cap the complexity
-        if x_vars * order >= 10:
+        sample_size = 0.9 * data.shape[0]
+        points_per_param = sample_size / len(params)
+        if order >= 20 or points_per_param < 2:
             loop = False
 	
 	#DEBUGGING
@@ -301,14 +338,14 @@ def FitPolyCV(passed_data, epsilon=0):
     for i in range(x_vars):
         x.append(data[:,i])
     y = data[:,x_vars]
-    best_fit_params, cov = surface_fit(x, y, best_fit_order)
+    best_fit_params = surface_fit(x, y, best_fit_order)
 
     #compute mse of final fit
     final_resids = residuals(best_fit_params, exponents(x_vars, best_fit_order), x, y)
     mse_final = np.mean(pow(np.array(final_resids), 2))
     # DEBUGGING
-    print "FitPolyCV returning a curve of order {} with mse = {}".format(best_fit_order, 
-            mse_final)
+#    print "FitPolyCV returning a curve of order {} with mse = {}".format(best_fit_order, 
+#            mse_final)
 
     return [best_fit_params, order]
 
@@ -505,7 +542,7 @@ def CompareModels(model1, model2, alpha=1.):
                     + num_vars + 1)]
 
                 #DEBUGGING
-                print "next 6 calls to FitPolyCV are for the base error partitions"
+#                print "next 6 calls to FitPolyCV are for the base error partitions"
 
                 polynomials_base_error1a[i].append(FitPolyCV(block_base_error1a,
                     epsilon))

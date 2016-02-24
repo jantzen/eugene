@@ -1,4 +1,4 @@
-# CircuitDemo.py
+# CircuitDemo2.py
 
 import pdb
 import eugene as eu
@@ -10,8 +10,8 @@ def BuildModel(data_frame, sys_id, epsilon=0):
     return model
 
 
-def CircuitDemo(noise_stdev=.5, epsilon=10**(-4),
-        resolution=[5000,2],alpha=1):
+def CircuitDemo2(noise_stdev=.5, epsilon=10**(-4),
+        resolution=[600,1],alpha=1):
     
     import matplotlib.pyplot as plt
 
@@ -34,7 +34,7 @@ def CircuitDemo(noise_stdev=.5, epsilon=10**(-4),
     systems = []
 
     systems.append(ChaoticCircuit(5))
-    systems.append(ChaoticCircuit(6))
+    systems.append(ChaoticCircuit(5))
 
     # build corresponding interfaces
     interfaces = []
@@ -43,10 +43,10 @@ def CircuitDemo(noise_stdev=.5, epsilon=10**(-4),
 
     # build ROIs
     ROI = []
-    ROI.append(dict([(3,[0., 10.]), (0, np.array([-5.,5.])), (1,
-        np.array([-5.,5])), (2, np.array([-5.,5.]))]))
-    ROI.append(dict([(3,[0.,10.]), (0, np.array([-5.,5])), (1,
-        np.array([-5.,5])), (2, np.array([-5.,5]))]))
+    ROI.append(dict([(3,[20., 30.]), (0, np.array([0.,-9.22617])), (1,
+        np.array([0.,3.86821])), (2, np.array([0.,2.60233]))]))
+    ROI.append(dict([(3,[20., 30.]), (0, np.array([-9.22617,-56.1127])), (1,
+        np.array([3.86821, 6.11072])), (2, np.array([2.60233, 6.49005]))]))
 
             
     # collect data
@@ -55,7 +55,7 @@ def CircuitDemo(noise_stdev=.5, epsilon=10**(-4),
         print "Sampling data for system {}. ROI for time: {}. ROI for voltage, 1st deriv of voltage, 2nd deriv of voltage: {}.\n".format(count,
                 ROI[count][3], ROI[count][0], ROI[count][1], ROI[count][2])
         data.append(eu.interface.TimeSampleData(3, [0,1,2], interface,
-            ROI[count], resolution))
+            ROI[count], resolution, target_value_points=True))
 
 #    pdb.set_trace()
 
@@ -68,17 +68,17 @@ def CircuitDemo(noise_stdev=.5, epsilon=10**(-4),
         x0 = (data[sys]._target_values[0])
         x1 = (data[sys]._target_values[1])
         current_axes = ax[sys]
-        current_axes.plot(t, x0, '.')
+        current_axes.plot(t, x0, 'o')
         current_axes.set_xlabel('time')
         current_axes = ax[sys+2]
-        current_axes.plot(t, x1, '.')
+        current_axes.plot(t, x1, 'o')
         current_axes.set_xlabel('time')
         # annotate
 #        current_axes.text(annot[sys][1], annot[sys][2], annot[sys][0],
 #                fontsize=12)
 #        if sys == 0:
 #            current_axes.set_ylabel('voltage')
-    f.savefig('./outputs/circuit_fig1.png', dpi=300)
+    f.savefig('./outputs/circuit2_fig1.png', dpi=300)
 
     # build models of the data
     models = []
