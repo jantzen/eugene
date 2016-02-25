@@ -171,7 +171,7 @@ def LGExperiment(noise_stdev, sp1, sp2):
     iact = eu.actuators.VABVirtualTimeActuator()
     #target sensor & actuator
 
-    tsensor = eu.sensors.PopulationSensor([10**(-23), 10**23], noiselevel, 
+    tsensor = eu.sensors.PopulationSensor([-10**(23), 10**23], noise_stdev, 
                                           False)
     #tsensor = eu.sensors.PopulationSensor([-10.**23, 10.**23], noise_stdev, 
     #                                      False)   ^XOR ?
@@ -192,7 +192,6 @@ def LGExperiment(noise_stdev, sp1, sp2):
                                        sp2[4], sp2[5], sp2[6]))
 
 
-    
     interfaces = []
     for sys in systems:
         interfaces.append(eu.interface.VABSystemInterface(sensors, actuators, sys))
