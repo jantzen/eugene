@@ -1,15 +1,13 @@
 # import matplotlib.pyplot as plt
 import pdb
-
 import sys
 import random
 import numpy as np
 
-# sys.path.insert(0, 'C\vabacon')
+sys.path.insert(0, 'C\vabacon')
 import eugene as eu
 from eugene.src.virtual_sys.growth_sys import LogisticGrowthModel
 import scipy as sp
-from sp.special import pi,sqrt,exp
 
 """Accuracy and Robustness Suite
 
@@ -71,30 +69,6 @@ def SimpleNoiseExperiment():
     #temporary return value
     return noise_bracket
            
-# We need something like the thing below for the DeviantNoiseExperiment, under 
-# construction obviously
-class skewed_normal(sp.stats.rv_continuous):
-    # Towards the sampler doodad, for grabbing a value from a SND    
-    # Builds a skewed normal distribution
-    def __init__(self, skew):
-        self.skew = skew
-        
-    def pdf(x):
-        # standard normal density function
-        numerator = exp(-x**2/2)
-        denominator = 1/sqrt(2*pi) 
-        return numerator / denominator 
-    
-    def cdf(x):
-        # distribution function for the standard normal
-        return (1 + sp.special.erf(x/sqrt(2))) / 2
-        
-    def skewed(self, x, skew):
-        # set up the pdf for the skewed normal distribution.
-        # f(x) = 2 * pdf(x) * cdf(skew * x)   [skew is a shape parameter]
-        
-        return 2 * skewed_normal.pdf(x) * skewed_normal.cdf(x * skew)
-
         
 def DeviantNoiseExperiment():
     #tests performance as noise distribution departs from normality
