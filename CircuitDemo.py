@@ -10,8 +10,8 @@ def BuildModel(data_frame, sys_id, epsilon=0):
     return model
 
 
-def CircuitDemo(noise_stdev=.5, epsilon=10**(-4),
-        resolution=[5000,2],alpha=1):
+def CircuitDemo(noise_stdev=.1, epsilon=10**(-4),
+        resolution=[600,2],alpha=1):
     
     import matplotlib.pyplot as plt
 

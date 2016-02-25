@@ -27,6 +27,10 @@ def test_residuals():
     xdata1 = [np.array([1, 2, 3])]
     xdata2 = [np.array([1, 2, 3]), np.array([1, 2, 3])]
 
+    # also create a 2D array to test input modes
+    xdata3 = np.hstack((np.array([1,2,3]).reshape(3,1),
+        np.array([1,2,3]).reshape(3,1)))
+
     ydata1a = []
     ydata1b = []
     for i, x in enumerate(xdata1[0]):
@@ -56,6 +60,9 @@ def test_residuals():
 
     assert eu.compare.residuals(params2, exponents2, xdata2, ydata2) == [0, 0,
         0]
+
+    assert eu.compare.residuals(params2, exponents2, xdata3, ydata2) == [0, 0,
+            0]
 
 
 def test_surface_fit():
@@ -90,7 +97,7 @@ def test_surface_fit_sparse():
 
     params = eu.compare.surface_fit(xdata, ydata, 2)
 
-    assert (params -  np.array([10., -2., 0.5]) < 10**(-5)).all()
+    assert (abs(params -  np.array([10., -2., 0.5])) < 10**(-5)).all()
 
     xdata = [np.random.rand(100,) * 10., np.random.rand(100,) * 10.]
     ydata = (212. + 1.5 * xdata[1] + pow(xdata[1], 2) + 3. * xdata[0] - 5. *
@@ -99,7 +106,7 @@ def test_surface_fit_sparse():
     params = eu.compare.surface_fit(xdata, ydata, 2)
 
 
-    assert (params - np.array([212., 1.5, 1., 3., -5., -2.2]) < 10**(-5)).all()
+    assert (abs(params - np.array([212., 1.5, 1., 3., -5., -2.2]) < 10**(-5))).all()
 
 
 

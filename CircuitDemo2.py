@@ -11,7 +11,7 @@ def BuildModel(data_frame, sys_id, epsilon=0):
 
 
 def CircuitDemo2(noise_stdev=.5, epsilon=10**(-4),
-        resolution=[600,1],alpha=1):
+        resolution=[600,2],alpha=1):
     
     import matplotlib.pyplot as plt
 
@@ -43,10 +43,15 @@ def CircuitDemo2(noise_stdev=.5, epsilon=10**(-4),
 
     # build ROIs
     ROI = []
-    ROI.append(dict([(3,[20., 30.]), (0, np.array([0.,-9.22617])), (1,
-        np.array([0.,3.86821])), (2, np.array([0.,2.60233]))]))
-    ROI.append(dict([(3,[20., 30.]), (0, np.array([-9.22617,-56.1127])), (1,
-        np.array([3.86821, 6.11072])), (2, np.array([2.60233, 6.49005]))]))
+#    ROI.append(dict([(3,[20., 30.]), (0, np.array([0.,-9.22617])), (1,
+#        np.array([0.,3.86821])), (2, np.array([0.,2.60233]))]))
+#    ROI.append(dict([(3,[20., 30.]), (0, np.array([-9.22617,-56.1127])), (1,
+#        np.array([3.86821, 6.11072])), (2, np.array([2.60233, 6.49005]))]))
+    ROI.append(dict([(3,[0., 10.]), (0, np.array([-5.,5.])), (1,
+        np.array([-5.,5])), (2, np.array([-5.,5.]))]))
+    ROI.append(dict([(3,[0.,10.]), (0, np.array([-5.,5])), (1,
+        np.array([-5.,5])), (2, np.array([-5.,5]))]))
+
 
             
     # collect data

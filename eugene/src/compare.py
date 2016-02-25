@@ -282,7 +282,7 @@ def FitPolyCV(passed_data, epsilon=0):
         order += 1
 
         # FOR DEBUGGING
-        print 'FitPoly trying order {}.'.format(order)
+#        print 'FitPoly trying order {}.'.format(order)
 
         # partition the data
         np.random.shuffle(data)
@@ -344,10 +344,10 @@ def FitPolyCV(passed_data, epsilon=0):
     final_resids = residuals(best_fit_params, exponents(x_vars, best_fit_order), x, y)
     mse_final = np.mean(pow(np.array(final_resids), 2))
     # DEBUGGING
-#    print "FitPolyCV returning a curve of order {} with mse = {}".format(best_fit_order, 
-#            mse_final)
+    print "FitPolyCV returning a curve of order {} with mse = {}".format(best_fit_order, 
+            mse_final)
 
-    return [best_fit_params, order]
+    return [best_fit_params, best_fit_order]
 
  
 def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
@@ -404,9 +404,7 @@ def CompareModels(model1, model2, alpha=1.):
     m = len(model1._sampled_data)
 
     # PREPARE THE DATA
-    rows1 = model1._sampled_data[0][0].shape[0]
     data1 = []
-    rows2 = model2._sampled_data[0][0].shape[0]
     data2 = []
 
     # for each sampled block, randomize the data
@@ -429,7 +427,6 @@ def CompareModels(model1, model2, alpha=1.):
     base_error_data2 = np.array_split(data2, 2)
 
     epsilon = min(model1._epsilon, model2._epsilon)
-
 
     # OUTER CROSS-VALIDATION LOOP
     ############################################################################
