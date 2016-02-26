@@ -25,22 +25,25 @@ def BuildModel(data_frame, sys_id, epsilon=0):
 
 ########
 #Functions:
-
-
+#  SimpleNoiseExperiment
+#  DeviantNoiseExperiment
+#  FullNoiseExperiment
+#  LGExperiment
 
 def SimpleNoiseExperiment():
    # basic noise experiment
-    standard_devs = [0.1, 1., 2., 4., 6., 8., 10.]
-    sys1 = [1, 1, 1, 1, 1, 1, 0]
-    sys2 = [1, 1, 2, 1, 1, 1, 0]
+    standard_devs = [0.1, 1., 5., 10., 15., 20., 25.]
+    sys1 = [1, 1, 55, 1, 1, 1, 0]
+    sys2 = [1, 1, 97, 1, 1, 1, 0]
     twoSys = [sys1, sys2]
 
-    noise_bracket = []
+    
+    SNE = dict()
     for noiselevel in standard_devs: 
         #keep track of known answers
         answers = []
         #bracket each of eugene's answers
-        bracket = []
+        predictions = []
         #10 trials per noise level
         #EUGENE (really numpy..) breaks at standard_devs >= 0.32 b/c
         #b/c target values = 'outofrange'
@@ -51,23 +54,24 @@ def SimpleNoiseExperiment():
                 answers.append(0)
             else:
                 answers.append(1)
-            bracket.append(LGExperiment(noiselevel, 
+            predictions.append(LGExperiment(noiselevel, 
                                         twoSys[first],
                                         twoSys[second]))
             
-        noise_bracket.append(bracket)
+
         #print results for developing
         correct = 0
+        ans = 0
         for i in range(len(answers)):
-            if (answers[i] == bracket[i]):
+            ans += 1
+            if (answers[i] == predictions[i]):
                 correct += 1
-        print '\n' + 'noise:', noiselevel
-        print 'answer:', answers
-        print 'eugene:', bracket
-        print 'correct/all: ', correct, '/', len(answers), '\n'
+        score =  correct / ans
 
-    #temporary return value
-    return noise_bracket
+        #add to SNE
+        SNE[noiselevel] = [answers, predictions, score]
+
+    return SNE
            
         
 def DeviantNoiseExperiment():
@@ -75,26 +79,34 @@ def DeviantNoiseExperiment():
     #the following are alpha/skew levels for a skew normal distribution,
     # sensible ones will be added later
     skew_levels = [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]
-    sys1 = [1, 1, 1, 1, 1, 1, 0]
-    sys2 = [1, 1, 2, 1, 1, 1, 0]
+    sys1 = [1, 1, 55, 1, 1, 1, 0]
+    sys2 = [1, 1, 97, 1, 1, 1, 0]
     twoSys = [sys1, sys2]
 
-    snoise_bracket = []
+    DNE = dict()
     for skew_level in skew_levels:
         skewedgaussian = skewed_normal(self,skew, [args])    
-        bracket = []
-        first = random.randint(1,2)
-        second  = random.randint(1,2)
+        predictions = []
         
         #10 trials per noise level
         for x in range(10):
-            bracket.append(LGExperiment(skew_level, 
+            first = random.randint(1,2)
+            second  = random.randint(1,2)
+            predictions.append(LGExperiment(skew_level, 
                                         twoSys[first],
                                         twoSys[second]))
-        snoise_bracket.append(bracket)
-        
-    #temporary return value
-    return snoise_bracket
+        snoise_bracket.append(predictions)
+
+        correct = 0
+        ans = 0
+        for i in range(len(answers)):
+            ans += 1
+            if (answers[i] == predictions[i]):
+                correct += 1
+        score = correct / ans
+        DNE[skew_level] = [answers, predictions, score]
+
+    return DNE
 
 
 
