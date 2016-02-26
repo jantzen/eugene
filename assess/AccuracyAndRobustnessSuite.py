@@ -30,11 +30,12 @@ def BuildModel(data_frame, sys_id, epsilon=0):
 #  FullNoiseExperiment
 #  LGExperiment
 
+
 def SimpleNoiseExperiment():
-   # basic noise experiment
+   # make more noise levels
     standard_devs = [0.1, 1., 5., 10., 15., 20., 25.]
-    sys1 = [1, 1, 55, 1, 1, 1, 0]
-    sys2 = [1, 1, 97, 1, 1, 1, 0]
+    sys1 = [1, 1, 60, 1, 1, 1, 0]
+    sys2 = [1, 1, 65, 1, 1, 1, 0]
     twoSys = [sys1, sys2]
 
     
@@ -61,12 +62,15 @@ def SimpleNoiseExperiment():
 
         #print results for developing
         correct = 0
-        ans = 0
+        numOfAns = 0
         for i in range(len(answers)):
-            ans += 1
+            numOfAns += 1
             if (answers[i] == predictions[i]):
                 correct += 1
-        score =  correct / ans
+        if (numOfAns > 0):
+            score =  correct / float(numOfAns)
+        else:
+            score = None
 
         #add to SNE
         SNE[noiselevel] = [answers, predictions, score]
