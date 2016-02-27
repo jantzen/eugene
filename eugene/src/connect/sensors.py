@@ -93,11 +93,11 @@ class VABVoltageSensor(VABSensor):
 
 class PopulationSensor(VABSensor):
     def __init__(self, dynamic_range, noise_stdev=0, proportional=False,
-                 skewed = False):
+                 skew=0):
         self._range = dynamic_range
         self._noise_stdev = noise_stdev
         self._proportional = proportional
-        self._skewed = skewed
+        self._skew = skew
     def read(self, sys):
         if len(self._range) != 2:
             raise ValueError('No sensor range specified.')
@@ -105,19 +105,27 @@ class PopulationSensor(VABSensor):
             if self._noise_stdev == 0:
                 population = sys._x
             elif self._proportional:
-                if self._skewed:
-                    #noise = skewed normal noise(0, self._noise_std * x)._something
-                    #population = x + noise
+                x = sys._x
+                noise = np.random.normal(0, self._noise_stdev * x)
+                population = x + noise
+                """Once skewed normal sampler is finished, change the above to:
+                if skew > 0:
+                    noise = skewed_normal_noise(0, self._noise_std * x).something
+                    population = x + noise
                 else:
                     x = sys._x
                     noise = np.random.normal(0, self._noise_stdev * x)
-                    population = x + noise
+                    population = x + noise"""
+                
             else:
-                if self._skewed:
-                     #skewed normal noise(0, self._noise_std)
+                population = sys._x + np.random.normal(0,self._noise_stdev)
+                """Once skewed normal sampler is finished, change the above to:
+                if skew > 0:
+                     noise = skewed_normal_noise(0, self._noise_std).something
                 else:                    
                     population = sys._x + np.random.normal(0,
-                                                           self._noise_stdev)
+                                                           self._noise_stdev)"""
+                                                          
                                                            
             if population > self._range[1] or population < self._range[0]:
                 return 'out of range'

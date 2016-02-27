@@ -38,27 +38,26 @@ def SimpleNoiseExperiment():
     sys2 = [1, 1, 65, 1, 1, 1, 0]
     twoSys = [sys1, sys2]
 
-    
     SNE = dict()
+
+    
     for noiselevel in standard_devs: 
-        #keep track of known answers
-        answers = []
-        #bracket each of eugene's answers
-        predictions = []
-        #10 trials per noise level
-        #EUGENE (really numpy..) breaks at standard_devs >= 0.32 b/c
-        #b/c target values = 'outofrange'
-        for x in range(10):
+
+        answers = [] #keep track of known answers
+        predictions = [] #bracket each of eugene's answers
+        
+        #probs at certain values because target = 'outofrange' 
+        
+        for x in range(10): #10 trials per noise level
             first = random.randint(0,1)
             second  = random.randint(0,1)
             if (first == second):
                 answers.append(0)
             else:
                 answers.append(1)
-            predictions.append(LGExperiment(noiselevel, 
-                                        twoSys[first],
-                                        twoSys[second]))
-            
+            predictions.append(LGExperiment(noiselevel,
+                                         twoSys[first],
+                                        twoSys[second])) 
 
         #print results for developing
         correct = 0
@@ -77,42 +76,47 @@ def SimpleNoiseExperiment():
 
     return SNE
            
-        
+"""        
 def DeviantNoiseExperiment():
     #tests performance as noise distribution departs from normality
     #the following are alpha/skew levels for a skew normal distribution,
-    # sensible ones will be added later
-    skew_levels = [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]
-    sys1 = [1, 1, 55, 1, 1, 1, 0]
-    sys2 = [1, 1, 97, 1, 1, 1, 0]
+    skew_levels = [0, 1., 2., 3., 4., 5.]
+    sys1 = [1, 1, 60, 1, 1, 1, 0]
+    sys2 = [1, 1, 65, 1, 1, 1, 0]
     twoSys = [sys1, sys2]
 
     DNE = dict()
     for skew_level in skew_levels:
-        skewedgaussian = skewed_normal(self,skew, [args])    
+        answers = []
+        #bracket each of eugene's answers
         predictions = []
-        
         #10 trials per noise level
         for x in range(10):
             first = random.randint(1,2)
             second  = random.randint(1,2)
-            predictions.append(LGExperiment(skew_level, 
+            predictions.append(LGExperiment(st_dev=1,skew_level, 
                                         twoSys[first],
                                         twoSys[second]))
-        snoise_bracket.append(predictions)
-
+ # Show results using same strategy as SimpleNoiseExperiment                                     
         correct = 0
-        ans = 0
+        numOfAns = 0
+
         for i in range(len(answers)):
-            ans += 1
+            numOfAns += 1
+
             if (answers[i] == predictions[i]):
                 correct += 1
-        score = correct / ans
+
+        if (numOfAns > 0):
+            score =  correct / float(numOfAns)
+
+        else:
+            score = None            
+
         DNE[skew_level] = [answers, predictions, score]
 
     return DNE
-
-
+"""
 
 
 def FullNoiseExperiment(r_range, k_pairs):   
@@ -128,8 +132,6 @@ def FullNoiseExperiment(r_range, k_pairs):
 #####################################################################
 
 def LGExperiment(noise_stdev, sp1, sp2):
-    # re: below - It doesn't have to be quail. I just liked looking at papers
-    # about quail. - Jack
     """
     @short Description--------------------------------
       Runs simulated LogisticGrowth experiments for Biological Populations.
@@ -150,7 +152,7 @@ def LGExperiment(noise_stdev, sp1, sp2):
 
 
     ### local variables
-    con = 5.0 #CONFUSED    (where does Janzten get these numbers from??)
+    con = 5.0 
     epsilon=10**(-4)
     resolution=[300,3]
     ###
@@ -162,7 +164,7 @@ def LGExperiment(noise_stdev, sp1, sp2):
     #target sensor & actuator
 
     tsensor = eu.sensors.PopulationSensor([-10**(23), 10**23], noise_stdev, 
-                                          False)
+                                          False, skew)
     #tsensor = eu.sensors.PopulationSensor([-10.**23, 10.**23], noise_stdev, 
     #                                      False)   ^XOR ?
     tact = eu.actuators.PopulationActuator([0, 10**23])
@@ -185,9 +187,7 @@ def LGExperiment(noise_stdev, sp1, sp2):
     interfaces = []
     for sys in systems:
         interfaces.append(eu.interface.VABSystemInterface(sensors, actuators, sys))
-    #blaahhhh - in case you were wondering how we find ROI, we're not 
-    #           supposed to: this is where Collin's AutoRangeDet thing 
-    #           comes in.
+    # ROI should be determined automatically using the range finder.
     ROI = dict([(1,[0., 20.]), (2, [con, 65.])])
     ###    
 
@@ -198,7 +198,6 @@ def LGExperiment(noise_stdev, sp1, sp2):
         data.append(eu.interface.TimeSampleData(1, 2, iface, ROI, resolution))
     ###
 
-    ### Line143-144 is where it breaks
     models = []
     for sys_id, data_frame in enumerate(data):
         models.append(BuildModel(data_frame, sys_id, epsilon))
@@ -208,4 +207,3 @@ def LGExperiment(noise_stdev, sp1, sp2):
     return same0diff1
 
 #####################################################################
-
