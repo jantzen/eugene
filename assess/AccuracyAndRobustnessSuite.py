@@ -3,11 +3,13 @@ import pdb
 import sys
 import random
 import numpy as np
+import scipy as sp
+import pp
 
 sys.path.insert(0, 'C\vabacon')
 import eugene as eu
 from eugene.src.virtual_sys.growth_sys import LogisticGrowthModel
-import scipy as sp
+
 
 """Accuracy and Robustness Suite
 
@@ -55,6 +57,10 @@ def SimpleNoiseExperiment():
                 answers.append(0)
             else:
                 answers.append(1)
+
+            job_server = pp.Server(ppservers=("4",))
+            
+            
             predictions.append(LGExperiment(noiselevel, 
                                         twoSys[first],
                                         twoSys[second]))
