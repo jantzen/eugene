@@ -10,7 +10,7 @@ class LogisticGrowthModel(object):
         if init_x > 0:
             self._x = float(init_x)
         else:
-            raise ValueError('Invalid initial concentration assignment. Must be greater than 0')
+            raise ValueError('Invalid initial population assignment. Must be greater than 0')
 
         # set the time corresponding to that initial concentration
         self._time = init_t

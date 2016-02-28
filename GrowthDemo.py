@@ -11,7 +11,7 @@ def BuildModel(data_frame, sys_id, epsilon=0):
 
 
 def GrowthDemo(noise_stdev=1, epsilon=10**(-4),
-        resolution=[300,3],alpha=1):
+        resolution=[300,3],alpha=1,skew=0):
     
     import matplotlib.pyplot as plt
 
@@ -116,9 +116,9 @@ def GrowthDemo(noise_stdev=1, epsilon=10**(-4),
             annot = [[]] * 3
             annot[0] = ['r = 0.2, K = 65, alpha = 1,\n beta = 1, gamma = 1',
                     5, 3]
-            annot[1] = ['r = 0.6, K = 65, alpha = 0.7,\n beta = 2.5, gamma = 2',
+            annot[2] = ['r = 0.6, K = 65, alpha = 0.7,\n beta = 2.5, gamma = 2',
                     5, 3]
-            annot[2] = ['r = 0.2, K = 65, alpha = 1,\n beta = 1, gamma = 1',
+            annot[1] = ['r = 0.2, K = 65, alpha = 1,\n beta = 1, gamma = 1',
                     5, 3]
             current_axes.text(annot[sys][1], annot[sys][2], annot[sys][0],
                     fontsize=12)

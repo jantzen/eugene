@@ -3,6 +3,7 @@ import time
 import copy
 import random
 import numpy as np
+import eugene as eu
 
 #Parent Sensor
 class VABSensor( object ):
@@ -106,25 +107,20 @@ class PopulationSensor(VABSensor):
                 population = sys._x
             elif self._proportional:
                 x = sys._x
-                noise = np.random.normal(0, self._noise_stdev * x)
-                population = x + noise
-                """Once skewed normal sampler is finished, change the above to:
-                if skew > 0:
-                    noise = skewed_normal_noise(0, self._noise_std * x).something
+                if self._skew > 0:
+                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev *
+                            x, self._skew)
                     population = x + noise
                 else:
                     x = sys._x
                     noise = np.random.normal(0, self._noise_stdev * x)
-                    population = x + noise"""
-                
+                    population = x + noise
             else:
-                population = sys._x + np.random.normal(0,self._noise_stdev)
-                """Once skewed normal sampler is finished, change the above to:
-                if skew > 0:
-                     noise = skewed_normal_noise(0, self._noise_std).something
+                if self._skew > 0:
+                     noise = eu.probability.SampleSkewNorm(0, self._noise_stdev,
+                     self._skew)
                 else:                    
-                    population = sys._x + np.random.normal(0,
-                                                           self._noise_stdev)"""
+                    population = sys._x + np.random.normal(0, self._noise_stdev)
                                                           
                                                            
             if population > self._range[1] or population < self._range[0]:
