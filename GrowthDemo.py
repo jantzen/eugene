@@ -18,7 +18,7 @@ def GrowthDemo(noise_stdev=1, epsilon=10**(-4),
     # build sensors and actuators
     tsensor = eu.sensors.VABTimeSensor([])
     xsensor = eu.sensors.PopulationSensor([-10**23,10.**23], noise_stdev,
-            False)
+            False, skew)
     xact = eu.actuators.PopulationActuator([0.,10.**23])
     tact = eu.actuators.VABVirtualTimeActuator()
 

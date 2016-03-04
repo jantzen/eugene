@@ -3,7 +3,7 @@ from AccuracyAndRobustnessSuite import *
 import pickle
 
 # Run the noise experiment
-[data_noise, CM_noise] = GrowthNoiseExperiment(1)
+[data_noise, CM_noise] = GrowthNoiseExperiment(25)
 
 # Pickle the data
 out = open('../outputs/data_noise.pkl','wb')
@@ -14,7 +14,7 @@ pickle.dump(CM_noise, out)
 out.close()
 
 # Run the deviation from normality experiment
-[data_skew, CM_skew] = GrowthNormDeviationExperiment(1)
+[data_skew, CM_skew] = GrowthNormDeviationExperiment(25)
 
 # Pickle the data
 out = open('../outputs/data_skew.pkl','wb')
@@ -26,7 +26,7 @@ out.close()
 
 
 # Run the model discrimination experiment
-[data_model, CM_model] = GrowthModelExperiment(1)
+[data_model, CM_model] = GrowthModelExperiment(25)
 
 # Pickle the data
 out = open('../outputs/data_model.pkl','wb')

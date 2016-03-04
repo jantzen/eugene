@@ -116,9 +116,11 @@ class PopulationSensor(VABSensor):
                     noise = np.random.normal(0, self._noise_stdev * x)
                     population = x + noise
             else:
+                x = sys._x
                 if self._skew > 0:
-                     noise = eu.probability.SampleSkewNorm(0, self._noise_stdev,
-                     self._skew)
+                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev,
+                    self._skew)
+                    population = x + noise
                 else:                    
                     population = sys._x + np.random.normal(0, self._noise_stdev)
                                                           
