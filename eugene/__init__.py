@@ -5,4 +5,4 @@ from .src.connect import sensors
 from .src.connect import actuators
 from .src.virtual_sys import growth_sys
 from .src.virtual_sys import chaotic_circuits
-from .src.aux import probability
+from .src.auxiliary import probability
