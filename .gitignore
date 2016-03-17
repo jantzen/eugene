@@ -23,3 +23,5 @@ notes/
 outputs/
 *.project
 *.pydevproject
+
+debug.ps

@@ -3,6 +3,7 @@ import time
 import copy
 import random
 import numpy as np
+import eugene as eu
 
 #Parent Sensor
 class VABSensor( object ):
@@ -92,11 +93,12 @@ class VABVoltageSensor(VABSensor):
                 
 
 class PopulationSensor(VABSensor):
-    def __init__(self, dynamic_range, noise_stdev=0, proportional=False):
+    def __init__(self, dynamic_range, noise_stdev=0, proportional=False,
+                 skew=0):
         self._range = dynamic_range
         self._noise_stdev = noise_stdev
         self._proportional = proportional
-    
+        self._skew = skew
     def read(self, sys):
         if len(self._range) != 2:
             raise ValueError('No sensor range specified.')
@@ -105,13 +107,56 @@ class PopulationSensor(VABSensor):
                 population = sys._x
             elif self._proportional:
                 x = sys._x
-                noise = np.random.normal(0, self._noise_stdev * x)
-                population = x + noise
+                if self._skew > 0:
+                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev *
+                            x, self._skew)
+                    population = x + noise
+                else:
+                    x = sys._x
+                    noise = np.random.normal(0, self._noise_stdev * x)
+                    population = x + noise
             else:
-                population = sys._x + np.random.normal(0,
-                        self._noise_stdev)
+                x = sys._x
+                if self._skew > 0:
+                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev,
+                    self._skew)
+                    population = x + noise
+                else:                    
+                    population = sys._x + np.random.normal(0, self._noise_stdev)
+                                                          
+                                                           
             if population > self._range[1] or population < self._range[0]:
-                return 'outofrange'
+                return 'out of range'
             else:
                 return population
 
+
+class CCVoltageSensor(VABSensor):
+    """ For use with simulated chaotic circuits. The passed value deriv
+    indicates which derivative of voltage the sensor should measure.
+    """
+    def __init__(self, dynamic_range, deriv, noise_stdev=0, proportional=False):
+        self._range = dynamic_range
+        self._noise_stdev = noise_stdev
+        self._proportional = proportional
+        self._deriv = deriv
+ 
+    def read(self, sys):
+        if len(self._range) != 2:
+            raise ValueError('No sensor range specified.')
+        else:
+            if self._noise_stdev == 0:
+                out = sys._x[self._deriv]
+            elif self._proportional:
+                x = sys._x[self._deriv]
+                noise = np.random.normal(0, self._noise_stdev * x)
+                out = x + noise
+            else:
+                out = sys._x[self._deriv] + np.random.normal(0,
+                        self._noise_stdev)
+            if out > self._range[1] or out < self._range[0]:
+                return 'outofrange'
+            else:
+                return out
+
+       

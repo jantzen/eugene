@@ -1,23 +1,24 @@
 # GrowthDemo
 
+import pdb
 import eugene as eu
 from eugene.src.virtual_sys.growth_sys import *
 
 def BuildModel(data_frame, sys_id, epsilon=0):
-    model = eu.compare.BuildSymModel(data_frame, 1, 2, sys_id, epsilon)
+    model = eu.compare.BuildSymModel(data_frame, 1, [2], sys_id, epsilon)
 
     return model
 
 
-def GrowthDemo(noise_stdev=5., epsilon=10**(-4),
-        resolution=[300,3],alpha=1):
+def GrowthDemo(noise_stdev=1, epsilon=10**(-4),
+        resolution=[300,3],alpha=1,skew=0):
     
     import matplotlib.pyplot as plt
 
     # build sensors and actuators
     tsensor = eu.sensors.VABTimeSensor([])
     xsensor = eu.sensors.PopulationSensor([-10**23,10.**23], noise_stdev,
-            False)
+            False, skew)
     xact = eu.actuators.PopulationActuator([0.,10.**23])
     tact = eu.actuators.VABVirtualTimeActuator()
 
@@ -28,8 +29,9 @@ def GrowthDemo(noise_stdev=5., epsilon=10**(-4),
     # build systems from data
     systems = []
 
-    systems.append(LogisticGrowthModel(0.5, 5., 65., 1.5, 0.5, 1.8, 0.))
-    systems.append(LogisticGrowthModel(1., 5., 65., 0.8, 1.5, 1.8, 0.))
+    systems.append(LogisticGrowthModel(0.2, 5., 65., 1., 1., 1., 0.))
+    systems.append(LogisticGrowthModel(0.1, 5., 65., 1., 1., 1., 0.))
+    systems.append(LogisticGrowthModel(0.6, 5., 65., 0.7, 2.5, 2., 0.))
 
     # build corresponding interfaces
     interfaces = []
@@ -42,9 +44,28 @@ def GrowthDemo(noise_stdev=5., epsilon=10**(-4),
     # collect data
     data = []
     for count, interface in enumerate(interfaces):
-        print "Sampling data for system {}. ROI for time: {}. ROI for concentration: {}.\n".format(count, ROI[1], ROI[2])
-        data.append(eu.interface.TimeSampleData(1, 2, interface, ROI,
+        print "Sampling data for system {}. ROI for time: {}. ROI for population: {}.\n".format(count, ROI[1], ROI[2])
+        data.append(eu.interface.TimeSampleData(1, [2], interface, ROI,
             resolution))
+
+
+#    # plot the raw data 
+#    f, ax = plt.subplots(1,3,sharey=True)
+#    ax = ax.flatten()
+#    f.set_size_inches(12,8)
+#    for sys in range(len(systems)):
+#        t = data[sys]._index_values
+#        x = np.hstack(data[sys]._target_values)
+#        current_axes = ax[sys]
+#        current_axes.plot(t, x, 'bo')
+#        current_axes.set_xlabel('time')
+#        # annotate
+##        current_axes.text(annot[sys][1], annot[sys][2], annot[sys][0],
+##                fontsize=12)
+#        if sys == 0:
+#            current_axes.set_ylabel('population')
+#    f.savefig('./outputs/pop_growth_fig1.png', dpi=300)
+
 
     # build models of the data
     models = []
@@ -60,14 +81,13 @@ def GrowthDemo(noise_stdev=5., epsilon=10**(-4),
 #    annot[1] = [r'$HOI + O_3 \rightarrow IO_3^- $', 0.1, 0.8*10**(-4)]
     
     # plot the data (without indicating classification
-    f, ax = plt.subplots(1,2,sharey=True)
+    f, ax = plt.subplots(1,3,sharey=True)
     ax = ax.flatten()
     f.set_size_inches(12,8)
     for i, c in enumerate(classes):
         for sys in c._systems:
             t = data[sys]._index_values
-            x = data[sys]._target_values
-            x = np.array(x).transpose()
+            x = np.hstack(data[sys]._target_values)
             current_axes = ax[sys]
             current_axes.plot(t, x, 'bo')
             current_axes.set_xlabel('time')
@@ -80,26 +100,26 @@ def GrowthDemo(noise_stdev=5., epsilon=10**(-4),
 
     # replot the data (classified)
     colors = ['bo','go','ro','co']
-#    plt.figure(2)
-    f, ax = plt.subplots(1,2,sharey=True)
+    f, ax = plt.subplots(1,3,sharey=True)
     ax = ax.flatten()
     f.set_size_inches(12,8)
     for i, c in enumerate(classes):
         for sys in c._systems:
 #            plt.subplot(2,3,sys)
             t = data[sys]._index_values
-            x = data[sys]._target_values
-            x = np.array(x).transpose()
+            x = np.hstack(data[sys]._target_values)
             current_axes = ax[sys]
             current_axes.plot(t, x, colors[i])
             current_axes.set_xlabel('time')
             # annotate
             # build text for annotating plots
-            annot = [[]] * 2
-            annot[0] = ['r = 0.5, K = 65, alpha = 1,\n beta = 0.6, gamma = 1.8',
-                    5, 20]
-            annot[1] = ['r = 1, K = 65, alpha = 0.5,\n beta = 1.5, gamma = 1.8',
-                    5, 20]
+            annot = [[]] * 3
+            annot[0] = ['r = 0.2, K = 65, alpha = 1,\n beta = 1, gamma = 1',
+                    5, 3]
+            annot[2] = ['r = 0.6, K = 65, alpha = 0.7,\n beta = 2.5, gamma = 2',
+                    5, 3]
+            annot[1] = ['r = 0.2, K = 65, alpha = 1,\n beta = 1, gamma = 1',
+                    5, 3]
             current_axes.text(annot[sys][1], annot[sys][2], annot[sys][0],
                     fontsize=12)
             if sys == 0:
@@ -107,5 +127,4 @@ def GrowthDemo(noise_stdev=5., epsilon=10**(-4),
     f.savefig('./outputs/pop_growth_fig2.png', dpi=300)
 
     return classes
-
 
