@@ -38,59 +38,72 @@ class FlagShelf( object ):
                  c. other shelves DO     have repeated values, uncorresponding.
 
     """
-    def __init__(self, df):
+    def __init__(self, df, mse=0.1):
         self._df = df
         self._num_of_shelves = len(self._df._target_values)
+        self._mse = mse
 
         #holds indexes of repeated values.
         self._shelves = {tv : [] for tv in range(self._num_of_shelves)}
 
         #find flags for each shelf
-        
-        for s in range(self._num_of_shelves):
-            tv = df._target_values[s]
-            for ind, item in enumerate(tv):
-                flag = [ind]
-                for c, checks in enumerate(tv[ind:]):
-                    if ((not c == 0) and item == checks):
-                        flag.append(c+ind)
-                if (len(flag) > 1):
-                    self._shelves[s] == flag
-                        
-    def findFlags():
-        duplicates = find_bottomShelfDuplicates()
+        self.fillBottomShelf()
+
+    ##------------------------------------------------------------------
+
+    def fillShelf(self, shelfN):
+        """
+            throw 'error' if the Shelf is already full / has flags,
+                          if shelfN is out of bounds,
+                       (or if bottom shelf is empty?).
+        """
+
+        #shelf = self._shelves[shelfN]
+        #^  !!! bad idea !????
+        implicitShelf = self._df._target_values[shelfN]
+
+        # for i, point in enumerate(self._df._target_values[shelfN]):
+        for i, point in enumerate(implicitShelf):
+            repeated = [i]
+            for iComp, pointCompare in enumerate(implicitShelf[i+1:]):
+                if (point == pointCompare):
+                    repeated.append(iComp + i + 1)
+            if (len(repeated) > 1):
+                self._shelves[0].append(repeated)
 
 
-    def find_bottomShelfDuplicates():
-        return -1
+        #def fillShelf(self, shelf)    -shelf : np.ndarry w/ 1 row
+        # for i, point in enumerate(shelf):
+            # repeated = [i]
+            # for iComp, pointCompare in enumerate(shelf[i+1:]):
+                # if (point == pointCompare):
+                    # repeated.append(iComp + i + 1)
+            # if (len(repeated) > 1):
+                # self._shelves[0].append(repeated)
+       
+    def fillBottomShelf(self):
+        # self.fillShelf(self._df._target_values[0])
+        self.fillShelf(0)
 
-def getFlagShelf(df):
-    """
-    given a data frame,
-    returns a dictionary 'flagShelf'
+    def fillEntireShelf(self):
+        """
+        precondition: the bottom shelf has at least one "flag"
+        Fills the rest of the shelves.
 
-    number of keys in flagShelf = number of target value arrays
-    each value defaults as empty list
-    if there are duplicate values in a given _target_value array,
-    the INDEX of those duplicates are saved.
-    """
-    #create an entry for every _target_values array
-    flagShelf = {tv : [] for tv in range(len(df._target_values))}
-    
-    #dict's key  
-    k = 0
-    for tv in df._target_values:
-        for i in range(len(tv)):
-            #c = compare index
-            for c in range(len(tv[i:])):
-                if (tv[i] == tv[c]):
-                    flagShelf(k).append[i,c]
+        return True when shelf fills without inconsistencies
+        return False when shelf doesn't do so.
+        """
+        if (len(self._shelves[0]) < 1):
+            print "precondtion was not met. \n         \
+            precondition: the bottom shelf has at least one flag."
+            #how do I throw exception / error?
+            return False
 
-        k += 1
-                    
-                    
+        #skip the first shelf, since it's already filled.
+        for shelf in range(1, len(self._num_of_shelves)):
+            self.fillShelf(shelf)
+        return False
 
-    return flagShelf
 
 
 def isFunc(df):
@@ -117,7 +130,6 @@ def isFunc(df):
     #4.iff the transformation values are equivalent, then the symmetry 
     #   transformations ARE FUNCTIONS.
     
-    return 1
     #0.
     pModels = []
     for tv in df._target_values:
@@ -156,5 +168,5 @@ def isFunc(df):
     if(len(flags) > 0):
         hasFlags = True
 
-
-    return hasFlags
+    return 1
+    # return hasFlags
