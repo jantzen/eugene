@@ -357,7 +357,7 @@ def CircuitNoiseExperiment(samples, free_cores=1):
 
 
     # set noise levels to test
-    stdevs = np.array([0.2, 1.2, 2.2])
+    stdevs = np.arange(2.05, 4.0, 0.2)
 
     # set names of chaotic models to test
     systems = [7, 8]

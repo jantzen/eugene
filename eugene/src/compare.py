@@ -344,8 +344,8 @@ def FitPolyCV(passed_data, epsilon=0):
     final_resids = residuals(best_fit_params, exponents(x_vars, best_fit_order), x, y)
     mse_final = np.mean(pow(np.array(final_resids), 2))
     # DEBUGGING
-    print "FitPolyCV returning a curve of order {} with mse = {}".format(best_fit_order, 
-            mse_final)
+#    print "FitPolyCV returning a curve of order {} with mse = {}".format(best_fit_order, 
+#            mse_final)
 
     return [best_fit_params, best_fit_order]
 
@@ -621,8 +621,8 @@ def CompareModels(model1, model2, alpha=1.):
                         x_base_error1a, y_base_error1a)
                 SE_base_error1_sep.extend(pow(np.array(resids_base_error1a), 2))
 
-                print "Max value of SE_base_error1_sep: {}".format(max(
-                    SE_base_error1_sep))
+#                print "Max value of SE_base_error1_sep: {}".format(max(
+#                    SE_base_error1_sep))
 
 
                 resids_base_error1b = residuals(polynomials_base_error1b[i][block][0],
@@ -630,8 +630,8 @@ def CompareModels(model1, model2, alpha=1.):
                         x_base_error1b, y_base_error1b)
                 SE_base_error1_sep.extend(pow(np.array(resids_base_error1b), 2))
 
-                print "Max value of SE_base_error1_sep: {}".format(max(
-                    SE_base_error1_sep))
+#                print "Max value of SE_base_error1_sep: {}".format(max(
+#                    SE_base_error1_sep))
 
 
                 resids_base_error1_joint = residuals(polynomials_base_error1_joint[i][block][0],

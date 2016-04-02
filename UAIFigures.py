@@ -71,5 +71,52 @@ plt.ylim(30,105)
 plt.xlim(5,0)
 plt.title('(b)')
 
-plt.show()
+#plt.show()
 
+###############################################################################
+# Circuits
+
+# unpickle the two confusion matrices for the noise experiments
+f_low = open('./outputs/CM_noise_circ_low.pkl','rb')
+f_high = open('./outputs/CM_noise_circ_high.pkl','rb')
+
+CM_low = pickle.load(f_low)
+CM_high = pickle.load(f_high)
+
+f_low.close()
+f_high.close()
+
+# Initialize the figure
+fig_C = plt.figure(2)
+
+
+# Compute the accuracy for each different noise level and add
+# to the plot
+xvals = []
+yvals = []
+for noise in CM_low.keys():
+    cm = np.array(CM_low[noise],dtype='float64')
+    accuracy = (cm[0,0] + cm[1,1]) / np.sum(cm) * 100.
+    x = noise
+    y = accuracy
+    xvals.append(x)
+    yvals.append(y)
+
+for noise in CM_high.keys():
+    cm = np.array(CM_high[noise],dtype='float64')
+    accuracy = (cm[0,0] + cm[1,1]) / np.sum(cm) * 100.
+    x = noise
+    y = accuracy
+    xvals.append(x)
+    yvals.append(y)
+   
+plt.subplot(2,1,1)
+plt.plot(xvals, yvals, 'k+', markersize=12., markeredgewidth=2.5)
+
+plt.xlabel('$\sigma$', fontsize=16, verticalalignment='center')
+plt.ylabel('Accuracy (\%)', fontsize=14)
+plt.ylim(30,105)
+#plt.xlim(0,33)
+plt.title('(a)')
+
+plt.show()
