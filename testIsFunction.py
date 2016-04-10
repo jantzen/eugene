@@ -115,9 +115,9 @@ def getDataFrames():
                   (2, [10.**(-6),10.**(-4)])]),
             dict([(1, [0., 3./(2.*sf3._k*(10.**(-4))**2)]),
                   (2,[10.**(-6),10.**(-4)])])]
-
+    # pdb.set_trace()
     for r, iface in enumerate(ifaces):
-        datas.append(eu.interface.TimeSampleData(1,2, iface, ROIs[r]))
+        datas.append(eu.interface.TimeSampleData(1, [2], iface, ROIs[r]))
 
     #make on function DataFrame that has flag points
     # datas.append(getSimpleDataFrames())
@@ -135,100 +135,6 @@ def getDataFrames():
 ########################################################################
 ########################################################################
 import unittest
-
-
-class TestFlagShelf(unittest.TestCase):
-    """
-    Test methods contained in FlagShelf.class
-    """
-
-    err = 0.7
-
-    def test_initialize(self):
-        simpleDF = eu.interface.DataFrame(1, np.array([0, 1, 2, 3, 4]), 2, 
-                            [np.array([1,   2,  3,  2, 1]), 
-                             np.array([5,   6,  7,  6, 5]),
-                             np.array([10, 11, 12, 11, 10]),
-                             np.array([15, 16, 17, 16, 15])])
-        flaggy = isF.FlagShelf(simpleDF)
-        #only fills bottom shelf during initialization.
-        testFlaggy = {0: [[0,4], [1,3]], 1: [], 2: [], 3: []}
-        self.assertEquals(testFlaggy, flaggy._shelves)
-
-
-        #test for noise accommodation.
-        #!!!! i wouldn't think this passes yet...
-        noisyDF = simpleDF
-        # pdb.set_trace()
-        for tv in range(len(noisyDF._target_values)):
-            for v in range(tv):
-                noise = random.uniform(-err, err)
-                noisyDF._target_values[tv][v] += noise
-        flaggy = isF.FlagShelf(simpleDF)
-        #only bottom shelf is filled during initialization.
-        testFlaggy = {0: [[0,4], [1,3]], 1: [], 2: [], 3: []}
-        self.assertEquals(testFlaggy, flaggy._shelves)
-
-
-
-    def test_fillShelf(self):
-        #test for simple case
-        simpleDF = eu.interface.DataFrame(1, np.array([0, 1, 2, 3, 4]), 2, 
-                            [np.array([1,   2,  3,  2, 1]), 
-                             np.array([5,   6,  7,  6, 5]),
-                             np.array([10, 11, 12, 11, 10]),
-                             np.array([15, 16, 17, 16, 15])])
-        # pdb.set_trace()
-        flaggy = isF.FlagShelf(simpleDF)
-        flaggy.fillShelf()
-        testFlaggy = {0: [[0,4], [1,3]], 1: [[0,4], [1,3]], 
-                      2: [],             3: []}
-        self.assertEquals(testFlaggy, flaggy._shelves)
-
-        #test for noisy case.
-        err = 0.7
-        noisyDF = simpleDF
-        # pdb.set_trace()
-        for tv in range(len(noisyDF._target_values)):
-            for v in range(tv):
-                noise = random.uniform(-err, err)
-                noisyDF._target_values[tv][v] += noise
-        flaggy = isF.FlagShelf(simpleDF)
-        #only bottom shelf is filled during initialization.
-        testFlaggy = {0: [[0,4], [1,3]], 1: [[0,4], [1,3]], 
-                      2: [],             3: []}
-        self.assertEquals(testFlaggy, flaggy._shelves)
-
-
-    def test_fillEntireShelf(self):
-        simpleDF = eu.interface.DataFrame(1, np.array([0, 1, 2, 3, 4]), 2, 
-                            [np.array([1,   2,  3,  2, 1]), 
-                             np.array([5,   6,  7,  6, 5]),
-                             np.array([10, 11, 12, 11, 10]),
-                             np.array([15, 16, 17, 16, 15])])
-
-        # pdb.set_trace()
-
-        flaggy = isF.FlagShelf(simpleDF)
-        flaggy.fillShelf()
-        testFlaggy = {0: [[0,4], [1,3]], 1: [[0,4], [1,3]], 
-                      2: [[0,4], [1,3]], 3: [[0,4], [1,3]]}
-        self.assertEquals(testFlaggy, flaggy._shelves)
-
-    # def test_allDataFrames(self):
-        # self.assertEquals("you are done with testing!", "not..")
-
-
-if __name__ == '__main__':
-    unittest.main(exit=False)
-
-
-
-
-
-
-
-
 
 # class TestIsFunc(unittest.TestCase):
 

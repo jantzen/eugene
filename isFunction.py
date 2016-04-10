@@ -69,7 +69,7 @@ class FlagShelf( object ):
                 if (point == pointCompare):
                     repeated.append(iComp + i + 1)
             if (len(repeated) > 1):
-                self._shelves[0].append(repeated)
+                self._shelves[shelfN].append(repeated)
 
 
         #def fillShelf(self, shelf)    -shelf : np.ndarry w/ 1 row
