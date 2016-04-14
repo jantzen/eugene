@@ -346,8 +346,8 @@ def FitPolyCV(passed_data, epsilon=0, ret_mse = False):
     # DEBUGGING
     print "FitPolyCV returning a curve of order {} with mse = {}".format(best_fit_order, 
             mse_final)
-    if ret_mse = True:
-        return [best_fit_params, best_fit_order] and mse_final
+    if (ret_mse):
+        return [best_fit_params, best_fit_order, mse_final]
     else:
         return [best_fit_params, best_fit_order]
 
