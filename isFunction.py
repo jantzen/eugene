@@ -65,9 +65,17 @@ class FlagShelf( object ):
         symmetry function.
         """
         #Make a spline-function of the empirical df
+
         #best spline: scipy.interpolate.splrep
+
+        # [[alternatively: scipy.interpolate.UnivariateSpline]]
+
         spline = splrep(self._df._index_values, 
                               self._df._target_values[0])
+
+
+        # [[alternatively: a different cubic spline]]
+        # [[spline = scipy.interpolate.UnivariateSpline(self._df._index_values, self._df._target_values[0],k=3)]]
                               
                                       #how do I fix the density of
                                       #values in bottomSpline?
@@ -98,6 +106,9 @@ class FlagShelf( object ):
             # then store their locations.
             if (len(repeated) > 1):
                 self._shelves[0].append(repeated)
+
+    # determine the error for the spline function
+    # [[if we use the other method we could use scipy.interpolate.UnivariateSpline.get_residual]]
 
     def determineError(self, spline):
         """
