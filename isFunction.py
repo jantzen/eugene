@@ -84,10 +84,20 @@ class FlagShelf( object ):
         symmetry function.
         """
         #Make a spline-function of the empirical df
+
         #best spline: scipy.interpolate.splrep
+
+        # [[alternatively: scipy.interpolate.UnivariateSpline]]
+
         spline = splrep(self._df._index_values, 
                               self._df._target_values[0])
         self._spline_frame[0] = spline
+
+
+        # [[alternatively: a different cubic spline]]
+        # [[spline = scipy.interpolate.UnivariateSpline(self._df._index_values, self._df._target_values[0],k=3)]]
+                              
+
                                       #how do I fix the density of
                                       #values in bottomSpline?
 
@@ -154,9 +164,6 @@ class FlagShelf( object ):
 
 
 
-
-
-
     def targetValuesEqual(tar_val1, tar_val2):
         """
         Status:
@@ -166,6 +173,10 @@ class FlagShelf( object ):
         Given two taret values, determine whether they are equal.
         """
         return abs(tar_val1 - tar_val2) <= self._err
+
+    # determine the error for the spline function
+    # [[if we use the other method we could use scipy.interpolate.UnivariateSpline.get_residual]]
+
 
     def determineError(self, spline):
         """
