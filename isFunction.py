@@ -7,15 +7,35 @@ import matplotlib.pyplot as plt
 import eugene as eu
 #####
 #Classes:
-#  FlagCabinet
+#  FlagShelf
+#  DangerousFlagExcpetion
 #
 #Functions:
-#  getFlagShelf()
-#  to4SigFig()
+#  
 #  isFunc()
 ########################################################################
 
 ########################################################################
+#Tasks:
+#   Test.
+#   get splrep's residuals.
+#   new targetValuesEqual(t1, t2) wrt to residuals.
+#   Test.
+########################################################################
+class DangerousFlagException(Exception):
+    """
+    An exception which is thrown when a flag is discovered
+    to be dangerous, i.e. implies that the symmetry structure cannot be
+    defined as a function.
+    """
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+
+
+
 class FlagShelf( object ):
     """
     Flag Shelf contains 1 Shelf for each target value array in
@@ -44,12 +64,11 @@ class FlagShelf( object ):
     def __init__(self, df):
         self._df = df
         self._num_of_shelves = len(self._df._target_values)
-        self._spline_df = None
         self._err = None
 
         #holds indexes of repeated values.
         self._shelves = {tv : [] for tv in range(self._num_of_shelves)}
-
+        self._spline_frame = {tv : None for tv in range(self._num_of_shelves)}
         #find flags for each shelf
         self.fillBottomShelf()
 
@@ -68,7 +87,7 @@ class FlagShelf( object ):
         #best spline: scipy.interpolate.splrep
         spline = splrep(self._df._index_values, 
                               self._df._target_values[0])
-                              
+        self._spline_frame[0] = spline
                                       #how do I fix the density of
                                       #values in bottomSpline?
 
@@ -92,12 +111,61 @@ class FlagShelf( object ):
             for compIndVal in self._df._index_values[i+1:]:
                 compTarVal = splev(compIndVal, spline)
 
-                if( abs(tarVal - compTarVal) <= self._err):
+                if(targetValuesEqual(tarVal, compTarVal)):
                     repeated.append(compIndVal)
             #if we actually found any repeated values,
             # then store their locations.
             if (len(repeated) > 1):
                 self._shelves[0].append(repeated)
+
+    def fillShelf(self, shelfN):
+        """
+        Fill a desired shelf with flags.
+        
+        @precondition: The bottom shelf has at least one flag.
+
+        @param shelfN The desired shelf to fill.
+
+        @throws DangerousFlagException when a flag is found which
+         defines a point that 'makes the dataframe not-a-function.'
+        """
+        #double check that bottom shelf has at least one flag.
+        assert len(self._shelves[0]) > 0
+        
+        spline = splrep(self._df._index_values, 
+                        self._df._target_values[shelfN])
+        self._spline_frame[shelfN] = spline
+
+
+        for flag in self._shelves[0]:
+            #flagged Target Value - for reference.
+            reference_fTV = splev(flag[0], spline)
+            newFlag = [reference_fTV]
+            for flaggedIndVal in flag[1:]:
+                tarVal = splev(flaggedIndVal, spline)
+                if (targetValuesEqual(reference_fTV, tarVal)):
+                    newFlag.append(tarVal)
+                else:
+                    raise DangeroutFlagException("target values don't align!")
+
+            #this may be an unnecessary check
+            if len(newFlag) > 0:
+                self._shelves[shelfN].append(newFlag)
+
+
+
+
+
+
+    def targetValuesEqual(tar_val1, tar_val2):
+        """
+        Status:
+            Tenetatively implemented.
+            Used in fillBottomShelf.
+
+        Given two taret values, determine whether they are equal.
+        """
+        return abs(tar_val1 - tar_val2) <= self._err
 
     def determineError(self, spline):
         """
@@ -112,24 +180,7 @@ class FlagShelf( object ):
             errors.append(diff)
         average = sum(errors) / len(errors)
         return average
-        
-       
-    def fillEntireShelf(self):
-        """
-        Fills the rest of the shelves.
 
-        return True when shelf fills without inconsistencies
-        return False when shelf doesn't do so.
-        """
-        # if (len(self._shelves[0]) > 0):
-        #done implicitly
-        for shelfN, shelf in enumerate(self._shelves[1:]):
-            #shelfN begins at 0. but should begin at 1.
-            #therefore, always use "shelfN + 1" for using shelfN
-            for flag in self._shelves[0]:
-                fVals = []
-                for indLoc in flag:
-                    fVals.append(self._df._target_values[shelfN+1][indLoc])
 
 def isFunc(df):
     """
@@ -143,9 +194,10 @@ def isFunc(df):
     if (flaggy.bottomIsEmpty()):
         return True
     else:
-        flaggy.fillShelf()
-        if (flaggy.allShelvesLineUp()):
-            return True
-        else:
-            return False
-        
+        for n in range(1, flaggy._num_of_shelves):
+            try:
+                flaggy. fillShelf(n)
+            except DangerousFlagException:
+                return False
+            
+        return True
