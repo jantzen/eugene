@@ -117,7 +117,7 @@ def getDataFrames():
                   (2,[10.**(-6),10.**(-4)])])]
     # pdb.set_trace()
     for r, iface in enumerate(ifaces):
-        datas.append(eu.interface.TimeSampleData(1, [2], iface, ROIs[r]))
+        datas.append(eu.interface.TimeSampleData(1, 2, iface, ROIs[r]))
 
     #make on function DataFrame that has flag points
     # datas.append(getSimpleDataFrames())

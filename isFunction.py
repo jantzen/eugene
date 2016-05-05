@@ -1,18 +1,41 @@
+import pdb
+
 import numpy as np
+from scipy.interpolate import splrep, splev
 import matplotlib.pyplot as plt
 
 import eugene as eu
 #####
 #Classes:
-#  FlagCabinet
+#  FlagShelf
+#  DangerousFlagExcpetion
 #
 #Functions:
-#  getFlagShelf()
-#  to4SigFig()
+#  
 #  isFunc()
 ########################################################################
 
 ########################################################################
+#Tasks:
+#   Test.
+#   get splrep's residuals.
+#   new targetValuesEqual(t1, t2) wrt to residuals.
+#   Test.
+########################################################################
+class DangerousFlagException(Exception):
+    """
+    An exception which is thrown when a flag is discovered
+    to be dangerous, i.e. implies that the symmetry structure cannot be
+    defined as a function.
+    """
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+
+
+
 class FlagShelf( object ):
     """
     Flag Shelf contains 1 Shelf for each target value array in
@@ -38,72 +61,136 @@ class FlagShelf( object ):
                  c. other shelves DO     have repeated values, uncorresponding.
 
     """
-    def __init__(self, df, mse=0.1):
+    def __init__(self, df):
         self._df = df
         self._num_of_shelves = len(self._df._target_values)
-        self._mse = mse
+        self._err = None
 
         #holds indexes of repeated values.
         self._shelves = {tv : [] for tv in range(self._num_of_shelves)}
-
+        self._spline_frame = {tv : None for tv in range(self._num_of_shelves)}
         #find flags for each shelf
         self.fillBottomShelf()
 
     ##------------------------------------------------------------------
+    """
+    AM I SUPPOSED TO KEEP TRACK OF index values OR index locations!?
+    right now, keeping track of index locations.
+    """
+    def fillBottomShelf(self):
+        """
+        Flag any concerning spots at the bottom of _target_values, 
+        i.e. the domain of a possible
+        symmetry function.
+        """
+        #Make a spline-function of the empirical df
+
+        #best spline: scipy.interpolate.splrep
+
+        # [[alternatively: scipy.interpolate.UnivariateSpline]]
+
+        spline = splrep(self._df._index_values, 
+                              self._df._target_values[0])
+        self._spline_frame[0] = spline
+
+
+        # [[alternatively: a different cubic spline]]
+        # [[spline = scipy.interpolate.UnivariateSpline(self._df._index_values, self._df._target_values[0],k=3)]]
+                              
+
+                                      #how do I fix the density of
+                                      #values in bottomSpline?
+
+
+        #determine self._mse from bottomSpline prediction wrt actual.
+        #scipy.interpolate.splev
+
+
+        # spline_values = splev(self._df._index_values, spline)
+        # self._err = 0.01 #arbitrary..
+        self._err = self.determineError(spline)
+        
+
+        #keep track of repeated values in _target_values[0], by means of
+        #the index values XOR index locations!?!?
+        #index locations != df._index_values
+        for i, indVal in enumerate(self._df._index_values):
+            repeated = [indVal]
+            tarVal = splev(indVal, spline)
+
+            for compIndVal in self._df._index_values[i+1:]:
+                compTarVal = splev(compIndVal, spline)
+
+                if(targetValuesEqual(tarVal, compTarVal)):
+                    repeated.append(compIndVal)
+            #if we actually found any repeated values,
+            # then store their locations.
+            if (len(repeated) > 1):
+                self._shelves[0].append(repeated)
 
     def fillShelf(self, shelfN):
         """
-            throw 'error' if the Shelf is already full / has flags,
-                          if shelfN is out of bounds,
-                       (or if bottom shelf is empty?).
+        Fill a desired shelf with flags.
+        
+        @precondition: The bottom shelf has at least one flag.
+
+        @param shelfN The desired shelf to fill.
+
+        @throws DangerousFlagException when a flag is found which
+         defines a point that 'makes the dataframe not-a-function.'
         """
-
-        #shelf = self._shelves[shelfN]
-        #^  !!! bad idea !????
-        implicitShelf = self._df._target_values[shelfN]
-
-        # for i, point in enumerate(self._df._target_values[shelfN]):
-        for i, point in enumerate(implicitShelf):
-            repeated = [i]
-            for iComp, pointCompare in enumerate(implicitShelf[i+1:]):
-                if (point == pointCompare):
-                    repeated.append(iComp + i + 1)
-            if (len(repeated) > 1):
-                self._shelves[shelfN].append(repeated)
+        #double check that bottom shelf has at least one flag.
+        assert len(self._shelves[0]) > 0
+        
+        spline = splrep(self._df._index_values, 
+                        self._df._target_values[shelfN])
+        self._spline_frame[shelfN] = spline
 
 
-        #def fillShelf(self, shelf)    -shelf : np.ndarry w/ 1 row
-        # for i, point in enumerate(shelf):
-            # repeated = [i]
-            # for iComp, pointCompare in enumerate(shelf[i+1:]):
-                # if (point == pointCompare):
-                    # repeated.append(iComp + i + 1)
-            # if (len(repeated) > 1):
-                # self._shelves[0].append(repeated)
-       
-    def fillBottomShelf(self):
-        # self.fillShelf(self._df._target_values[0])
-        self.fillShelf(0)
+        for flag in self._shelves[0]:
+            #flagged Target Value - for reference.
+            reference_fTV = splev(flag[0], spline)
+            newFlag = [reference_fTV]
+            for flaggedIndVal in flag[1:]:
+                tarVal = splev(flaggedIndVal, spline)
+                if (targetValuesEqual(reference_fTV, tarVal)):
+                    newFlag.append(tarVal)
+                else:
+                    raise DangeroutFlagException("target values don't align!")
 
-    def fillEntireShelf(self):
+            #this may be an unnecessary check
+            if len(newFlag) > 0:
+                self._shelves[shelfN].append(newFlag)
+
+
+
+    def targetValuesEqual(tar_val1, tar_val2):
         """
-        precondition: the bottom shelf has at least one "flag"
-        Fills the rest of the shelves.
+        Status:
+            Tenetatively implemented.
+            Used in fillBottomShelf.
 
-        return True when shelf fills without inconsistencies
-        return False when shelf doesn't do so.
+        Given two taret values, determine whether they are equal.
         """
-        if (len(self._shelves[0]) < 1):
-            print "precondtion was not met. \n         \
-            precondition: the bottom shelf has at least one flag."
-            #how do I throw exception / error?
-            return False
+        return abs(tar_val1 - tar_val2) <= self._err
 
-        #skip the first shelf, since it's already filled.
-        for shelf in range(1, len(self._num_of_shelves)):
-            self.fillShelf(shelf)
-        return False
+    # determine the error for the spline function
+    # [[if we use the other method we could use scipy.interpolate.UnivariateSpline.get_residual]]
 
+
+    def determineError(self, spline):
+        """
+        Determines the error for the spline function for the bottom shelf.
+        @param spline The spline previously determined for the bottom shelf.
+          Only required as parameter because it's not a class attribute.
+        """
+        errors = []
+        for indLoc, indVal in enumerate(self._df._index_values):
+            diff = abs(self._df._target_values[0][indLoc]
+                       - splev(indVal, spline))
+            errors.append(diff)
+        average = sum(errors) / len(errors)
+        return average
 
 
 def isFunc(df):
@@ -112,61 +199,16 @@ def isFunc(df):
 
     return True if 'df' is provides for symmetry transformations that are 
     functions.
-                  XOR return 1  if NOT FUNCTION
-                      return 0  if IS FUCNTION
-                      return -1 if TRIVIAL FUNCTION / CONSTANT
-                  ???
-
-       """
+    """
     
-    #-1.preprocess df: make sure no 'outofrange' values
-   
-    #0.model data
-    #1.create modeled target data w/ respect to actual index data
-    #2.if any modeled target value occurs more than once, record those points
-    #   as "flag points".
-    #3.find the target values of the first transformation at the index values
-    #   of the "flag points"
-    #4.iff the transformation values are equivalent, then the symmetry 
-    #   transformations ARE FUNCTIONS.
-    
-    #0.
-    pModels = []
-    for tv in df._target_values:
-        data = np.vstack((df._index_values, tv))
-        data = data.transpose()
-        pModels.append(eu.compare.FitPolyCV(data))
-        #comment: get FitPolyCV to spit out standard deviation
-        
-       
-    #1. -- change: until flag point is found, only model & mDF the base values
-                   #for computational efficiency.
-    mData = []
-    for m in pModels:
-        mata = []
-        for iv in df._index_values:
-            mata.append(to4SigFigs(np.polyval(m, iv)))
-            #------use Standard Deviation instead
-            #clean mata w/ np.around()
-            #try to only have 4 significant figures.
-        mData.append(mata)
-
-    
-    #model Data Frame
-    mDF = eu.interface.DataFrame(1, df._index_values, 2, mData)
-
-    #2.
-    # getFlagPoints(mData)
-    #flag points = points which have same value w/in a _tar_val array, 
-    #              but different index_v
-    #if there are no flag points, then the DataFrame is a function.
-    #if there is one+ flag points, then the DataFrame may or may not be a func!
-    fShelf = FlagShelf(mDF)
-
-        
-    hasFlags = False
-    if(len(flags) > 0):
-        hasFlags = True
-
-    return 1
-    # return hasFlags
+    flaggy = FlagShelf(df)
+    if (flaggy.bottomIsEmpty()):
+        return True
+    else:
+        for n in range(1, flaggy._num_of_shelves):
+            try:
+                flaggy. fillShelf(n)
+            except DangerousFlagException:
+                return False
+            
+        return True
