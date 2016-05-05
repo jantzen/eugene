@@ -204,4 +204,49 @@ class LorenzSensor(VABSensor):
             else:
                 return val
 
-      
+
+class LotkaVolterra2DSensor(VABSensor):
+    def __init__(self, variable, dynamic_range, noise_stdev=0, proportional=False,
+                 skew=0):
+        if not variable in set([1, 2]):
+            raise ValueError('Inorrect variable specification. Must be string 1 or 2.')
+        else:
+            self._variable = variable
+        self._range = dynamic_range
+        self._noise_stdev = noise_stdev
+        self._proportional = proportional
+        self._skew = skew
+
+    def read(self, sys):
+        if len(self._range) != 2:
+            raise ValueError('No sensor range specified.')
+        else:
+            if self._noise_stdev == 0:
+                exec('val = sys._x' + str(self._variable))
+
+            elif self._proportional:
+                exec('temp = sys._x' + str(self._variable))
+                if self._skew > 0:
+                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev *
+                            temp, self._skew)
+                    val = temp + noise
+                else:
+                    exec('temp = sys._x' + str(self._variable))
+                    noise = np.random.normal(0, self._noise_stdev * temp)
+                    val = temp + noise
+            else:
+                exec('temp = sys._x' + str(self._variable))
+                if self._skew > 0:
+                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev,
+                    self._skew)
+                    val = temp + noise
+                else:                    
+                    val = temp + np.random.normal(0, self._noise_stdev)
+                                                          
+                                                           
+            if val > self._range[1] or val < self._range[0]:
+                return 'out of range'
+            else:
+                return val
+
+

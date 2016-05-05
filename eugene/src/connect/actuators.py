@@ -54,6 +54,7 @@ class CCVoltageActuator(VABSensor):
         sys._x[self._deriv] = value
         sys._time = sys._init_t    
 
+
 class LorenzActuator(VABSensor):
     def __init__(self, variable, dynamic_range):
         if not variable in set(['x','y','z']):
@@ -64,4 +65,17 @@ class LorenzActuator(VABSensor):
  
     def set(self, sys, value):
         exec('sys._' + self._variable + ' = value')
+        sys._time = sys._init_t
+
+
+class LotkaVolterra2DActuator(VABSensor):
+    def __init__(self, variable, dynamic_range):
+        if not variable in set([1,2]):
+            raise ValueError('Inorrect variable specification. Must be 1 or 2.')
+        else:
+            self._variable = variable
+        self._range = dynamic_range
+ 
+    def set(self, sys, value):
+        exec('sys._x' + str(self._variable) + ' = value')
         sys._time = sys._init_t
