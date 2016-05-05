@@ -54,3 +54,14 @@ class CCVoltageActuator(VABSensor):
         sys._x[self._deriv] = value
         sys._time = sys._init_t    
 
+class LorenzActuator(VABSensor):
+    def __init__(self, variable, dynamic_range):
+        if not variable in set(['x','y','z']):
+            raise ValueError('Inorrect variable specification. Must be string "x", "y", or "z".')
+        else:
+            self._variable = variable
+        self._range = dynamic_range
+ 
+    def set(self, sys, value):
+        exec('sys._' + self._variable + ' = value')
+        sys._time = sys._init_t

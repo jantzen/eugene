@@ -223,7 +223,7 @@ def surface_fit(xdata, ydata, order):
 
         
 
-def FitPolyCV(passed_data, epsilon=0):
+def FitPolyCV(passed_data, epsilon=0, ret_mse = False):
     """ Takes a set of x,y data in the form of n+1 columns (x in the first n, y in the
         last) and fits a polynomial surface in n-variables of order determined by 10-fold
         cross-validation.
@@ -343,11 +343,13 @@ def FitPolyCV(passed_data, epsilon=0):
     #compute mse of final fit
     final_resids = residuals(best_fit_params, exponents(x_vars, best_fit_order), x, y)
     mse_final = np.mean(pow(np.array(final_resids), 2))
-    # DEBUGGING
+#    DEBUGGING
 #    print "FitPolyCV returning a curve of order {} with mse = {}".format(best_fit_order, 
 #            mse_final)
-
-    return [best_fit_params, best_fit_order]
+    if (ret_mse):
+        return [best_fit_params, best_fit_order, mse_final]
+    else:
+        return [best_fit_params, best_fit_order]
 
  
 def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):

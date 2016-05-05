@@ -1,6 +1,9 @@
+import pdb
+
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import random
 
 import eugene as eu
 import eugene.src.virtual_sys.chemical_sys as cs
@@ -8,9 +11,14 @@ import isFunction as isF
 
 ########################################################################
 ########################################################################
-#create function data sets
-#From Collin's TestVABRangeDetermination
+
+# build abunch of data for the TestCase, which is at about line 130
+
 def funcFillArray(function, length, delta=1, start=0):
+    """
+    create function data sets
+    From Collin's TestVABRangeDetermination
+    """
     res = np.zeros(length)
     x = start
     for i in range(0, length):
@@ -19,12 +27,17 @@ def funcFillArray(function, length, delta=1, start=0):
     return res
 
 def getMoreDataFrames(res=102, noise=10**(-3)):
-    delt=0.1
+    """
+    provides getDataFrames with "more" data frames.
+    "more" data frames includes:
+        1 clean with flag & is function
+        1 clean with flag & isn't function
+        1 noisy with flag & is function
+        1 noisy with flag & isn't function
+    
+    """
 
-    #1 clean with flag & is function
-    #1 clean with flag & isn't function
-    #1 noisy with flag & is function
-    #1 noisy with flag & isn't function
+    delt=0.1
     DFs = []
 
 
@@ -102,9 +115,9 @@ def getDataFrames():
                   (2, [10.**(-6),10.**(-4)])]),
             dict([(1, [0., 3./(2.*sf3._k*(10.**(-4))**2)]),
                   (2,[10.**(-6),10.**(-4)])])]
-
+    # pdb.set_trace()
     for r, iface in enumerate(ifaces):
-        datas.append(eu.interface.TimeSampleData(1,2, iface, ROIs[r]))
+        datas.append(eu.interface.TimeSampleData(1, [2], iface, ROIs[r]))
 
     #make on function DataFrame that has flag points
     # datas.append(getSimpleDataFrames())
@@ -121,33 +134,20 @@ def getDataFrames():
 ########################################################################
 ########################################################################
 ########################################################################
+import unittest
 
-#Three cases to test for:
-#   1. no flag points -> this is a function
-#   2. 1 pair of flag points -> parallel points equal -> this is a function
-#   3. 1 pair of flag points -> parallel points UNequal -> NOT a function
+# class TestIsFunc(unittest.TestCase):
 
-#right now, only case 1 is covered
-def testIsFunc():
-    dfs = getDataFrames()
-    
-    print "has flags = False", isF.isFunc(dfs[0]) #first order reaction
-    print "has flags = False", isF.isFunc(dfs[1]) #first order reaction
-    print "has flags = False", isF.isFunc(dfs[2]) #third order reaction
-    print "has flags = True", isF.isFunc(dfs[3]) #clean, straight lines
-    print "has flags = True", isF.isFunc(dfs[4]) #noisy polynomials
-    #though the last two ARE actually function, the progress of the
-    #isFunc method returns them (correctly) as False or not a function
+    # dfs = getDataFrames()
+        #first 3 are chemical reactions
+        #4th is the trivial straight lines
+        #5th is a data frame of quadratic polynomials 
 
-def testTo4SigFigs():
-    print "0.12345     => 0.1234    ", isF.to4SigFigs(0.12345)
-    print "0.12345e-10 => 0.1234e-10", isF.to4SigFigs(0.12345e-10)
-    print "0.12345e10  => 1.234e9   ", isF.to4SigFigs(0.12345e10)
-    print (0.12345e10 == isF.to4SigFigs(0.12345e10))
+    # def test_IsFunc(self):
+        # self.assertEqual(True, isF.isFunc(dfs[0])) #first order reaction
+        # self.assertEqual(True, isF.isFunc(dfs[1])) #first order reaction
+        # self.assertEqual(True, isF.isFunc(dfs[2])) #third order reaction
+        # self.assertEqual(False, isF.isFunc(dfs[3])) #clean, straight lines
+        # self.assertEqual(True, isF.isFunc(dfs[4])) #noisy polynomials
 
-def testFlagShelfClass():
-    dfs = getMoreDataFrames()
-    df = dfs[0]
-    flaggy = isF.FlagShelf()
 
-    print flaggy._num_of_shelves

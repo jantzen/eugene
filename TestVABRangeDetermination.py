@@ -53,23 +53,35 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
     # build ROIs
     ROIs = []
     for counter, sys in enumerate(systems):
+        #if counter == 0:
+        #    ROIs.append(dict([(1, [0., np.log(2)/sys._k]),(2,
+        #        [10.**(-6),10.**(-4)])]))
+        #elif counter == 1:
+        #    ROIs.append(dict([(1, [0., 1./(sys._k *
+        #        (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+        #elif counter == 2:
+        #    ROIs.append(dict([(1, [0., 1./(sys._k *
+        #        (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+        #elif counter == 3:
+        #    ROIs.append(dict([(1, [0., 1./(sys._k * (10**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+        #elif counter == 4:
+        #    ROIs.append(dict([(1, [0.,
+        #        1./(sys._k*10.**(-4))]),(2,[10.**(-6),10.**(-4)])]))
+        #elif counter == 5:
+        #    ROIs.append(dict([(1, [0.,
+        #        3./(2.*sys._k*(10.**(-4))**2)]),(2,[10.**(-6),10.**(-4)])]))
         if counter == 0:
-            ROIs.append(dict([(1, [0., np.log(2)/sys._k]),(2,
-                [10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., .001]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 1:
-            ROIs.append(dict([(1, [0., 1./(sys._k *
-                (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 2:
-            ROIs.append(dict([(1, [0., 1./(sys._k *
-                (10.**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 3:
-            ROIs.append(dict([(1, [0., 1./(sys._k * (10**(-4)))]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 4:
-            ROIs.append(dict([(1, [0.,
-                1./(sys._k*10.**(-4))]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
         elif counter == 5:
-            ROIs.append(dict([(1, [0.,
-                3./(2.*sys._k*(10.**(-4))**2)]),(2,[10.**(-6),10.**(-4)])]))
+            ROIs.append(dict([(1, [0., 1000.]),(2,[10.**(-6),10.**(-4)])]))
 
             
     # collect data
@@ -77,7 +89,7 @@ def CLMPSdemo(noise_stdev=0.01, epsilon=10**(-4)):
     for count, interface in enumerate(interfaces):
         print "Sampling data for system {}. ROI for time: {}. ROI for concentration: {}.\n".format(count, 
                 ROIs[count][1], ROIs[count][2])
-        data.append(TimeSampleData(1, 2, interface, ROIs[count]))
+        data.append(TimeSampleData(1, 2, interface, ROIs[count], resolution=[1000,10]))
         
     return data
 
@@ -93,11 +105,15 @@ inLog = lambda x: 1/math.log(x+1)
 
 parabola = lambda x: math.pow(x, 2)
 
+powerThree = lambda x: math.pow(x, 3)
+
 def bump(x):
     if abs(x) < 1:
         return  math.pow(math.e, -(1/(1-math.pow(x,2))))
     else:
         return 0
+
+grow = lambda x: math.exp(x)/(100+math.exp(x))
 
 b = np.array([2,3,4,5,5.5,6,6.5,7,6.5,6,5.5,5,4,3,2,1.5,1,1,1.5,1])
 a = np.array([2303, 210, 110, 75, 57, 46, 38, 33, 29, 26, 23, 21, 20, 18, 17, 16, 15, 14, 13, 13, 12, 12, 11, 11, 10, 10, 9, 9, 9, 9, 8, 8, 8, 8, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5])
@@ -106,7 +122,9 @@ d = funcFillArray(inLog, 50, .1, .1)
 e = funcFillArray(parabola, 50, 1, -24)
 f = funcFillArray(parabola, 50, 1, 50)
 g = funcFillArray(bump, 50, .0625, -1.5)
-#data = CLMPSdemo()[1]._target_values
+h = funcFillArray(grow, 100, .1, 0)
+j = funcFillArray(powerThree, 50, 1, -25)
+k = CLMPSdemo()[1]._target_values
 
 #for array in data:
 #    result = V.findRange(array)
@@ -116,19 +134,24 @@ g = funcFillArray(bump, 50, .0625, -1.5)
 #    plt.plot(range(start, stop), result.data, "r")
 #i=3
 
-test = f
+test = k
 
-result = V.findRange(test)
-plt.plot(test, "b")
+result = V.selectRange(test, 1, 1, .01)
+
 stop = (int)(result.start+result.data.size)
 start = (int)(result.start)
 
-plt.plot(range(start, stop), result.data, "r")
+for sample in test:
+    plt.plot(sample, "b")
+    plt.plot(range(start, stop), sample[result.start:(result.start+result.data.size)], "r")
+
+plt.plot(range(start, stop), result.data, "g")
+#plt.plot(range(start, stop), result.data, "r")
 #plt.plot(np.diff(test), "y")
 #plt.plot(np.diff(test, n=2), "g")
 
 #monotone = V.findMonotone(c)
 #plt.plot(test[0:monotone], "y")
-trans = V.curveFind2(test)
-plt.plot(trans, "y")
+#trans = V.curveFind2(test[0])
+#plt.plot(trans, "y")
 plt.show()
