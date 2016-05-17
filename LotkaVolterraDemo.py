@@ -5,7 +5,7 @@ from eugene.src.virtual_sys.LotkaVolterra2D import *
 import matplotlib.pyplot as plt
 
 
-def LotkaVolterraDemo(noise_stdev=1., epsilon=10**(-4), resolution=[600,2], alpha=1):
+def LotkaVolterraDemo(noise_stdev=1., epsilon=10**(-4), resolution=[300,2], alpha=1):
     
     # build sensors and actuators
     tsensor = eu.sensors.VABTimeSensor([])
@@ -22,9 +22,9 @@ def LotkaVolterraDemo(noise_stdev=1., epsilon=10**(-4), resolution=[600,2], alph
     # build systems from data
     systems = []
 
-    systems.append(LotkaVolterra2D(1., 2., 100., 100., 1., -1., 1., 1.))
-    systems.append(LotkaVolterra2D(2., 2., 100., 100., 1., -1., 1., 1.))
-    systems.append(LotkaVolterra2D(3., 6., 100., 100., 1., -1., 1., 1.))
+    systems.append(LotkaVolterra2D(2., 4., 100., 100., 1., -1., 5., 5.))
+    systems.append(LotkaVolterra2D(3., 3., 100., 100., 1., -1., 5., 5.))
+    systems.append(LotkaVolterra2D(1.5, 3., 100., 100., 1., -1., 5., 5.))
 
     # build corresponding interfaces
     interfaces = []
@@ -65,8 +65,10 @@ def LotkaVolterraDemo(noise_stdev=1., epsilon=10**(-4), resolution=[600,2], alph
         models.append(eu.compare.BuildSymModel(data_frame, 0, [1,2], sys_id,
             epsilon))
 
-    comparison_pos = eu.compare.CompareModels(models[0], models[1])
+    comparison_pos1 = eu.compare.CompareModels(models[0], models[1])
     comparison_neg = eu.compare.CompareModels(models[0], models[2])
+    comparison_pos2 = eu.compare.CompareModels(models[1], models[2])
 
-    print 'Result of positive comparison: {}'.format(comparison_pos)
+    print 'Result of first positive comparison: {}'.format(comparison_pos1)
     print 'Result of negative comparison: {}'.format(comparison_neg)
+    print 'Result of second positive comparison: {}'.format(comparison_pos2)
