@@ -1,5 +1,5 @@
 # import matplotlib.pyplot as plt
-#import sys
+# import sys
 import random
 import numpy as np
 import scipy 
@@ -90,7 +90,7 @@ def GrowthNoiseExperiment(samples, free_cores=1):
     return data, CM
     
 
-def GrowthNormDeviationExperiment(samples, free_cores=1):
+def GrowthSkewExperiment(samples, free_cores=1):
     """ sample = number of samples to take of each comparison type (four types
     possible)
         free_cores = minimum number of cores to leave unloaded
@@ -223,6 +223,136 @@ def GrowthModelExperiment(samples, free_cores=1):
     return data, CM
 
 
+def GrowthExperimentSameKind(samples, free_cores=1):
+    """ sample = number of samples to take of each comparison type (four types
+    possible)
+        free_cores = minimum number of cores to leave unloaded
+    """
+    # set up job server for pp
+    job_server = pp.Server()
+
+    # determine how many cores to use
+    cpus = max(1, job_server.get_ncpus() - free_cores)
+
+    job_server.set_ncpus(cpus)
+
+    # set r values to test
+    rvals = np.arange(0.5, 5.5, 0.5)
+
+    # set noise level
+    stdev = 3.
+
+    # initialize variables
+    confusion_matrices = dict()
+
+    data = dict()
+    CM = dict()
+    for r in rvals: 
+        # set parameters of Logistic Growth models to test
+        systems = [[1.5, 1, 100, 1, 1, 1, 0], [r, 1, 100, 1, 1, 1, 0]]
+        
+        # set up variables to store elements of confusion matrix
+        # positive case: systems are different
+        # negative case: systems are the same
+        TP = 0 # [1,1] (there shouldn't be any of these in this case)
+        FP = 0 # [1,0] 
+        TN = 0 # [0,0]
+        FN = 0 # [0,1]
+
+        jobs = []
+ 
+        for i in range(samples): #trials per noise level
+            jobs.append(job_server.submit(LGExperiment,(stdev,systems[0],systems[1]),(),("eugene",)))
+        
+        # gather the data
+        data[r] = []
+        for job in jobs:
+            data[r].append(job())
+
+        # compile confusion matrix for this noise level
+        CM[r] = []
+        for entry in data[r]:
+            if entry == [1, 1]:
+                TP += 1
+            elif entry == [1, 0]:
+                FP += 1
+            elif entry == [0, 0]:
+                TN += 1
+            elif entry == [0, 1]:
+                FN += 1
+            else: 
+                raise ValueError("output from test not binary")
+
+        CM[r] = [[TP, FP], [FN, TN]]
+                
+    return data, CM
+
+
+def GrowthExperimentDifferentKind(samples, free_cores=1):
+    """ sample = number of samples to take of each comparison type (four types
+    possible)
+        free_cores = minimum number of cores to leave unloaded
+    """
+    # set up job server for pp
+    job_server = pp.Server()
+
+    # determine how many cores to use
+    cpus = max(1, job_server.get_ncpus() - free_cores)
+
+    job_server.set_ncpus(cpus)
+
+    # set r values to test
+    beta_vals = np.arange(0., 1.0, 0.1)
+
+    # set noise level
+    stdev = 3.
+
+    # initialize variables
+    confusion_matrices = dict()
+
+    data = dict()
+    CM = dict()
+    for beta in beta_vals: 
+        # set parameters of Logistic Growth models to test
+        systems = [[1.5, 1, 100, 1, 1, 1, 0], [1.5, 1, 100, 1, beta, 1, 0]]
+        
+        # set up variables to store elements of confusion matrix
+        # positive case: systems are different
+        # negative case: systems are the same
+        TP = 0 # [1,1] 
+        FP = 0 # [1,0] 
+        TN = 0 # [0,0] (there shouldn't be any of these in this case)
+        FN = 0 # [0,1]
+
+        jobs = []
+ 
+        for i in range(samples): #trials per noise level
+            jobs.append(job_server.submit(LGExperiment,(stdev,systems[0],systems[1]),(),("eugene",)))
+        
+        # gather the data
+        data[beta] = []
+        for job in jobs:
+            data[beta].append(job())
+
+        # compile confusion matrix for this noise level
+        CM[beta] = []
+        for entry in data[beta]:
+            if entry == [1, 1]:
+                TP += 1
+            elif entry == [1, 0]:
+                FP += 1
+            elif entry == [0, 0]:
+                TN += 1
+            elif entry == [0, 1]:
+                FN += 1
+            else: 
+                raise ValueError("output from test not binary")
+
+        CM[beta] = [[TP, FP], [FN, TN]]
+                
+    return data, CM
+
+
 def GrowthRateExperiment(samples, free_cores=1):
     """ sample = number of samples to take of each comparison type (four types
     possible)
@@ -264,7 +394,7 @@ def GrowthRateExperiment(samples, free_cores=1):
  
         for i in range(samples): #trials per noise level
             for sys in system_combos:
-                jobs.append(job_server.submit(LGExperiment,(3,sys[0],sys[1]),(),("eugene",)))
+                jobs.append(job_server.submit(LGExperiment,(3.,sys[0],sys[1]),(),("eugene",)))
         
         # gather the data
         data[r] = []
@@ -290,46 +420,6 @@ def GrowthRateExperiment(samples, free_cores=1):
     return data, CM
 
 
-#def DeviantNoiseExperiment():
-#    #tests performance as noise distribution departs from normality
-#    #the following are alpha/skew levels for a skew normal distribution,
-#    skew_levels = [0, 1., 2., 3., 4., 5.]
-#    sys1 = [1, 1, 60, 1, 1, 1, 0]
-#    sys2 = [1, 1, 65, 1, 1, 1, 0]
-#    twoSys = [sys1, sys2]
-#
-#    DNE = dict()
-#    for skew_level in skew_levels:
-#        answers = []
-#        #bracket each of eugene's answers
-#        predictions = []
-#        #10 trials per noise level
-#        for x in range(10):
-#            first = random.randint(1,2)
-#            second  = random.randint(1,2)
-#            predictions.append(LGExperiment(st_dev=1,skew_level, 
-#                                        twoSys[first],
-#                                        twoSys[second]))
-# # Show results using same strategy as SimpleNoiseExperiment                                     
-#        correct = 0
-#        numOfAns = 0
-#
-#        for i in range(len(answers)):
-#            numOfAns += 1
-#
-#            if (answers[i] == predictions[i]):
-#                correct += 1
-#
-#        if (numOfAns > 0):
-#            score =  correct / float(numOfAns)
-#
-#        else:
-#            score = None            
-#
-#        DNE[skew_level] = [answers, predictions, score]
-#
-#    return DNE
-
 
 def LGExperiment(noise_stdev, sp1, sp2, skew=0):
     """
@@ -352,7 +442,7 @@ def LGExperiment(noise_stdev, sp1, sp2, skew=0):
 
     ### local variables
     epsilon=10**(-4)
-    resolution=[300,3]
+    resolution=[300,2]
     ###
 
     ###
@@ -384,7 +474,7 @@ def LGExperiment(noise_stdev, sp1, sp2, skew=0):
     for sys in systems:
         interfaces.append(eugene.interface.VABSystemInterface(sensors, actuators, sys))
     
-    ROI = dict([(1,[0., 20.]), (2, [5., 55.])])
+    ROI = dict([(1,[0., 10.]), (2, [1., 51.])])
     ###    
 
 
@@ -627,6 +717,195 @@ def LVNoiseExperiment(samples, free_cores=1):
     return data, CM
  
 
+def LVSkewExperiment(samples, free_cores=1):
+    """ sample = number of samples to take of each comparison type (four types
+    possible)
+        free_cores = minimum number of cores to leave unloaded
+    """
+    # set up job server for pp
+    job_server = pp.Server()
+
+    # determine how many cores to use
+    cpus = max(1, job_server.get_ncpus() - free_cores)
+
+    job_server.set_ncpus(cpus)
+
+
+    # set skew levels to test
+    skews = np.arange(0., 30., 3.)
+
+
+    # set parameters for models to test
+    noiselevel = 15.5
+    params = [[2., 4., 100., 100., 1., -1., 5., 5.],[3., 3., 100., 100., 1., -1., 5., 5.]]
+    system_combos = []
+    for i in range(2):
+        for j in range(2):
+            system_combos.append([params[i],params[j]])
+
+    confusion_matrices = dict()
+
+    data = dict()
+    CM = dict()
+    for s in skews: 
+        # set up variables to store elements of confusion matrix
+        # positive case: systems are different
+        # negative case: systems are the same
+        TP = 0 # [1,1]
+        FP = 0 # [1,0]
+        TN = 0 # [0,0]
+        FN = 0 # [0,1]
+
+        jobs = []
+ 
+        for i in range(samples): #trials per skew level
+            for params in system_combos:
+                jobs.append(job_server.submit(LVExperiment,(noiselevel,params[0],params[1],
+                    s),(),("eugene",)))
+        
+        # gather the data
+        data[s] = []
+        for job in jobs:
+            data[s].append(job())
+
+        # compile confusion matrix for this skew level
+        CM[s] = []
+        for entry in data[s]:
+            if entry == [1, 1]:
+                TP += 1
+            elif entry == [1, 0]:
+                FP += 1
+            elif entry == [0, 0]:
+                TN += 1
+            elif entry == [0, 1]:
+                FN += 1
+
+        CM[s] = [[TP, FP], [FN, TN]]
+                
+    return data, CM
+
+
+def LVExperimentSameKind(samples, free_cores=1):
+    """ sample = number of samples to take of each comparison type (four types
+    possible)
+        free_cores = minimum number of cores to leave unloaded
+    """
+    # set up job server for pp
+    job_server = pp.Server()
+
+    # determine how many cores to use
+    cpus = max(1, job_server.get_ncpus() - free_cores)
+
+    job_server.set_ncpus(cpus)
+
+    # set values of r1 to test (r2 determined by fixed ratio)
+    rvals = np.arange(1., 3.7, 0.3)
+
+    # set noise level to test
+    noiselevel = 5.
+
+    # initialize variables
+    confusion_matrices = dict()
+
+    data = dict()
+    CM = dict()
+    for r in rvals: 
+        params = [[r, 2. * r, 100., 100., 1., -1., 5., 5.],[2., 4., 100., 100., 1., -1., 5., 5.]]
+        # set up variables to store elements of confusion matrix
+        # positive case: systems are different
+        # negative case: systems are the same
+        TP = 0 # [1,1] (there shouldn't be any of these in this case)
+        FP = 0 # [1,0]
+        TN = 0 # [0,0]
+        FN = 0 # [0,1]
+
+        jobs = []
+ 
+        for i in range(samples): #trials per noise level
+            jobs.append(job_server.submit(LVExperiment,(noiselevel,params[0],params[1]),(),("eugene",)))
+        
+        # gather the data
+        data[r] = []
+        for job in jobs:
+            data[r].append(job())
+
+        # compile confusion matrix for this noise level
+        CM[r] = []
+        for entry in data[r]:
+            if entry == [1, 1]:
+                TP += 1
+            elif entry == [1, 0]:
+                FP += 1
+            elif entry == [0, 0]:
+                TN += 1
+            elif entry == [0, 1]:
+                FN += 1
+
+        CM[r] = [[TP, FP], [FN, TN]]
+                
+    return data, CM
+ 
+
+def LVExperimentDifferentKind(samples, free_cores=1):
+    """ sample = number of samples to take of each comparison type (four types
+    possible)
+        free_cores = minimum number of cores to leave unloaded
+    """
+    # set up job server for pp
+    job_server = pp.Server()
+
+    # determine how many cores to use
+    cpus = max(1, job_server.get_ncpus() - free_cores)
+
+    job_server.set_ncpus(cpus)
+
+    # set values of r1/r2 to test 
+    ratios = 1. / np.arange(2.2, 0.2, -0.2)
+
+    # set noise level to test
+    noiselevel = 5.
+
+    # initialize variables
+    confusion_matrices = dict()
+
+    data = dict()
+    CM = dict()
+    for r in ratios: 
+        params = [[2., 2. * r, 100., 100., 1., -1., 5., 5.],[3., 3., 100., 100., 1., -1., 5., 5.]]
+        # set up variables to store elements of confusion matrix
+        # positive case: systems are different
+        # negative case: systems are the same
+        TP = 0 # [1,1] (there shouldn't be any of these in this case)
+        FP = 0 # [1,0]
+        TN = 0 # [0,0]
+        FN = 0 # [0,1]
+
+        jobs = []
+ 
+        for i in range(samples): #trials per noise level
+            jobs.append(job_server.submit(LVExperiment,(noiselevel,params[0],params[1]),(),("eugene",)))
+        
+        # gather the data
+        data[r] = []
+        for job in jobs:
+            data[r].append(job())
+
+        # compile confusion matrix for this noise level
+        CM[r] = []
+        for entry in data[r]:
+            if entry == [1, 1]:
+                TP += 1
+            elif entry == [1, 0]:
+                FP += 1
+            elif entry == [0, 0]:
+                TN += 1
+            elif entry == [0, 1]:
+                FN += 1
+
+        CM[r] = [[TP, FP], [FN, TN]]
+                
+    return data, CM
+
 
 def LVExperiment(noise_stdev, sp1, sp2, skew=0):
     """
@@ -649,7 +928,7 @@ def LVExperiment(noise_stdev, sp1, sp2, skew=0):
 
     ### local variables
     epsilon=10**(-4)
-    resolution=[600,1]
+    resolution=[300, 2]
     ###
 
     ###
@@ -658,8 +937,10 @@ def LVExperiment(noise_stdev, sp1, sp2, skew=0):
     iact = eugene.actuators.VABVirtualTimeActuator()
 
     #target sensors & actuators
-    tsensor1 = eugene.sensors.LotkaVolterra2DSensor(1, [-10**23,10.**23], noise_stdev, False)
-    tsensor2 = eugene.sensors.LotkaVolterra2DSensor(2, [-10**23,10.**23], noise_stdev, False)
+    tsensor1 = eugene.sensors.LotkaVolterra2DSensor(1, [-10**23,10.**23],
+            noise_stdev, False, skew)
+    tsensor2 = eugene.sensors.LotkaVolterra2DSensor(2, [-10**23,10.**23],
+            noise_stdev, False, skew)
     tact1 = eugene.actuators.LotkaVolterra2DActuator(1, [-10**23.,10.**23])
     tact2 = eugene.actuators.LotkaVolterra2DActuator(2, [-10**23.,10.**23])
 
@@ -700,7 +981,7 @@ def LVExperiment(noise_stdev, sp1, sp2, skew=0):
     decision = eugene.compare.CompareModels(models[0], models[1])
 
     # determine the correct answer
-    if sp1 == sp2:
+    if sp1[2:] == sp2[2:] and sp1[1] / sp1[0] == sp2[1] / sp2[0]:
         true_answer = 0
     else :
         true_answer = 1
