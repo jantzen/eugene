@@ -4,6 +4,7 @@ import copy
 import random
 import numpy as np
 import eugene as eu
+import pdb
 
 #Parent Sensor
 class VABSensor( object ):
@@ -209,7 +210,7 @@ class LotkaVolterra2DSensor(VABSensor):
     def __init__(self, variable, dynamic_range, noise_stdev=0, proportional=False,
                  skew=0):
         if not variable in set([1, 2]):
-            raise ValueError('Inorrect variable specification. Must be string 1 or 2.')
+            raise ValueError('Inorrect variable specification. Must be 1 or 2.')
         else:
             self._variable = variable
         self._range = dynamic_range
@@ -222,20 +223,36 @@ class LotkaVolterra2DSensor(VABSensor):
             raise ValueError('No sensor range specified.')
         else:
             if self._noise_stdev == 0:
-                exec('val = sys._x' + str(self._variable))
+                if self._variable == 1:
+                    val = sys._x1
+                elif self._varibale == 2:
+                    vale = sys._x2
+                else:
+                    raise ValueError('Inorrect variable specification. Must be 1 or 2.')
 
             elif self._proportional:
-                exec('temp = sys._x' + str(self._variable))
+                if self._variable == 1:
+                    temp = sys._x1
+                elif self._variable ==2:
+                    temp = sys._x2
+                else:
+                    raise ValueError('Inorrect variable specification. Must be 1 or 2.')
+
                 if self._skew > 0:
                     noise = eu.probability.SampleSkewNorm(0, self._noise_stdev *
                             temp, self._skew)
                     val = temp + noise
                 else:
-                    exec('temp = sys._x' + str(self._variable))
                     noise = np.random.normal(0, self._noise_stdev * temp)
                     val = temp + noise
             else:
-                exec('temp = sys._x' + str(self._variable))
+                if self._variable == 1:
+                    temp = sys._x1
+                elif self._variable ==2:
+                    temp = sys._x2
+                else:
+                    raise ValueError('Inorrect variable specification. Must be 1 or 2.')
+
                 if self._skew > 0:
                     noise = eu.probability.SampleSkewNorm(0, self._noise_stdev,
                     self._skew)
@@ -248,5 +265,4 @@ class LotkaVolterra2DSensor(VABSensor):
                 return 'out of range'
             else:
                 return val
-
 

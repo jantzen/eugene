@@ -1,12 +1,11 @@
-import pdb
 import math
 import time
 import copy
 import random
 import numpy as np
 #import sensors & actuators
-from connect.sensors import *
-from connect.actuators import *
+#from connect.sensors import *
+#from connect.actuators import *
 
 #Classes:
 # VABSystemInterface
@@ -150,7 +149,7 @@ def TimeSampleData(time_var, target_vars, interface, ROI, resolution=[100,10],
         interface.set_actuator(time_var, time_low)
     
         # initialize the output list
-	data_list = [[] for i in range(len(target_vars))]
+        data_list = [[] for i in range(len(target_vars))]
 
         # start sampling
         for t in range(len(times)):

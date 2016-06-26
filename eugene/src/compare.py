@@ -117,7 +117,8 @@ def exponents(n, d):
                         break
             return out_new
     except AssertionError:
-        print "Improper input to exponents function. n and d must be positive integers."
+        print("""Improper input to exponents function. 
+        n and d must be positive integers.""")
 
 
 def npoly_val(params, exponents, x_vals):
@@ -454,7 +455,7 @@ def CompareModels(model1, model2, alpha=1.):
     # Loop over partitions, using each as a test set once
     for p in range(10):
         # FOR DEBUGGING
-        print 'Entering training phase {} of 10.'.format(p+1)
+        print('Entering training phase {} of 10.'.format(p+1))
 
         # Build training data for each predictive model (separate vs. joint)
         cols = np.shape(partition1[0])[1]
@@ -563,7 +564,7 @@ def CompareModels(model1, model2, alpha=1.):
         # sampled data)
 
         # FOR DEGUGGING
-        print 'Entering testing phase {} of 10.'.format(p+1)
+        print('Entering testing phase {} of 10.'.format(p+1))
 
         for i in range(m):
             for block in range(num_vars):
@@ -680,7 +681,11 @@ def CompareModels(model1, model2, alpha=1.):
 
 
     # FOR DEBUGGING ONLY
-    print "MSE_sep = {0}, MSE_joint = {1}, MSE_base1 sep = {2}, MSE_base1 joint = {3}, MSE_base2 sep = {4}, MSE_base2 joint = {5}, expected difference = {6}".format(MSE_sep, MSE_joint, MSE_base_error1_sep, MSE_base_error1_joint, MSE_base_error2_sep, MSE_base_error2_joint, expected_difference)
+    print("""MSE_sep = {0}, MSE_joint = {1}, MSE_base1 sep = {2}, MSE_base1 joint
+            = {3}, MSE_base2 sep = {4}, MSE_base2 joint = {5}, expected
+            difference = {6}""".format(MSE_sep, MSE_joint, MSE_base_error1_sep,
+            MSE_base_error1_joint, MSE_base_error2_sep, MSE_base_error2_joint,
+            expected_difference))
 
     # Compare and return
     # return 1 if significantly different

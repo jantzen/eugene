@@ -6,7 +6,7 @@ information for a given circuit from circuitparams. The jerk equation is
 expressed as a system of ODE's that is passed to scipy's odeint integrator."""
  
 
-import circuitparams
+from . import circuitparams
 import numpy as np
 import scipy.integrate
 
@@ -24,7 +24,7 @@ class ChaoticCircuit( object ):
         if type(circNum) == int and circNum < len(cdict):
             self._Ais = cdict[circNum][0]
         else:             
-            print "unknown equation id"
+            print("unknown equation id")
 
         if init_x == None:
             self._init_x = cdict[circNum][1]

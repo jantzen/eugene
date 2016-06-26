@@ -9,7 +9,7 @@ import scipy.stats as stats
 
 
 # import interface
-import compare
+import eugene as eu
 
 #Classes:
 # Category
