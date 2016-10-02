@@ -109,8 +109,9 @@ class PopulationSensor(VABSensor):
             elif self._proportional:
                 x = sys._x
                 if self._skew > 0:
-                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev *
-                            x, self._skew)
+                    s = self._noise_stdev * x / np.sqrt(1 - (2. * self._skew**2) /
+                            (np.pi * (1. - self._skew**2)))
+                    noise = eu.probability.SampleSkewNorm(0, s, self._skew)
                     population = x + noise
                 else:
                     x = sys._x
@@ -119,8 +120,9 @@ class PopulationSensor(VABSensor):
             else:
                 x = sys._x
                 if self._skew > 0:
-                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev,
-                    self._skew)
+                    s = self._noise_stdev / np.sqrt(1 - (2. * self._skew**2) /
+                            (np.pi * (1. - self._skew**2)))
+                    noise = eu.probability.SampleSkewNorm(0, s, self._skew)
                     population = x + noise
                 else:                    
                     population = sys._x + np.random.normal(0, self._noise_stdev)
@@ -226,7 +228,7 @@ class LotkaVolterra2DSensor(VABSensor):
                 if self._variable == 1:
                     val = sys._x1
                 elif self._varibale == 2:
-                    vale = sys._x2
+                    val = sys._x2
                 else:
                     raise ValueError('Inorrect variable specification. Must be 1 or 2.')
 
@@ -239,8 +241,9 @@ class LotkaVolterra2DSensor(VABSensor):
                     raise ValueError('Inorrect variable specification. Must be 1 or 2.')
 
                 if self._skew > 0:
-                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev *
-                            temp, self._skew)
+                    s = self._noise_stdev * x / np.sqrt(1 - (2. * self._skew**2) /
+                            (np.pi * (1. - self._skew**2)))
+                    noise = eu.probability.SampleSkewNorm(0, s, self._skew)
                     val = temp + noise
                 else:
                     noise = np.random.normal(0, self._noise_stdev * temp)
@@ -254,8 +257,9 @@ class LotkaVolterra2DSensor(VABSensor):
                     raise ValueError('Inorrect variable specification. Must be 1 or 2.')
 
                 if self._skew > 0:
-                    noise = eu.probability.SampleSkewNorm(0, self._noise_stdev,
-                    self._skew)
+                    s = self._noise_stdev / np.sqrt(1 - (2. * self._skew**2) /
+                            (np.pi * (1. - self._skew**2)))
+                    noise = eu.probability.SampleSkewNorm(0, s, self._skew)
                     val = temp + noise
                 else:                    
                     val = temp + np.random.normal(0, self._noise_stdev)
