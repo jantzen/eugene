@@ -1,2 +1,3 @@
-#here is some useless text.
-#It makes the python packager happy.
+The EUGENE project
+
+This software implements a variety of algorithms for assessing whether two or more systems belong to the same "dynamical kind."

@@ -7,3 +7,4 @@ from .src.virtual_sys import growth_sys
 from .src.virtual_sys import chaotic_circuits
 from .src.virtual_sys import LotkaVolterra2D
 from .src.auxiliary import probability
+from .src.auxiliary import csv_to_dataframe
