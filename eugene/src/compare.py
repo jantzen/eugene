@@ -16,6 +16,7 @@ import pdb
 #  surface_fit
 #  FitPolyCV
 #  BuildSymModel
+#  MergeSymModels
 #  CompareModels
 
 
@@ -121,6 +122,7 @@ def exponents(n, d):
         n and d must be positive integers.""")
 
 
+
 def npoly_val(params, exponents, x_vals):
     """ Returns the value of an n-variable polynomial at the point given by
         x_vals
@@ -137,6 +139,7 @@ def npoly_val(params, exponents, x_vals):
     except:
         raise ValueError('exponents: {}; i = {}; j = {}; xdata = {}'.format(exponents, i,
                 j, x_vals))
+
 
 
 def residuals(params, exponents, xdata, ydata):
@@ -168,24 +171,6 @@ def residuals(params, exponents, xdata, ydata):
     return resids
 
 
-#def surface_fit(xdata, ydata, order):
-#    """ Takes a set of x0, x1, ..., xn, y data in the form of n+1 np arrays  (with the
-#        indpendent variable in the first n) and fits a polynomial surface of the
-#        indicated order using least-squares.
-#    """
-#    # compute necessary number of params. For a polynomial in n variables of
-#    # degree d, there are (n+d)C(d) terms
-#    num_vars = len(xdata) 
-#    num_params = math.factorial(num_vars +
-#            order)/math.factorial(num_vars)/math.factorial(order)
-#    params_guess = np.zeros(num_params)
-#
-#    # get the exponents for each term
-#    exps = exponents(num_vars, order)
-#
-#    params = opt.leastsq(residuals, params_guess, args=(exps, xdata, ydata))
-#
-#    return params
 
 def surface_fit(xdata, ydata, order):
     """ Takes a set of x0, x1, ..., xn, y data in the form of n+1 np arrays  (with the
@@ -352,6 +337,7 @@ def FitPolyCV(passed_data, epsilon=0, ret_mse = False):
     else:
         return [best_fit_params, best_fit_order]
 
+
  
 def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
     # from the raw blocks (Sets of curves of target vs. index variables), build transformation 
@@ -392,6 +378,53 @@ def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
     return SymModel(index_var, target_vars, sys_id, sampled_data, polynomials, 
             epsilon)
 
+
+
+def MergeSymModels(models):
+    """ Provided a list of models, each with m curves, generates and returns a
+    single SymModel with m curves. The i-th cruve in the combined model combines
+    the data from the i-th curves in each of the input models. This function is
+    intended for use with stochastic, continuously valued variables, or in the
+    case in which there is a non-extremal distribution over initial conditions.
+    """
+    # If only one model is given, simply pass that model back out
+    if len(models) == 1:
+        return models[0]
+
+    # Using the attributes of the first model, initialize a new SymModel object
+    merged_model = SymModel(models[0]._index_var, models[0]._target_vars,
+            models[0]._sys_id, models[0]._sampled_data, [], models[0]._epsilon)
+
+    # Build the merged sampled_data list
+    for mod in models[1:]:
+        # First check whether all metadata matches; if not throw an error
+        cond1 = merged_model._index_var == mod._index_var
+        cond2 = merged_model._target_vars == mod._target_vars
+        cond3 = merged_model._sys_id == mod._sys_id
+        cond4 = merged_model._epsilon == mod._epsilon
+        if not(cond1 and cond2 and cond3 and cond4):
+            raise ValueError("One of the models has a different index_var, target_vars, sys_id, or value of epsilon.")
+        
+        for i, curve in enumerate(merged_model._sampled_data):
+            for j, target_var in enumerate(curve):
+                merged_model._sampled_data[i][j] = np.vstack((target_var,
+                    mod._sampled_data[i][j]))
+
+    # Construct the polynomials for the new model
+    # for each variable, fit a polynomial surface of the best order determined by 10-fold CV
+    polynomials = []
+    for curve in merged_model._sampled_data:
+        block_polys = []
+        for v in curve:
+            best_fit = FitPolyCV(v, merged_model._epsilon)
+            block_polys.append(best_fit)
+    
+            # add to data arrays to pass out in final SymModel
+            polynomials.append(block_polys)
+    merged_model._polynomials = polynomials
+
+    # Return the merged model
+    return merged_model
 
 def CompareModels(model1, model2, alpha=1.):
     """ Tests whether the models (and the systems they model) are equivalent.
