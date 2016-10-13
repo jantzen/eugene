@@ -220,6 +220,10 @@ def FitPolyCV(passed_data, epsilon=0, ret_mse = False):
     # Determine the number of independent variables
     x_vars = data.shape[1] - 1
  
+    # Make sure there's enough data
+    if data.shape[0] < 10:
+        raise ValueError("FitPolyCV needs data blocks with at least 10 samples.")
+
     np.random.shuffle(data)
     partition = np.array_split(data, 10)
 
@@ -380,7 +384,7 @@ def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
 
 
 
-def MergeSymModels(models):
+def MergeSymModels(models, average=False):
     """ Provided a list of models, each with m curves, generates and returns a
     single SymModel with m curves. The i-th cruve in the combined model combines
     the data from the i-th curves in each of the input models. This function is
@@ -405,10 +409,24 @@ def MergeSymModels(models):
         if not(cond1 and cond2 and cond3 and cond4):
             raise ValueError("One of the models has a different index_var, target_vars, sys_id, or value of epsilon.")
         
+        if average:
+            # sum the data rather than append it
+            for i, curve in enumerate(merged_model._sampled_data):
+                for j, target_var in enumerate(curve):
+                    merged_model._sampled_data[i][j] = target_var + mod._sampled_data[i][j]
+
+        else:
+            for i, curve in enumerate(merged_model._sampled_data):
+                for j, target_var in enumerate(curve):
+                    merged_model._sampled_data[i][j] = np.vstack((target_var,
+                        mod._sampled_data[i][j]))
+
+    if average:
+        # divide the summed data by the number of models to get the mean
         for i, curve in enumerate(merged_model._sampled_data):
             for j, target_var in enumerate(curve):
-                merged_model._sampled_data[i][j] = np.vstack((target_var,
-                    mod._sampled_data[i][j]))
+                merged_model._sampled_data[i][j] = (target_var /
+                float(len(models)))
 
     # Construct the polynomials for the new model
     # for each variable, fit a polynomial surface of the best order determined by 10-fold CV
@@ -421,10 +439,12 @@ def MergeSymModels(models):
     
             # add to data arrays to pass out in final SymModel
             polynomials.append(block_polys)
-    merged_model._polynomials = polynomials
+            merged_model._polynomials = polynomials
 
     # Return the merged model
     return merged_model
+
+
 
 def CompareModels(model1, model2, alpha=1.):
     """ Tests whether the models (and the systems they model) are equivalent.

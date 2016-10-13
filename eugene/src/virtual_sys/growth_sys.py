@@ -1,11 +1,18 @@
 import numpy as np
 import scipy
+import pdb
 
 class LogisticGrowthModel(object):
     """Simulates an arbitrary member of the class of logistic equations.
     """
 
-    def __init__(self, r, init_x, K, alpha, beta, gamma, init_t):
+    def __init__(self, r, init_x, K, alpha, beta, gamma, init_t,
+            stochastic=False):
+
+        # set a flag indicating whether the dynamics is stochastic or
+        # deterministic
+        self._stochastic = stochastic
+
         # set the initial population based on passed data
         if init_x > 0:
             self._x = float(init_x)
@@ -31,7 +38,13 @@ class LogisticGrowthModel(object):
 
         t = np.array([0., elapsed_time])
         x = scipy.integrate.odeint(func, self._x, t)
-        self._x = float(x[1])
+
+        if self._stochastic:
+#            pdb.set_trace()
+            self._x = float(x[1]) + (np.random.normal(0., 0.5)**2 * elapsed_time /
+                self._r / (1 + elapsed_time) * self._K)
+        else:
+            self._x = float(x[1])
 
 
     def reset(self):
