@@ -343,44 +343,46 @@ def FitPolyCV(passed_data, epsilon=0, ret_mse = False):
 
 
  
-def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
+def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0,
+        build_polys=True):
     # from the raw blocks (Sets of curves of target vs. index variables), build transformation 
     # vector function (e.g., [target1', target2', target3'] = f([target1,
     # target2, target3]))
     abscissa = data_frame._target_values[0]
     ordinates = data_frame._target_values[1:]
     
-    # for each block, fit a polynomial surface for each variable using 10-fold cross-validation
-    # to choose the order (n n-variable polynomials for each of the m-1 blocks)
-    polynomials = []
-    sampled_data = []
-    
-    for block in ordinates:
-        # extract the columns
-        [num_rows, num_cols] = block.shape
-        columns = []
-        for i in range(num_cols):
-            columns.append(block[:,i].reshape(num_rows,1))
+    if build_polys:
+        # for each block, fit a polynomial surface for each variable using 10-fold cross-validation
+        # to choose the order (n n-variable polynomials for each of the m-1 blocks)
+        polynomials = []
+        sampled_data = []
+        
+        for block in ordinates:
+            # extract the columns
+            [num_rows, num_cols] = block.shape
+            columns = []
+            for i in range(num_cols):
+                columns.append(block[:,i].reshape(num_rows,1))
 
-        # format the data
-        data = []
-        for col in columns:
-            data.append(np.hstack((abscissa, col)))
+            # format the data
+            data = []
+            for col in columns:
+                data.append(np.hstack((abscissa, col)))
 
-        # for each variable, fit a polynomial surface of the best order determined by 10-fold CV
-        block_polys = []
-        for d in data:
-            best_fit = FitPolyCV(d, epsilon)
-            block_polys.append(best_fit)
+            # for each variable, fit a polynomial surface of the best order determined by 10-fold CV
+            block_polys = []
+            for d in data:
+                best_fit = FitPolyCV(d, epsilon)
+                block_polys.append(best_fit)
 
 
-        # add to data arrays to pass out in final SymModel
-        polynomials.append(block_polys)
-        sampled_data.append(data)
-    
-    # build and output a SymModel object
-    return SymModel(index_var, target_vars, sys_id, sampled_data, polynomials, 
-            epsilon)
+            # add to data arrays to pass out in final SymModel
+            polynomials.append(block_polys)
+            sampled_data.append(data)
+        
+        # build and output a SymModel object
+        return SymModel(index_var, target_vars, sys_id, sampled_data, polynomials, 
+                epsilon)
 
 
 
