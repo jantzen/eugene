@@ -343,7 +343,8 @@ def FitPolyCV(passed_data, epsilon=0, ret_mse = False):
 
 
  
-def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
+def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0,
+        build_polys=True):
     # from the raw blocks (Sets of curves of target vs. index variables), build transformation 
     # vector function (e.g., [target1', target2', target3'] = f([target1,
     # target2, target3]))
@@ -369,9 +370,10 @@ def BuildSymModel(data_frame, index_var, target_vars, sys_id, epsilon=0):
 
         # for each variable, fit a polynomial surface of the best order determined by 10-fold CV
         block_polys = []
-        for d in data:
-            best_fit = FitPolyCV(d, epsilon)
-            block_polys.append(best_fit)
+        if build_polys:
+            for d in data:
+                best_fit = FitPolyCV(d, epsilon)
+                block_polys.append(best_fit)
 
 
         # add to data arrays to pass out in final SymModel
