@@ -269,4 +269,57 @@ class LotkaVolterra2DSensor(VABSensor):
                 return 'out of range'
             else:
                 return val
+                
+
+class LotkaVolterraNDSensor(VABSensor):
+    def __init__(self, variable, dynamic_range, noise_stdev=0, proportional=False,
+                 skew=0):
+
+        self._variable = variable
+        self._range = dynamic_range
+        self._noise_stdev = noise_stdev
+        self._proportional = proportional
+        self._skew = skew
+
+    def read(self, sys):
+        if len(self._range) != 2:
+            raise ValueError('No sensor range specified.')
+        else:
+            if self._noise_stdev == 0:
+                val = 0
+                exec('val = sys._x' + str(self._variable))
+
+            elif self._proportional:
+                temp = 0
+                exec('temp = sys._x' + str(self._variable))
+
+                if self._skew > 0:
+                    s = self._noise_stdev * x / np.sqrt(1 - (2. * self._skew**2) /
+                            (np.pi * (1. - self._skew**2)))
+                    noise = eu.probability.SampleSkewNorm(0, s, self._skew)
+                    val = temp + noise
+                else:
+                    noise = np.random.normal(0, self._noise_stdev * temp)
+                    val = temp + noise
+            else:
+                if self._variable == 1:
+                    temp = sys._x1
+                elif self._variable ==2:
+                    temp = sys._x2
+                elif self._variable ==3:
+                    temp = sys._x3
+
+                if self._skew > 0:
+                    s = self._noise_stdev / np.sqrt(1 - (2. * self._skew**2) /
+                            (np.pi * (1. - self._skew**2)))
+                    noise = eu.probability.SampleSkewNorm(0, s, self._skew)
+                    val = temp + noise
+                else:                    
+                    val = temp + np.random.normal(0, self._noise_stdev)
+                                                          
+                                                           
+            if val > self._range[1] or val < self._range[0]:
+                return 'out of range'
+            else:
+                return val
 
