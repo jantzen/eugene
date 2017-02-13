@@ -40,9 +40,9 @@ class SymModel( object ):
         sys_id: the id of the system from which the stored measurements were
         taken
 
-        sampled_data: an (m-1)-element list of p x (n+1) arrays, where n is the
-        number of target variables and p is the number of samples (length of
-        array of index variable values)
+        sampled_data: an (m-1)-element list of n-element lists of arrays each p x (n+1), 
+        where n is the number of target variables and p is the number of samples 
+        (length of array of index variable values)
 
         polynomials: an (m-1)-element list of n-element arrays, where m is the
         number of initial conditions sampled and n is the number

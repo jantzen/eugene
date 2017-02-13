@@ -287,11 +287,14 @@ class LotkaVolterraNDSensor(VABSensor):
         else:
             if self._noise_stdev == 0:
                 val = 0
-                exec('val = sys._x' + str(self._variable))
+#                exec('val = sys._x' + str(self._variable))
+                val = sys._x[variable-1]
 
             elif self._proportional:
                 temp = 0
-                exec('temp = sys._x' + str(self._variable))
+#                exec('temp = sys._x' + str(self._variable))
+                temp = sys._x[variable-1]
+
 
                 if self._skew > 0:
                     s = self._noise_stdev * x / np.sqrt(1 - (2. * self._skew**2) /
@@ -302,12 +305,13 @@ class LotkaVolterraNDSensor(VABSensor):
                     noise = np.random.normal(0, self._noise_stdev * temp)
                     val = temp + noise
             else:
-                if self._variable == 1:
-                    temp = sys._x1
-                elif self._variable ==2:
-                    temp = sys._x2
-                elif self._variable ==3:
-                    temp = sys._x3
+#                if self._variable == 1:
+#                    temp = sys._x1
+#                elif self._variable ==2:
+#                    temp = sys._x2
+#                elif self._variable ==3:
+#                    temp = sys._x3
+                temp = sys._x[self._variable-1]
 
                 if self._skew > 0:
                     s = self._noise_stdev / np.sqrt(1 - (2. * self._skew**2) /
