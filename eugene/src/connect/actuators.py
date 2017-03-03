@@ -29,9 +29,6 @@ class VABVirtualTimeActuator(VABSensor):
 class VABConcentrationActuator(VABSensor):
     def set(self, sys, value):
         sys._x = value
-#        sys._time = time.time()
-
-#       what if "system = None"
         sys._time = sys._init_t
 
 

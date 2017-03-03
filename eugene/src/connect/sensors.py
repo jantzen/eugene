@@ -36,20 +36,6 @@ class VABConcentrationSensor(VABSensor):
     def read(self, sys):
         if len(self._range) != 2:
             raise ValueError('No sensor range specified.')
-#        else:
-#            if self._noise_stdev == 0:
-#                concentration = sys.update_x()
-#            elif self._proportional:
-#                x = sys.update_x()
-#                noise = np.random.normal(0, self._noise_stdev * x)
-#                concentration = x + noise
-#            else:
-#                concentration = sys.update_x() + np.random.normal(0,
-#                        self._noise_stdev)
-#            if concentration > self._range[1] or concentration < self._range[0]:
-#                return 'outofrange'
-#            else:
-#                return concentration
         else:
             if self._noise_stdev == 0:
                 concentration = sys._x

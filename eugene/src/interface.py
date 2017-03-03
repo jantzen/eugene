@@ -3,9 +3,6 @@ import time
 import copy
 import random
 import numpy as np
-#import sensors & actuators
-#from connect.sensors import *
-#from connect.actuators import *
 
 #Classes:
 # VABSystemInterface
@@ -58,6 +55,9 @@ class VABSystemInterface( object ):
         
     def reset(self):
         self._system.reset()
+
+
+
 
 class DataFrame( object ):
     """ DataFrame objects hold single samples of data suitable for 
@@ -169,5 +169,3 @@ def TimeSampleData(time_var, target_vars, interface, ROI, resolution=[100,10],
 
     out = DataFrame(time_var, times, target_vars, samples)
     return out
-
-

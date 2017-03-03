@@ -3,7 +3,6 @@ import scipy.stats as stats
 import scipy.optimize as opt
 import math
 import copy
-import pdb
 
 #Classes:
 # SymModel

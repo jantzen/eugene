@@ -1,9 +1,9 @@
 # chaotic_circuits.py
 
+""" Simulates an electrical circuit with chaotic features, pulling the 
+    information for a given circuit from circuitparams. The jerk equation is 
+    expressed as a system of ODE's that is passed to scipy's odeint integrator.
 """
-Simulates an electrical circuit with chaotic features, pulling the 
-information for a given circuit from circuitparams. The jerk equation is 
-expressed as a system of ODE's that is passed to scipy's odeint integrator."""
  
 
 from . import circuitparams

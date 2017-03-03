@@ -1,6 +1,5 @@
 import numpy as np
 import scipy
-import pdb
 
 class LogisticGrowthModel(object):
     """Simulates an arbitrary member of the class of logistic equations.
@@ -40,7 +39,6 @@ class LogisticGrowthModel(object):
         x = scipy.integrate.odeint(func, self._x, t)
 
         if self._stochastic:
-#            pdb.set_trace()
             self._x = float(x[1]) + (np.random.normal(0., 0.5)**2 * elapsed_time /
                 self._r / (1 + elapsed_time) * self._K)
         else:
