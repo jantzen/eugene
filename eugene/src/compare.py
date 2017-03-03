@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.stats as stats
 import scipy.optimize as opt
-#import warnings
 import math
 import copy
 import pdb
@@ -77,15 +76,6 @@ class nPolynomial( object ):
 
         self._exponents = exponents
          
-
-#    def Eval(self, x, params=None):
-#        # Evaluate the polynomial given params at the point x
-#        if params == None:
-#            params = self._params
-
-           
-
-
 
 
 ###################################################################
@@ -596,8 +586,6 @@ def CompareModels(model1, model2, alpha=1.):
                 block_base_error2_joint = training_set_base_error2_joint[:,block_start:(block_start 
                     + num_vars + 1)]
 
-                #DEBUGGING
-#                print "next 6 calls to FitPolyCV are for the base error partitions"
 
                 polynomials_base_error1a[i].append(FitPolyCV(block_base_error1a,
                     epsilon))
@@ -679,17 +667,11 @@ def CompareModels(model1, model2, alpha=1.):
                         x_base_error1a, y_base_error1a)
                 SE_base_error1_sep.extend(pow(np.array(resids_base_error1a), 2))
 
-#                print "Max value of SE_base_error1_sep: {}".format(max(
-#                    SE_base_error1_sep))
-
 
                 resids_base_error1b = residuals(polynomials_base_error1b[i][block][0],
                         exponents(num_vars, polynomials_base_error1b[i][block][1]),
                         x_base_error1b, y_base_error1b)
                 SE_base_error1_sep.extend(pow(np.array(resids_base_error1b), 2))
-
-#                print "Max value of SE_base_error1_sep: {}".format(max(
-#                    SE_base_error1_sep))
 
 
                 resids_base_error1_joint = residuals(polynomials_base_error1_joint[i][block][0],
