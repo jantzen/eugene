@@ -53,10 +53,6 @@ setup(name='eugene',
 
       install_requires=['numpy', 'scipy'],
 
-      packages=['eugene', 'eugene.src', 
-                'eugene.src.connect', 
-                'eugene.src.virtual_sys',
-                'eugene.tests',
-                'eugene.scripts_demos']
+      packages=find_packages(),
 )
 

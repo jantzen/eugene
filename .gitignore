@@ -27,3 +27,7 @@ outputs/
 debug.ps
 
 nohup*
+
+build/
+
+dist/

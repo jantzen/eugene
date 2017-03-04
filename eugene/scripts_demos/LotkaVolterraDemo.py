@@ -55,6 +55,7 @@ def LotkaVolterraDemo(noise_stdev=2., epsilon=10**(-3), resolution=[300,2], alph
         current_axes = ax[sys+3]
         current_axes.plot(t, x1, '.')
         current_axes.set_xlabel('time')
+    f.show()
 
     # build models of the data
     models = []
