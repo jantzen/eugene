@@ -46,7 +46,7 @@ setup(name='eugene',
           'Programming Language :: Python :: 3.5',
                    ],
 
-      keywords='discovery kinds dynamical system-identification natural-kinds'
+      keywords='discovery kinds dynamical system-identification natural-kinds',
 
       #specifying package as 'eugene' instead of root ('') installs
       #the package as a folder, rather than dumping the contents of that folder
