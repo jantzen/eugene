@@ -1,6 +1,6 @@
 # LotkaVolterraND.py
 
-""" Can simulate a Lorenz system (in terms of Lorenz's X, Y, and Z variables).
+""" Can simulate a n-species Lotka-Volterra system.
 """
 
 import numpy as np
@@ -43,9 +43,6 @@ class LotkaVolterraND( object ):
         
 
     def update_x(self, elapsed_time):
-        #deriv = lambda X, t: np.array([self._r1 * X[0] * (1 - (X[0] +
-        #    self._alpha1 * X[1]) / self._k1), self._r2 * X[1] * (1 - (X[1] +
-        #    self._alpha2 * X[0]) / self._k2)])
 
         t = np.array([0., elapsed_time])
         out = scipy.integrate.odeint(self.deriv, self._x, t)
