@@ -1,6 +1,6 @@
 # LotkaVolterraND.py
 
-""" Can simulate a n-species Lotka-Volterra system.
+""" Can simulate a Lorenz system (in terms of Lorenz's X, Y, and Z variables).
 """
 
 import numpy as np
@@ -12,14 +12,12 @@ class LotkaVolterraND( object ):
         
     """
 
-    def __init__(self, r, k, alpha, init_x, init_t=0):
+    def __init__(self, r, alpha, init_x, init_t=0):
         """ Initializes a competitive Lotka-Volterra model with n species
         
             Keyword arguments:
             r -- an array of species growth rates, where r[i] is the growth
                 rate of species i.
-            k -- an array of species carrying capacities, where k[i] is the 
-                capacity of species i.
             a -- the interaction matrix; a matrix of inter-species interaction 
                 terms, where a[i,j] is the effect of species j on the
                 population of species i.
@@ -32,7 +30,6 @@ class LotkaVolterraND( object ):
         
         # set attributes
         self._r = r
-        self._k = k
         self._alpha = alpha
 
         self._init_x = init_x
@@ -43,6 +40,9 @@ class LotkaVolterraND( object ):
         
 
     def update_x(self, elapsed_time):
+        #deriv = lambda X, t: np.array([self._r1 * X[0] * (1 - (X[0] +
+        #    self._alpha1 * X[1]) / self._k1), self._r2 * X[1] * (1 - (X[1] +
+        #    self._alpha2 * X[0]) / self._k2)])
 
         t = np.array([0., elapsed_time])
         out = scipy.integrate.odeint(self.deriv, self._x, t)
@@ -54,8 +54,7 @@ class LotkaVolterraND( object ):
         
         for i in range(len(X)):
             
-            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i]*X) / 
-                self._k[i]))
+            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i]*X)))
             
         return terms
         

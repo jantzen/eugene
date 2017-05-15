@@ -16,15 +16,13 @@ class LotkaVolterraSND( object ):
         equations.        
     """
 
-    def __init__(self, r, k, alpha, sigma, init_x, init_t=0):
+    def __init__(self, r, alpha, sigma, init_x, init_t=0):
         """ Initializes a stochastic competitive Lotka-Volterra model with n 
             species
         
             Keyword arguments:
             r -- an array of species growth rates, where r[i] is the growth
                 rate of species i.
-            k -- an array of species carrying capacities, where k[i] is the
-                capacity of species i.
             alpha -- the interaction matrix; a matrix of inter-species
                 interaction terms, where a[i,j] is the effect of species j on
                 the population of species i.
@@ -39,7 +37,6 @@ class LotkaVolterraSND( object ):
         
         # set attributes
         self._r = r
-        self._k = k
         self._alpha = alpha
 
         self._init_x = init_x
@@ -47,26 +44,27 @@ class LotkaVolterraSND( object ):
 
         self._x = init_x
         self._time = float(init_t)
-        self._deltaT
+        self._delta_t = 1
         
         self._sigma = sigma
         
 
     def update_x(self, elapsed_time):
 
-        t = np.array([0., elapsed_time])
-        self._deltaT = elapsed_time
+        #t = np.array([0., elapsed_time])
+        t = np.arange(0, elapsed_time) 
+        self._delta_t = elapsed_time
+        self._noise = np.random.rand(np.size(self._r), elapsed_time)
         out = scipy.integrate.odeint(self.deriv, self._x, t)
-        self._x = out[1]
+        self._x = out[-1]
         
 
     def deriv(self, X, t):
         terms = np.zeros(len(X))
         
         for i in range(len(X)):
-            noise = random.gauss(0, 1)
-            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] * X) / 
-                self._k[i]) ) + (self._sigma[i] * X[i] * noise / (2 * np.sqrt(self._deltaT) ) ) + (self._sigma**2 / 2) * X[i] * (noise**2 - 1)
-            
+            #noise = random.gauss(0, 1)
+            noise = self._noise
+            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] * X)) ) + (self._sigma[i] * X[i] * noise[i][t] / (2 * np.sqrt(self._delta_t) ) ) + (self._sigma[i]**2 / 2) * X[i] * (noise[i][t]**2 - 1)
         return terms
         
