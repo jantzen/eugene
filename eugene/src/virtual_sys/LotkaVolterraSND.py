@@ -51,10 +51,10 @@ class LotkaVolterraSND( object ):
 
     def update_x(self, elapsed_time):
 
-        #t = np.array([0., elapsed_time])
-        t = np.arange(0, elapsed_time) 
+        t = np.array([0., elapsed_time])
+        #t = np.arange(0, elapsed_time) 
         self._delta_t = elapsed_time
-        self._noise = np.random.rand(np.size(self._r), elapsed_time)
+        #self._noise = np.random.rand(np.size(self._r), elapsed_time)
         out = scipy.integrate.odeint(self.deriv, self._x, t)
         self._x = out[-1]
         
@@ -63,8 +63,7 @@ class LotkaVolterraSND( object ):
         terms = np.zeros(len(X))
         
         for i in range(len(X)):
-            #noise = random.gauss(0, 1)
-            noise = self._noise
-            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] * X)) ) + (self._sigma[i] * X[i] * noise[i][t] / (2 * np.sqrt(self._delta_t) ) ) + (self._sigma[i]**2 / 2) * X[i] * (noise[i][t]**2 - 1)
+            noise = np.random.normal()
+            #noise = self._noise
+            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] * X)) ) + (self._sigma[i] * X[i] * noise / (2 * np.sqrt(self._delta_t) ) ) + (self._sigma[i]**2 / 2) * X[i] * (noise**2 - 1)
         return terms
-        

@@ -10,7 +10,7 @@ import multiprocessing
 
 
 def simpleSim(r, alpha, init_x, iterations, delta_t=1):
-    """ Simulates a stochastic competitive Lotka-Volterra model with n 
+    """ Simulates a competitive Lotka-Volterra model with n 
             species
         
             Keyword arguments:
@@ -55,9 +55,49 @@ def speciesAlive(populations, threshold=0.01):
     
     return sum(i > threshold for i in populations)
         
+        
+def simCompare(params1, params2, max_time, num_times, overlay):
+    """ Compares two systems and returns two arrays of data that cover the same
+            range.
+            
+            Keyword arguments:
+            params1 -- an array of species growth rates "r", and interaction
+                matrices "alpha"; where r[i] is the growth rate of species i,
+                and alpha[i,j] is the effect of species j on the population of 
+                species i. Item params1[0] shall be the first simulation's
+                array of growth rates, and params1[1] shall be the first
+                simulation's interaction matrix.
+            params2 -- an array of species growth rates "r", and interaction
+                matrices "alpha"; where r[i] is the growth rate of species i,
+                and alpha[i,j] is the effect of species j on the population of 
+                species i. Item params2[0] shall be the second simulation's
+                array of growth rates, and params2[1] shall be the second
+                simulation's interaction matrix.
+            max_time -- the highest time value to sample the system at.
+            num_times -- the number of times to sample the system between t=0
+                and t=max_time.
+            overlay -- a function that takes an array of data and returns an
+                a new data array. This function is overlaid on the data.
+                
+            Returns:
+            2d array -- two arrays of data from the systems that cover the same
+                range.
+    """
+    
+    lv1 = LotkaVolterraND(params1[0], params1[1], 0)
+    lv2 = LotkaVolterraND(params2[0], params2[0], 0)
+    times1 = np.random.uniform(0, max_time, num_times)
+    times2 = np.random.uniform(0, max_time, num_times)
+    xs1 = lv1.check_xs(times1)
+    xs2 = lv2.check_xs(times2)
+    f1 = overlay(xs1)
+    f2 = overlay(xs2)
+    data = (f1, f2)
+    data = rangeCover(data)
+    return data
 
 def randInitPopsSim(r, alpha, iterations, delta_t=1):
-    """ Simulates a stochastic competitive Lotka-Volterra model with n 
+    """ Simulates a competitive Lotka-Volterra model with n 
             species with initial populations selected from a uniform random 
             distribution.
         
@@ -82,7 +122,7 @@ def randInitPopsSim(r, alpha, iterations, delta_t=1):
     return simpleSim(r, alpha, init_x, iterations, delta_t=1)
 
 def runByArray(param_arr, iterations):
-    """ Simulates many stochastic competitive Lotka-Volterra models of n 
+    """ Simulates many competitive Lotka-Volterra models of n 
             species with initial populations selected from a uniform random 
             distribution.
         
@@ -116,7 +156,7 @@ def runByArray(param_arr, iterations):
     
 
 def resultsByPoint(param_arr, iterations, per_point):
-    """ Simulates many stochastic competitive Lotka-Volterra models of n 
+    """ Simulates many competitive Lotka-Volterra models of n 
             species with initial populations selected from a uniform random 
             distribution. This will simulate each set of parameters per_point
             number of times, selecting random initial conditions for the system
@@ -151,3 +191,52 @@ def resultsByPoint(param_arr, iterations, per_point):
         x_arr[:, i] = runByArray(param_arr, iterations)
         
     return x_arr
+    
+
+def rangeCover(data):
+    """ Keyword arguments:
+            data -- an array of 2-tuples of pairs of arrays, i.e. data[0] holds
+                the records for f and f'. f and f' have the same length. E.g.
+                array([[[ 0,  2,  8,  6,  4],
+                    [99, 98, 97, 96, 95]],
+
+                   [[ 1,  4,  2, 16, 32],
+                    [89, 88, 87, 86, 85]]])
+    """
+
+    frames = []
+    keys = []
+    highestLow = min(data[0][0])
+    lowestHigh = max(data[0][0])
+    for tup in data:
+        keys.append(tup[0])
+        tupDf = pd.DataFrame(data=np.array(tup))
+        frames.append(tupDf.sort_values([0, 1], 1))
+
+        if min(tup[0]) > highestLow:
+            highestLow = min(tup[0])
+            
+        if max(tup[0]) < lowestHigh:
+            lowestHigh = max(tup[0])
+            
+    
+    # then find intersection of arrays/dicts.
+    #commonRange = reduce(np.intersect1d, (keys))
+    
+    # create tuples of selected range from original data
+    output = []
+    for frame in frames:
+        mat = frame.as_matrix()
+        keys = []
+        values = []
+        for i in range(len(mat[0])):
+            if (mat[0][i] <= lowestHigh) and (mat[0][i] >= highestLow):
+            #if mat[0][i] in commonRange:
+                keys.append(mat[0][i])
+                values.append(mat[1][i])
+                
+        output.append((keys, values))
+        
+    print(lowestHigh)
+    print(highestLow)
+    return output

@@ -58,3 +58,14 @@ class LotkaVolterraND( object ):
             
         return terms
         
+    
+    def check_xs(self, times):
+        t_n = 0
+        xs = np.zeroes(len(times))
+        for i in range(len(times)):
+            t_n = times[i] + t_n
+            self.update_x(t_n)
+            xs[i] = self._x
+        
+        return xs
+        
