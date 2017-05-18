@@ -1,8 +1,5 @@
 # LotkaVolterraND.py
 
-""" Can simulate a Lorenz system (in terms of Lorenz's X, Y, and Z variables).
-"""
-
 import numpy as np
 import scipy.integrate
 
@@ -61,11 +58,12 @@ class LotkaVolterraND( object ):
     
     def check_xs(self, times):
         t_n = 0
-        xs = np.zeroes(len(times))
+        xs = self._x.reshape(1, len(self._x))
         for i in range(len(times)):
-            t_n = times[i] + t_n
-            self.update_x(t_n)
-            xs[i] = self._x
+            interval = times[i] - t_n
+            t_n = times[i]
+            self.update_x(interval)
+            xs = np.vstack((xs, self._x.reshape(1, len(self._x))))
         
         return xs
         

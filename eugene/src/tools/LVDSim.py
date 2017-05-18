@@ -2,11 +2,54 @@
 
 """ A suite of tools for running LotkaVolterraSND simulations."""
 
-from LotkaVolterraND import LotkaVolterraND
+#from LotkaVolterraND import LotkaVolterraND
+from eugene.src.virtual_sys.LotkaVolterraND import LotkaVolterraND
+from eugene.src.auxiliary.probability import *
 import random
 import numpy as np
 from joblib import Parallel, delayed
 import multiprocessing
+import pandas as pd
+from sklearn.neighbors import KernelDensity
+from scipy.integrate import quad
+
+# Classes
+##############################################################################
+class Conditional_Density( object ):
+    def __init__(self, kde, x_range=[-10,10]):
+	self._kde = kde
+	self._xrange = x_range
+
+    def density(self, y, x):
+	""" Computes 1-D conditional distribution P(y | X=x). X is presumed 
+            to refer to the untransformed value, and y to the transformed value 
+            of a target variable.
+        """
+
+        if type(y) == np.ndarray:
+	    y = y.reshape((len(y),1))
+	elif type(y) == list:
+	    y = np.array(y)
+	    y = y.reshape((len(y),1))
+	else:
+	    y = np.array([y])
+	    y = y.reshape((len(y),1))
+	x = x * np.ones(y.shape)
+	sample = np.hstack((x, y))
+
+	p_xy = np.exp(self._kde.score_samples(sample))
+
+	# compute unconditional probability of X = x
+	func = lambda z: np.exp(self._kde.score_samples(np.array([x, z])))
+	temp = quad(func, self._xrange[0], self._xrange[1])
+	p_x = temp[0]
+
+	return (p_xy / p_x)
+	
+
+
+# Functions
+##############################################################################
 
 
 def simpleSim(r, alpha, init_x, iterations, delta_t=1):
@@ -56,23 +99,25 @@ def speciesAlive(populations, threshold=0.01):
     return sum(i > threshold for i in populations)
         
         
-def simCompare(params1, params2, max_time, num_times, overlay):
-    """ Compares two systems and returns two arrays of data that cover the same
-            range.
+def simData(params1, params2, max_time, num_times, overlay):
+    """ Generates data for a list of parameters corresponding to systems and 
+    returns a list of arrays of data that cover the same range.
             
             Keyword arguments:
             params1 -- an array of species growth rates "r", and interaction
                 matrices "alpha"; where r[i] is the growth rate of species i,
                 and alpha[i,j] is the effect of species j on the population of 
                 species i. Item params1[0] shall be the first simulation's
-                array of growth rates, and params1[1] shall be the first
-                simulation's interaction matrix.
+                array of growth rates, params1[1] shall be the first
+                simulation's interaction matrix, and params1[2] shall be the
+                first simulation's initial populations.
             params2 -- an array of species growth rates "r", and interaction
                 matrices "alpha"; where r[i] is the growth rate of species i,
                 and alpha[i,j] is the effect of species j on the population of 
                 species i. Item params2[0] shall be the second simulation's
-                array of growth rates, and params2[1] shall be the second
-                simulation's interaction matrix.
+                array of growth rates, params2[1] shall be the second
+                simulation's interaction matrix, and params2[2] shall be the
+                first populations's initial popoulations.
             max_time -- the highest time value to sample the system at.
             num_times -- the number of times to sample the system between t=0
                 and t=max_time.
@@ -84,16 +129,26 @@ def simCompare(params1, params2, max_time, num_times, overlay):
                 range.
     """
     
-    lv1 = LotkaVolterraND(params1[0], params1[1], 0)
-    lv2 = LotkaVolterraND(params2[0], params2[0], 0)
-    times1 = np.random.uniform(0, max_time, num_times)
-    times2 = np.random.uniform(0, max_time, num_times)
-    xs1 = lv1.check_xs(times1)
-    xs2 = lv2.check_xs(times2)
+    lv1 = LotkaVolterraND(params1[0], params1[1], params1[2], 0)
+    lv1_trans = LotkaVolterraND(params1[0], params1[1], params1[3], 0)
+    lv2 = LotkaVolterraND(params2[0], params2[1], params2[2], 0)
+    lv2_trans = LotkaVolterraND(params2[0], params2[1], params2[3], 0)
+
+    times1 = [np.sort(np.random.uniform(0, max_time, num_times)), np.sort(np.random.uniform(0,
+        max_time, num_times))]
+    times2 = [np.sort(np.random.uniform(0, max_time, num_times)), np.sort(np.random.uniform(0,
+        max_time, num_times))]
+
+    xs1 = lv1.check_xs(times1[0])
+    xs2 = lv2.check_xs(times2[0])
+    xs1_trans = lv1_trans.check_xs(times1[1])
+    xs2_trans = lv2_trans.check_xs(times2[1])
     f1 = overlay(xs1)
+    f1_trans = overlay(xs1_trans)
     f2 = overlay(xs2)
-    data = (f1, f2)
-    data = rangeCover(data)
+    f2_trans = overlay(xs2_trans)
+    raw_data = np.array([[f1, f1_trans], [f2, f2_trans]])
+    data = rangeCover(raw_data)
     return data
 
 def randInitPopsSim(r, alpha, iterations, delta_t=1):
@@ -240,3 +295,80 @@ def rangeCover(data):
     print(lowestHigh)
     print(highestLow)
     return output
+
+
+def downSample(data):
+    """ data is presumed to have the form of the output of simCompare and
+    rangeCover.
+    """
+
+    # find the length of the shortest tuple
+    lengths = []
+    for tup in data:
+        lengths.append(len(tup[0]))
+
+    cut = min(lengths)
+
+    cut_data = []
+
+    for tup in data:
+        cut_tup = []
+        for segment in tup:
+            cut_segment = np.random.choice(segment, cut)
+            cut_tup.append(cut_segment)
+        cut_data.append(cut_tup)
+
+    return cut_data
+
+
+def tuplesToBlocks(data):
+    """ Converts a list of 2-member lists of data to a list of 2-d numpy arrays
+    of data.
+    """
+
+    out = []
+    for tup in data:
+        col1 = np.array(tup[0])[:,np.newaxis]
+        col2 = np.array(tup[1])[:,np.newaxis]
+        out.append(np.hstack((col1,col2)))
+
+    return out
+
+def blocksToDensities(data):
+    """ For a list of 2-D arrays of data, uses kernel density esitmation to
+    estimate joint probability densities, and outpus a list of trained sklearn KernelDensity
+    objects.
+    """
+    densities = []
+    for block in data:
+        kde = KernelDensity()
+        kde.fit(block)
+        densities.append(kde)
+
+    return densities
+
+
+def jointToConditional(joint_densities, x_range=[-10,10]):
+
+    out = []
+    for joint in joint_densities:
+        c = Conditional_Density(joint, x_range)
+        out.append(c.density)
+
+    return out
+
+
+def distanceH(densities, x_range=[-10,10]):
+    """ Returns a distance matrx.
+    """
+    s = len(densities)
+    dmat = np.zeros((s,s))
+
+    for i in range(s):
+        for j in range(i+1, s):
+            func_i = lambda y: densities[i](y, 0.5)
+            func_j = lambda y: densities[j](y, 0.5)
+            dmat[i,j] = HellingerDistance(func_i, func_j, x_range)
+            dmat[j,i] = dmat[i,j]
+    
+    return dmat
