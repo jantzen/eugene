@@ -1,4 +1,4 @@
-#LVSim.py
+#LVDSim.py
 
 """ A suite of tools for running LotkaVolterraSND simulations."""
 
@@ -40,7 +40,8 @@ class Conditional_Density( object ):
 	p_xy = np.exp(self._kde.score_samples(sample))
 
 	# compute unconditional probability of X = x
-	func = lambda z: np.exp(self._kde.score_samples(np.array([x, z])))
+	func = lambda z: np.exp(self._kde.score_samples(np.array([x,
+            z]).reshape(1,-1)))
 	temp = quad(func, self._xrange[0], self._xrange[1])
 	p_x = temp[0]
 
@@ -99,7 +100,7 @@ def speciesAlive(populations, threshold=0.01):
     return sum(i > threshold for i in populations)
         
         
-def simData(params1, params2, max_time, num_times, overlay):
+def simData(params, max_time, num_times, overlay):
     """ Generates data for a list of parameters corresponding to systems and 
     returns a list of arrays of data that cover the same range.
             
@@ -129,27 +130,38 @@ def simData(params1, params2, max_time, num_times, overlay):
                 range.
     """
     
-    lv1 = LotkaVolterraND(params1[0], params1[1], params1[2], 0)
-    lv1_trans = LotkaVolterraND(params1[0], params1[1], params1[3], 0)
-    lv2 = LotkaVolterraND(params2[0], params2[1], params2[2], 0)
-    lv2_trans = LotkaVolterraND(params2[0], params2[1], params2[3], 0)
+    lv = []
+    lv_trans = []
+    for param_set in params:
+        lv.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], 0))
+        lv_trans.append(LotkaVolterraND(param_set[0], param_set[1], param_set[3], 0))
 
-    times1 = [np.sort(np.random.uniform(0, max_time, num_times)), np.sort(np.random.uniform(0,
-        max_time, num_times))]
-    times2 = [np.sort(np.random.uniform(0, max_time, num_times)), np.sort(np.random.uniform(0,
-        max_time, num_times))]
+    times = []
+    times_trans = []
+    for i in range(len(lv)):
+        times.append(np.sort(np.random.uniform(0, max_time, num_times)))
+    for i in range(len(lv_trans)):
+        times_trans.append(np.sort(np.random.uniform(0, max_time, num_times)))
 
-    xs1 = lv1.check_xs(times1[0])
-    xs2 = lv2.check_xs(times2[0])
-    xs1_trans = lv1_trans.check_xs(times1[1])
-    xs2_trans = lv2_trans.check_xs(times2[1])
-    f1 = overlay(xs1)
-    f1_trans = overlay(xs1_trans)
-    f2 = overlay(xs2)
-    f2_trans = overlay(xs2_trans)
-    raw_data = np.array([[f1, f1_trans], [f2, f2_trans]])
+    xs = []
+    xs_trans = []
+    for i, sys in enumerate(lv):
+        xs.append(sys.check_xs(times[i]))
+    for i, sys in enumerate(lv_trans):
+        xs_trans.append(sys.check_xs(times[i]))
+   
+    raw_data = []
+    for i in range(len(lv)):
+        f = overlay(xs[i])
+        f_trans = overlay(xs_trans[i])
+        raw_data.append([f, f_trans])
+
+    raw_data = np.array(raw_data)
+
     data = rangeCover(raw_data)
+
     return data
+
 
 def randInitPopsSim(r, alpha, iterations, delta_t=1):
     """ Simulates a competitive Lotka-Volterra model with n 
@@ -358,6 +370,20 @@ def jointToConditional(joint_densities, x_range=[-10,10]):
     return out
 
 
+def meanHellinger(func1, func2, x_range):
+    def integrand(x):
+        f1 = lambda y: func1(y, x)
+        f2 = lambda y: func2(y, x)
+        
+        return HellingerDistance(f1, f2, x_range)
+
+    out = quad(integrand, x_range[0], x_range[1])     
+
+    return out[0] / (float(x_range[1]) -
+            float(x_range[0]))
+
+
+
 def distanceH(densities, x_range=[-10,10]):
     """ Returns a distance matrx.
     """
@@ -366,9 +392,11 @@ def distanceH(densities, x_range=[-10,10]):
 
     for i in range(s):
         for j in range(i+1, s):
-            func_i = lambda y: densities[i](y, 0.5)
-            func_j = lambda y: densities[j](y, 0.5)
-            dmat[i,j] = HellingerDistance(func_i, func_j, x_range)
+            #func_i = lambda y: densities[i](y, 0.5)
+            #func_j = lambda y: densities[j](y, 0.5)
+            #dmat[i,j] = HellingerDistance(func_i, func_j, x_range)
+            #dmat[j,i] = dmat[i,j]
+            dmat[i,j] = meanHellinger(densities[i], densities[j], x_range)
             dmat[j,i] = dmat[i,j]
     
     return dmat
