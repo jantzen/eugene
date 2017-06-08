@@ -9,12 +9,14 @@ class LotkaVolterraND( object ):
         
     """
 
-    def __init__(self, r, alpha, init_x, init_t=0):
+    def __init__(self, r, k, alpha, init_x, init_t=0):
         """ Initializes a competitive Lotka-Volterra model with n species
         
             Keyword arguments:
             r -- an array of species growth rates, where r[i] is the growth
                 rate of species i.
+            k -- an array of species carrying capacities, where k[i] is the 
+               carrying capacity of species i. 
             a -- the interaction matrix; a matrix of inter-species interaction 
                 terms, where a[i,j] is the effect of species j on the
                 population of species i.
@@ -28,6 +30,7 @@ class LotkaVolterraND( object ):
         # set attributes
         self._r = r
         self._alpha = alpha
+        self._k = k
 
         self._init_x = init_x
         self._init_t = float(init_t)
@@ -51,7 +54,7 @@ class LotkaVolterraND( object ):
         
         for i in range(len(X)):
             
-            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i]*X)))
+            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i]*X)/self._k[i]))
             
         return terms
         

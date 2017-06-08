@@ -16,13 +16,15 @@ class LotkaVolterraSND( object ):
         equations.        
     """
 
-    def __init__(self, r, alpha, sigma, init_x, init_t=0):
+    def __init__(self, r, k, alpha, sigma, init_x, init_t=0):
         """ Initializes a stochastic competitive Lotka-Volterra model with n 
             species
         
             Keyword arguments:
             r -- an array of species growth rates, where r[i] is the growth
                 rate of species i.
+            k -- an array of species carrying capacities, where k[i] is the 
+               carrying capacity of species i. 
             alpha -- the interaction matrix; a matrix of inter-species
                 interaction terms, where a[i,j] is the effect of species j on
                 the population of species i.
@@ -38,6 +40,7 @@ class LotkaVolterraSND( object ):
         # set attributes
         self._r = r
         self._alpha = alpha
+        self._k = k
 
         self._init_x = init_x
         self._init_t = float(init_t)
@@ -65,5 +68,5 @@ class LotkaVolterraSND( object ):
         for i in range(len(X)):
             noise = np.random.normal()
             #noise = self._noise
-            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] * X)) ) + (self._sigma[i] * X[i] * noise / (2 * np.sqrt(self._delta_t) ) ) + (self._sigma[i]**2 / 2) * X[i] * (noise**2 - 1)
+            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] * X)/self._k) ) + (self._sigma[i] * X[i] * noise / (2 * np.sqrt(self._delta_t) ) ) + (self._sigma[i]**2 / 2) * X[i] * (noise**2 - 1)
         return terms

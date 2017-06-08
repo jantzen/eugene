@@ -53,13 +53,15 @@ class Conditional_Density( object ):
 ##############################################################################
 
 
-def simpleSim(r, alpha, init_x, iterations, delta_t=1):
+def simpleSim(r, k, alpha, init_x, iterations, delta_t=1):
     """ Simulates a competitive Lotka-Volterra model with n 
             species
         
             Keyword arguments:
             r -- an array of species growth rates, where r[i] is the growth
                 rate of species i.
+            k -- an array of species carrying capacities, where k[i] is the 
+               carrying capacity of species i. 
             alpha -- the interaction matrix; a matrix of inter-species
                 interaction terms, where a[i,j] is the effect of species j on
                 the population of species i.
@@ -76,7 +78,7 @@ def simpleSim(r, alpha, init_x, iterations, delta_t=1):
                 species i.
     """
     
-    lv = LotkaVolterraND(r, alpha, init_x)
+    lv = LotkaVolterraND(r, k, alpha, init_x)
     #for t in trange(iterations):
     #    lv.update_x(delta_t)
     lv.update_x(iterations)
@@ -105,19 +107,25 @@ def simData(params, max_time, num_times, overlay):
     returns a list of arrays of data that cover the same range.
             
             Keyword arguments:
-            params1 -- an array of species growth rates "r", and interaction
+            params1 -- an array of species growth rates "r", an array of 
+                species carrying capacities "k", and interaction
                 matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
                 and alpha[i,j] is the effect of species j on the population of 
                 species i. Item params1[0] shall be the first simulation's
                 array of growth rates, params1[1] shall be the first
-                simulation's interaction matrix, and params1[2] shall be the
+                simulation's carrying capacity, params1[2] shall be the first
+                simulation's interaction matrix, and params1[3] shall be the
                 first simulation's initial populations.
-            params2 -- an array of species growth rates "r", and interaction
+            params2 -- an array of species growth rates "r", an array of 
+                species carrying capacities "k", and interaction
                 matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
                 and alpha[i,j] is the effect of species j on the population of 
                 species i. Item params2[0] shall be the second simulation's
                 array of growth rates, params2[1] shall be the second
-                simulation's interaction matrix, and params2[2] shall be the
+                simulation's carrying capacity, params2[2] shall be the second
+                simulation's interaction matrix, and params2[3] shall be the
                 first populations's initial popoulations.
             max_time -- the highest time value to sample the system at.
             num_times -- the number of times to sample the system between t=0
@@ -133,8 +141,8 @@ def simData(params, max_time, num_times, overlay):
     lv = []
     lv_trans = []
     for param_set in params:
-        lv.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], 0))
-        lv_trans.append(LotkaVolterraND(param_set[0], param_set[1], param_set[3], 0))
+        lv.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[3], 0))
+        lv_trans.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[3], 0))
 
     times = []
     times_trans = []
@@ -163,7 +171,7 @@ def simData(params, max_time, num_times, overlay):
     return data
 
 
-def randInitPopsSim(r, alpha, iterations, delta_t=1):
+def randInitPopsSim(r, k, alpha, iterations, delta_t=1):
     """ Simulates a competitive Lotka-Volterra model with n 
             species with initial populations selected from a uniform random 
             distribution.
@@ -171,6 +179,8 @@ def randInitPopsSim(r, alpha, iterations, delta_t=1):
             Keyword arguments:
             r -- an array of species growth rates, where r[i] is the growth
                 rate of species i.
+            k -- an array of species carrying capacities, where k[i] is the 
+               carrying capacity of species i. 
             alpha -- the interaction matrix; a matrix of inter-species
                 interaction terms, where a[i,j] is the effect of species j on
                 the population of species i.
@@ -186,7 +196,7 @@ def randInitPopsSim(r, alpha, iterations, delta_t=1):
     
     init_x = np.random.uniform(size=np.size(r))
     
-    return simpleSim(r, alpha, init_x, iterations, delta_t=1)
+    return simpleSim(r, k, alpha, init_x, iterations, delta_t=1)
 
 def runByArray(param_arr, iterations):
     """ Simulates many competitive Lotka-Volterra models of n 
@@ -194,12 +204,15 @@ def runByArray(param_arr, iterations):
             distribution.
         
             Keyword arguments:
-            param_arr -- an array of species growth rates "r", and interaction
+            param_arr -- an array of species growth rates "r", an array of 
+                species carrying capacities "k", and interaction
                 matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
                 and alpha[i,j] is the effect of species j on the population of 
                 species i. Item array[k][0] shall be the kth simulation's
-                array of growth rates, and array[k][1] shall be the kth
-                simulation's interaction matrix.
+                array of growth rates, array[k][1] shall be the kth
+                simulation's carrying capacity, and array[k][2] shall be the
+                kth simulation's interaction matrix.
             iterations -- the number of times the system should be updated; i.e.
                 the ammount of time to run each simulation.
                 
@@ -211,7 +224,7 @@ def runByArray(param_arr, iterations):
     
     #populations = []
     num_cores = multiprocessing.cpu_count() - 2
-    results = Parallel(n_jobs=num_cores)(delayed(randInitPopsSim)(params[0], params[1], iterations) for params in param_arr)
+    results = Parallel(n_jobs=num_cores)(delayed(randInitPopsSim)(params[0], params[1], params[2], iterations) for params in param_arr)
     #for params in tqdm(param_arr):
     #    r = params[0]
     #    alpha = params[1]
@@ -230,12 +243,15 @@ def resultsByPoint(param_arr, iterations, per_point):
             each time.
         
             Keyword arguments:
-            param_arr -- an array of species growth rates "r", and interaction
+            param_arr -- an array of species growth rates "r", an array of 
+                species carrying capacities "k", and interaction
                 matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
                 and alpha[i,j] is the effect of species j on the population of 
                 species i. Item array[k][0] shall be the kth simulation's
-                array of growth rates, and array[k][1] shall be the kth
-                simulation's interaction matrix.
+                array of growth rates, array[k][1] shall be the kth
+                simulation's carrying capacity, and array[k][2] shall be the
+                kth simulation's interaction matrix.
             iterations -- the number of times the system should be updated; i.e.
                 the ammount of time to run each simulation.
             per_point -- the number of times the system should be simulated for
