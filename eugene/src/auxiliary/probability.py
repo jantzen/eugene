@@ -2,6 +2,7 @@
 
 import scipy
 import numpy as np
+from scipy.integrate import quad
 
 ################################################################################
 # Functions:
@@ -9,6 +10,7 @@ import numpy as np
 # T
 # SkewNorm
 # SampleSkewNorm
+# HellingerDistance
 ################################################################################
 
 def Phi(x, m, s, a):
@@ -40,3 +42,27 @@ def SampleSkewNorm(m, s, a):
     x = scipy.optimize.newton(func, 0)
 
     return x
+
+
+def HellingerDistance(dist1, dist2, x_range=[-np.inf,np.inf]):    
+    """ Computes the Hellinger distance between two univariate probability
+    distributions, dist1 and dist2.
+        inputs:
+            dist1: a function that returns the probability of x
+            dist2: a function that returns the probability of x
+            x_range: a list of [low, high] values indicating the integration
+            interval with respect to x (for computing the Hellinger distance)
+	outputs:
+            a scalar value representing the Hellinger distance.
+    """
+
+    func = lambda x: (np.sqrt(dist1(x) * dist2(x))).reshape(-1, 1)
+
+    out = quad(func, x_range[0], x_range[1]) 
+
+    h2 = 1. - out[0]
+
+    hellinger = np.sqrt(h2)
+
+    return hellinger
+
