@@ -44,7 +44,7 @@ def SampleSkewNorm(m, s, a):
     return x
 
 
-def HellingerDistance(dist1, dist2, x_range=[-10,10]):    
+def HellingerDistance(dist1, dist2, x_range=[-np.inf,np.inf]):    
     """ Computes the Hellinger distance between two univariate probability
     distributions, dist1 and dist2.
         inputs:

@@ -12,11 +12,12 @@ import multiprocessing
 import pandas as pd
 from sklearn.neighbors import KernelDensity
 from scipy.integrate import quad
+from tqdm import tqdm, trange
 
 # Classes
 ##############################################################################
 class Conditional_Density( object ):
-    def __init__(self, kde, x_range=[-10,10]):
+    def __init__(self, kde, x_range=[-np.inf,np.inf]):
 	self._kde = kde
 	self._xrange = x_range
 
@@ -42,8 +43,15 @@ class Conditional_Density( object ):
 	# compute unconditional probability of X = x
 	func = lambda z: np.exp(self._kde.score_samples(np.array([x,
             z]).reshape(1,-1)))
-	temp = quad(func, self._xrange[0], self._xrange[1])
+	temp = quad(func, self._xrange[0],
+                self._xrange[1],epsabs=1.*10**(-6),limit=30)
 	p_x = temp[0]
+
+        if not np.isfinite(p_x):
+            raise ValueError("p_x did not evaluate to a finite number")
+        
+        if not np.isfinite(p_xy):
+            raise ValueError("p_xy did not evaluate to a finite number")
 
 	return (p_xy / p_x)
 	
@@ -353,14 +361,14 @@ def blocksToDensities(data):
     """
     densities = []
     for block in data:
-        kde = KernelDensity()
+        kde = KernelDensity(bandwidth=0.5)
         kde.fit(block)
         densities.append(kde)
 
     return densities
 
 
-def jointToConditional(joint_densities, x_range=[-10,10]):
+def jointToConditional(joint_densities, x_range=[-np.inf,np.inf]):
 
     out = []
     for joint in joint_densities:
@@ -377,21 +385,21 @@ def meanHellinger(func1, func2, x_range):
         
         return HellingerDistance(f1, f2, x_range)
 
-    out = quad(integrand, x_range[0], x_range[1])     
+    out = quad(integrand, x_range[0], x_range[1],epsabs=1.*10**(-6),limit=30)     
 
     return out[0] / (float(x_range[1]) -
             float(x_range[0]))
 
 
 
-def distanceH(densities, x_range=[-10,10]):
+def distanceH(densities, x_range=[-np.inf,np.inf]):
     """ Returns a distance matrx.
     """
     s = len(densities)
     dmat = np.zeros((s,s))
 
-    for i in range(s):
-        for j in range(i+1, s):
+    for i in trange(s):
+        for j in trange(i+1, s):
             #func_i = lambda y: densities[i](y, 0.5)
             #func_j = lambda y: densities[j](y, 0.5)
             #dmat[i,j] = HellingerDistance(func_i, func_j, x_range)
