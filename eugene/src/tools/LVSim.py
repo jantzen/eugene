@@ -10,13 +10,15 @@ from joblib import Parallel, delayed
 import multiprocessing
 
 
-def simpleSim(r, alpha, sigma, init_x, iterations, delta_t=1):
+def simpleSim(r, k, alpha, sigma, init_x, iterations, delta_t=1):
     """ Simulates a stochastic competitive Lotka-Volterra model with n 
             species
         
             Keyword arguments:
             r -- an array of species growth rates, where r[i] is the growth
                 rate of species i.
+            k -- an array of species carrying capacities, where k[i] is the 
+               carrying capacity of species i. 
             alpha -- the interaction matrix; a matrix of inter-species
                 interaction terms, where a[i,j] is the effect of species j on
                 the population of species i.
@@ -35,7 +37,7 @@ def simpleSim(r, alpha, sigma, init_x, iterations, delta_t=1):
                 species i.
     """
     
-    lv = LotkaVolterraSND(r, alpha, sigma, init_x)
+    lv = LotkaVolterraSND(r, k, alpha, sigma, init_x)
     #for t in trange(iterations):
     #    lv.update_x(delta_t)
     lv.update_x(iterations)
@@ -59,13 +61,15 @@ def speciesAlive(populations, threshold=0.01):
     return sum(i > threshold for i in populations)
     
     
-def sameNoiseSim(r, alpha, sigma, init_x, iterations, delta_t=1):
+def sameNoiseSim(r, k, alpha, sigma, init_x, iterations, delta_t=1):
     """ Simulates a stochastic competitive Lotka-Volterra model with n 
             species, and the same intrinsic noise for all species.
         
             Keyword arguments:
             r -- an array of species growth rates, where r[i] is the growth
                 rate of species i.
+            k -- an array of species carrying capacities, where k[i] is the 
+               carrying capacity of species i.
             alpha -- the interaction matrix; a matrix of inter-species
                 interaction terms, where a[i,j] is the effect of species j on
                 the population of species i.
@@ -84,10 +88,10 @@ def sameNoiseSim(r, alpha, sigma, init_x, iterations, delta_t=1):
     """
     
     sigma_arr = np.full(len(r), sigma)
-    return simpleSim(r, alpha, sigma_arr, init_x, iterations, delta_t)
+    return simpleSim(r, k, alpha, sigma_arr, init_x, iterations, delta_t)
     
 
-def uniRandInitPopsSim(r, alpha, sigma, iterations, delta_t=1):
+def uniRandInitPopsSim(r, k, alpha, sigma, iterations, delta_t=1):
     """ Simulates a stochastic competitive Lotka-Volterra model with n 
             species with initial populations selected from a uniform random 
             distribution.
@@ -95,6 +99,8 @@ def uniRandInitPopsSim(r, alpha, sigma, iterations, delta_t=1):
             Keyword arguments:
             r -- an array of species growth rates, where r[i] is the growth
                 rate of species i.
+            k -- an array of species carrying capacities, where k[i] is the 
+               carrying capacity of species i. 
             alpha -- the interaction matrix; a matrix of inter-species
                 interaction terms, where a[i,j] is the effect of species j on
                 the population of species i.
@@ -116,9 +122,9 @@ def uniRandInitPopsSim(r, alpha, sigma, iterations, delta_t=1):
     init_x = np.random.uniform(size=np.size(r))
     
     if np.size(sigma) is 1:
-        return sameNoiseSim(r, alpha, sigma, init_x, iterations, delta_t=1)
+        return sameNoiseSim(r, k, alpha, sigma, init_x, iterations, delta_t=1)
     elif np.size(sigma) is np.size(r):
-        return simpleSim(r, alpha, sigma, init_x, iterations, delta_t=1)
+        return simpleSim(r, k, alpha, sigma, init_x, iterations, delta_t=1)
     else:
         raise ValueError('Inorrect variable specification. Size of sigma must be 1 or the number of species')
 
@@ -129,12 +135,15 @@ def runByArray(param_arr, sigma, iterations):
             distribution.
         
             Keyword arguments:
-            param_arr -- an array of species growth rates "r", and interaction
+            param_arr -- an array of species growth rates "r", an array of 
+                species carrying capacities "k", and interaction
                 matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
                 and alpha[i,j] is the effect of species j on the population of 
                 species i. Item array[k][0] shall be the kth simulation's
-                array of growth rates, and array[k][1] shall be the kth
-                simulation's interaction matrix.
+                array of growth rates, array[k][1] shall be the kth
+                simulation's carrying capacity, and array[k][2] shall be the
+                kth simulation's interaction matrix.
             sigma -- a noise intensity affecting species. If the size of sigma
                 is 1, then the same ammount of noise affects all species. 
                 Otherwise it is assumed that sigma is an array of noise 
@@ -151,7 +160,7 @@ def runByArray(param_arr, sigma, iterations):
     
     #populations = []
     num_cores = multiprocessing.cpu_count()
-    results = Parallel(n_jobs=num_cores)(delayed(uniRandInitPopsSim)(params[0], params[1], sigma, iterations) for params in tqdm(param_arr))
+    results = Parallel(n_jobs=num_cores)(delayed(uniRandInitPopsSim)(params[0], params[1], params[2], sigma, iterations) for params in tqdm(param_arr))
     #for params in tqdm(param_arr):
     #    r = params[0]
     #    alpha = params[1]
@@ -170,12 +179,15 @@ def resultsByPoint(param_arr, sigma, iterations, per_point):
             each time.
         
             Keyword arguments:
-            param_arr -- an array of species growth rates "r", and interaction
+            param_arr -- an array of species growth rates "r", an array of 
+                species carrying capacities "k", and interaction
                 matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
                 and alpha[i,j] is the effect of species j on the population of 
                 species i. Item array[k][0] shall be the kth simulation's
-                array of growth rates, and array[k][1] shall be the kth
-                simulation's interaction matrix.
+                array of growth rates, array[k][1] shall be the kth
+                simulation's carrying capacity, and array[k][2] shall be the
+                kth simulation's interaction matrix.
             sigma -- a noise intensity affecting species. If the size of sigma
                 is 1, then the same ammount of noise affects all species. 
                 Otherwise it is assumed that sigma is an array of noise 
