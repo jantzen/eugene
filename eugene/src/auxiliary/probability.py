@@ -66,3 +66,23 @@ def HellingerDistance(dist1, dist2, x_range=[-np.inf,np.inf]):
 
     return hellinger
 
+
+def EuclideanDistance(dist1, dist2, x_range=[-10,10]):
+    """ Computes the Euclidean (L2) distance between two univariate probability
+    distributions, dist1 and dist2.
+        inputs:
+            dist1: a function that returns the probability of x
+            dist2: a function that returns the probability of x
+            x_range: a list of [low, high] values indicating the integration
+            interval with respect to x (for computing the Hellinger distance)
+	outputs:
+            a scalar value representing the L2 distance.
+    """
+    
+    func = lambda x: (dist1(x) * dist2(x)).reshape(-1, 1)
+    
+    out = quad(func, x_range[0], x_range[1])
+    
+    l2 = np.sqrt(out)
+    
+    return l2
