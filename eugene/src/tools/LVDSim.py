@@ -394,6 +394,20 @@ def jointToConditional(joint_densities, x_range=[-np.inf,np.inf]):
     return out
 
 
+def blocksToScipyDensities(data):
+    """ For a list of 2-D arrays of data, uses kernel density esitmation to
+    estimate joint probability densities, and outpus a list of trained sklearn KernelDensity
+    objects.
+    """
+    densities = []
+    for block in data:
+        kde = stats.gaussian_kde(block)
+        pdf = kde.evaluate(block)
+        densities.append(pdf)
+
+    return densities
+
+
 def meanHellinger(func1, func2, x_range):
     def integrand(x):
         f1 = lambda y: func1(y, x)
@@ -421,6 +435,37 @@ def distanceH(densities, x_range=[-np.inf,np.inf]):
             #dmat[i,j] = HellingerDistance(func_i, func_j, x_range)
             #dmat[j,i] = dmat[i,j]
             dmat[i,j] = meanHellinger(densities[i], densities[j], x_range)
+            dmat[j,i] = dmat[i,j]
+    
+    return dmat
+
+
+def meanEuclidean(func1, func2, x_range):
+    def integrand(x):
+        f1 = lambda y: func1(y, x)
+        f2 = lambda y: func2(y, x)
+        
+        return EuclideanDistance(f1, f2, x_range)
+
+    out = quad(integrand, x_range[0], x_range[1])     
+
+    return out[0] / (float(x_range[1]) -
+            float(x_range[0]))
+            
+
+def distanceL2(densities, x_range=[-10,10]):
+    """ Returns a distance matrx.
+    """
+    s = len(densities)
+    dmat = np.zeros((s,s))
+
+    for i in range(s):
+        for j in range(i+1, s):
+            #func_i = lambda y: densities[i](y, 0.5)
+            #func_j = lambda y: densities[j](y, 0.5)
+            #dmat[i,j] = EuclideanDistance(func_i, func_j, x_range)
+            #dmat[j,i] = dmat[i,j]
+            dmat[i,j] = meanEuclidean(densities[i], densities[j], x_range)
             dmat[j,i] = dmat[i,j]
     
     return dmat
