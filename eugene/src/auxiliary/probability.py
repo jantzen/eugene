@@ -2,7 +2,7 @@
 
 import scipy
 import numpy as np
-from scipy.integrate import quad
+from scipy.integrate import quad, dblquad
 
 ################################################################################
 # Functions:
@@ -63,6 +63,40 @@ def HellingerDistance(dist1, dist2, x_range=[-np.inf,np.inf]):
     h2 = 1. - out[0]
 
     hellinger = np.sqrt(h2)
+
+    return hellinger
+
+
+def Hellinger2D(dist1, dist2, x_low=-np.inf, x_high=np.inf, y_low=None,
+        y_high=None):    
+    """ Computes the Hellinger distance between two bivariate probability
+    distributions, dist1 and dist2.
+        inputs:
+            dist1: a function that returns the probability of x, y
+            dist2: a function that returns the probability of x, y
+            x_low: float indicating the lower bound of the integration
+            interval with respect to x (for computing the Hellinger distance)
+	    x_high: float indicating the upper bound of the integration
+            interval with respect to x (for computing the Hellinger distance)
+	    y_low: a callable function describing the lower boundary curve of
+            y as a function of x
+	    y_high: a callable function describing the upper boundary curve of
+            y as a function of x
+        outputs:
+            a scalar value representing the Hellinger distance.
+    """
+
+    if y_low == None:
+        y_low = lambda x: x_low
+
+    if y_high == None:
+        y_high = lambda x: x_high
+
+    func = lambda x,y: (np.sqrt(dist1(x,y) * dist2(x,y))).reshape(-1, 1)
+
+    out = dblquad(func, x_low, x_high, y_low, y_high) 
+
+    hellinger = 1. - np.sqrt(out[0])
 
     return hellinger
 
