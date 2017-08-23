@@ -13,6 +13,7 @@ import pandas as pd
 from sklearn.neighbors import KernelDensity
 from scipy.integrate import quad
 from tqdm import tqdm, trange
+import pdb
 
 # Classes
 ##############################################################################
@@ -370,16 +371,29 @@ def tuplesToBlocks(data):
 
     return out
 
-def blocksToDensities(data):
+def blocksToKDEs(data):
     """ For a list of 2-D arrays of data, uses kernel density esitmation to
     estimate joint probability densities, and outpus a list of trained sklearn KernelDensity
     objects.
     """
-    densities = []
+    kde_objects = []
     for block in data:
         kde = KernelDensity(bandwidth=0.5)
         kde.fit(block)
-        densities.append(kde)
+        kde_objects.append(kde)
+
+    return kde_objects
+
+def KDEsToDensities(kde_objects):
+    """ Converts a list of trained sklearn KernelDensity objects to a list of
+    two-argument functions (joint probability densities).
+    """
+    densities = []
+    for kde in kde_objects:
+	func = lambda x,y,kde=kde: np.exp(kde.score_samples(np.array([x,
+            y]).reshape(1,-1))) 
+        # note the dummy variable used above to capture the current kde value
+        densities.append(func)
 
     return densities
 
@@ -435,6 +449,21 @@ def distanceH(densities, x_range=[-np.inf,np.inf]):
             #dmat[i,j] = HellingerDistance(func_i, func_j, x_range)
             #dmat[j,i] = dmat[i,j]
             dmat[i,j] = meanHellinger(densities[i], densities[j], x_range)
+            dmat[j,i] = dmat[i,j]
+    
+    return dmat
+
+
+def distanceH2D(densities, x_range=[-np.inf,np.inf]):
+    """ Returns a distance matrx.
+    """
+    s = len(densities)
+    dmat = np.zeros((s,s))
+
+    for i in trange(s):
+        for j in trange(i+1, s):
+            dmat[i,j] = Hellinger2D(densities[i], densities[j], x_range[0],
+                    x_range[1])
             dmat[j,i] = dmat[i,j]
     
     return dmat
