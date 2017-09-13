@@ -1,8 +1,8 @@
-#LVDSim.py
+# LVDSim.py
 
 """ A suite of tools for running LotkaVolterraSND simulations."""
 
-#from LotkaVolterraND import LotkaVolterraND
+# from LotkaVolterraND import LotkaVolterraND
 from eugene.src.virtual_sys.LotkaVolterraND import LotkaVolterraND
 from eugene.src.auxiliary.probability import *
 import random
@@ -15,47 +15,48 @@ from scipy.integrate import quad
 from tqdm import tqdm, trange
 import pdb
 
+
 # Classes
 ##############################################################################
-class Conditional_Density( object ):
-    def __init__(self, kde, x_range=[-np.inf,np.inf]):
-	self._kde = kde
-	self._xrange = x_range
+class Conditional_Density(object):
+    def __init__(self, kde, x_range=[-np.inf, np.inf]):
+        self._kde = kde
+        self._xrange = x_range
+
 
     def density(self, y, x):
-	""" Computes 1-D conditional distribution P(y | X=x). X is presumed 
-            to refer to the untransformed value, and y to the transformed value 
-            of a target variable.
-        """
+        """ Computes 1-D conditional distribution P(y | X=x). X is presumed
+                to refer to the untransformed value, and y to the transformed value
+                of a target variable.
+            """
 
         if type(y) == np.ndarray:
-	    y = y.reshape((len(y),1))
-	elif type(y) == list:
-	    y = np.array(y)
-	    y = y.reshape((len(y),1))
-	else:
-	    y = np.array([y])
-	    y = y.reshape((len(y),1))
-	x = x * np.ones(y.shape)
-	sample = np.hstack((x, y))
+            y = y.reshape((len(y), 1))
+        elif type(y) == list:
+            y = np.array(y)
+            y = y.reshape((len(y), 1))
+        else:
+            y = np.array([y])
+            y = y.reshape((len(y), 1))
+        x = x * np.ones(y.shape)
+        sample = np.hstack((x, y))
 
-	p_xy = np.exp(self._kde.score_samples(sample))
+        p_xy = np.exp(self._kde.score_samples(sample))
 
-	# compute unconditional probability of X = x
-	func = lambda z: np.exp(self._kde.score_samples(np.array([x,
-            z]).reshape(1,-1)))
-	temp = quad(func, self._xrange[0],
-                self._xrange[1],epsabs=1.*10**(-6),limit=30)
-	p_x = temp[0]
+        # compute unconditional probability of X = x
+        func = lambda z: np.exp(self._kde.score_samples(np.array([x,
+                                                                  z]).reshape(1, -1)))
+        temp = quad(func, self._xrange[0],
+                    self._xrange[1], epsabs=1. * 10 ** (-6), limit=30)
+        p_x = temp[0]
 
         if not np.isfinite(p_x):
             raise ValueError("p_x did not evaluate to a finite number")
-        
+
         if not np.isfinite(p_xy):
             raise ValueError("p_xy did not evaluate to a finite number")
 
-	return (p_xy / p_x)
-	
+        return (p_xy / p_x)
 
 
 # Functions
@@ -86,14 +87,14 @@ def simpleSim(r, k, alpha, init_x, iterations, delta_t=1):
                 observation period, where x[i] is the final population of 
                 species i.
     """
-    
+
     lv = LotkaVolterraND(r, k, alpha, init_x)
-    #for t in trange(iterations):
+    # for t in trange(iterations):
     #    lv.update_x(delta_t)
     lv.update_x(iterations)
     return lv._x
-    
-    
+
+
 def speciesAlive(populations, threshold=0.01):
     """ Returns the number of elements in array 'populations' that are larger
             than 'threshold'.
@@ -107,10 +108,10 @@ def speciesAlive(populations, threshold=0.01):
         number -- the number of elements in array 'populations' that are larger
             than 'threshold'.
     """
-    
+
     return sum(i > threshold for i in populations)
-        
-        
+
+
 def simData(params, max_time, num_times, overlay):
     """ Generates data for a list of parameters corresponding to systems and 
     returns a list of arrays of data that cover the same range.
@@ -146,7 +147,7 @@ def simData(params, max_time, num_times, overlay):
             2d array -- two arrays of data from the systems that cover the same
                 range.
     """
-    
+
     lv = []
     lv_trans = []
     for param_set in params:
@@ -166,7 +167,7 @@ def simData(params, max_time, num_times, overlay):
         xs.append(sys.check_xs(times[i]))
     for i, sys in enumerate(lv_trans):
         xs_trans.append(sys.check_xs(times[i]))
-   
+
     raw_data = []
     for i in range(len(lv)):
         f = overlay(xs[i])
@@ -202,10 +203,11 @@ def randInitPopsSim(r, k, alpha, iterations, delta_t=1):
                 observation period, where x[i] is the final population of 
                 species i.
     """
-    
+
     init_x = np.random.uniform(size=np.size(r))
-    
+
     return simpleSim(r, k, alpha, init_x, iterations, delta_t=1)
+
 
 def runByArray(param_arr, iterations):
     """ Simulates many competitive Lotka-Volterra models of n 
@@ -230,19 +232,20 @@ def runByArray(param_arr, iterations):
                 the observation period, where x[k][i] is the final population of 
                 species i for the kth simulation.
     """
-    
-    #populations = []
+
+    # populations = []
     num_cores = multiprocessing.cpu_count() - 2
-    results = Parallel(n_jobs=num_cores)(delayed(randInitPopsSim)(params[0], params[1], params[2], iterations) for params in param_arr)
-    #for params in tqdm(param_arr):
+    results = Parallel(n_jobs=num_cores)(
+        delayed(randInitPopsSim)(params[0], params[1], params[2], iterations) for params in param_arr)
+    # for params in tqdm(param_arr):
     #    r = params[0]
     #    alpha = params[1]
     #    x = uniRandInitPopsSim(r, alpha, sigma, iterations)
     #    populations.append(x)
-        
-    #return populations
+
+    # return populations
     return results
-    
+
 
 def resultsByPoint(param_arr, iterations, per_point):
     """ Simulates many competitive Lotka-Volterra models of n 
@@ -276,14 +279,14 @@ def resultsByPoint(param_arr, iterations, per_point):
                 of species k for the jth round of simulating the ith set of
                 parameters.
     """
-    
+
     species = np.size(param_arr[0][0])
     x_arr = np.ndarray((len(param_arr), per_point, species))
     for i in range(per_point):
         x_arr[:, i] = runByArray(param_arr, iterations)
-        
+
     return x_arr
-    
+
 
 def rangeCover(data):
     """ Keyword arguments:
@@ -307,14 +310,13 @@ def rangeCover(data):
 
         if min(tup[0]) > highestLow:
             highestLow = min(tup[0])
-            
+
         if max(tup[0]) < lowestHigh:
             lowestHigh = max(tup[0])
-            
-    
+
     # then find intersection of arrays/dicts.
-    #commonRange = reduce(np.intersect1d, (keys))
-    
+    # commonRange = reduce(np.intersect1d, (keys))
+
     # create tuples of selected range from original data
     output = []
     for frame in frames:
@@ -323,12 +325,12 @@ def rangeCover(data):
         values = []
         for i in range(len(mat[0])):
             if (mat[0][i] <= lowestHigh) and (mat[0][i] >= highestLow):
-            #if mat[0][i] in commonRange:
+                # if mat[0][i] in commonRange:
                 keys.append(mat[0][i])
                 values.append(mat[1][i])
-                
+
         output.append((keys, values))
-        
+
     print(lowestHigh)
     print(highestLow)
     return output
@@ -365,11 +367,12 @@ def tuplesToBlocks(data):
 
     out = []
     for tup in data:
-        col1 = np.array(tup[0])[:,np.newaxis]
-        col2 = np.array(tup[1])[:,np.newaxis]
-        out.append(np.hstack((col1,col2)))
+        col1 = np.array(tup[0])[:, np.newaxis]
+        col2 = np.array(tup[1])[:, np.newaxis]
+        out.append(np.hstack((col1, col2)))
 
     return out
+
 
 def blocksToKDEs(data):
     """ For a list of 2-D arrays of data, uses kernel density esitmation to
@@ -384,22 +387,22 @@ def blocksToKDEs(data):
 
     return kde_objects
 
+
 def KDEsToDensities(kde_objects):
     """ Converts a list of trained sklearn KernelDensity objects to a list of
     two-argument functions (joint probability densities).
     """
     densities = []
     for kde in kde_objects:
-	func = lambda x,y,kde=kde: np.exp(kde.score_samples(np.array([x,
-            y]).reshape(1,-1))) 
+        func = lambda x, y, kde=kde: np.exp(kde.score_samples(np.array([x,
+                                                                        y]).reshape(1, -1)))
         # note the dummy variable used above to capture the current kde value
         densities.append(func)
 
     return densities
 
 
-def jointToConditional(joint_densities, x_range=[-np.inf,np.inf]):
-
+def jointToConditional(joint_densities, x_range=[-np.inf, np.inf]):
     out = []
     for joint in joint_densities:
         c = Conditional_Density(joint, x_range)
@@ -426,46 +429,46 @@ def meanHellinger(func1, func2, x_range):
     def integrand(x):
         f1 = lambda y: func1(y, x)
         f2 = lambda y: func2(y, x)
-        
+
         return HellingerDistance(f1, f2, x_range)
 
-    out = quad(integrand, x_range[0], x_range[1],epsabs=1.*10**(-6),limit=30)     
+
+    out = quad(integrand, x_range[0], x_range[1], epsabs=1. * 10 ** (-6), limit=30)
 
     return out[0] / (float(x_range[1]) -
-            float(x_range[0]))
+                     float(x_range[0]))
 
 
-
-def distanceH(densities, x_range=[-np.inf,np.inf]):
+def distanceH(densities, x_range=[-np.inf, np.inf]):
     """ Returns a distance matrx.
     """
     s = len(densities)
-    dmat = np.zeros((s,s))
+    dmat = np.zeros((s, s))
 
     for i in trange(s):
-        for j in trange(i+1, s):
-            #func_i = lambda y: densities[i](y, 0.5)
-            #func_j = lambda y: densities[j](y, 0.5)
-            #dmat[i,j] = HellingerDistance(func_i, func_j, x_range)
-            #dmat[j,i] = dmat[i,j]
-            dmat[i,j] = meanHellinger(densities[i], densities[j], x_range)
-            dmat[j,i] = dmat[i,j]
-    
+        for j in trange(i + 1, s):
+            # func_i = lambda y: densities[i](y, 0.5)
+            # func_j = lambda y: densities[j](y, 0.5)
+            # dmat[i,j] = HellingerDistance(func_i, func_j, x_range)
+            # dmat[j,i] = dmat[i,j]
+            dmat[i, j] = meanHellinger(densities[i], densities[j], x_range)
+            dmat[j, i] = dmat[i, j]
+
     return dmat
 
 
-def distanceH2D(densities, x_range=[-np.inf,np.inf]):
+def distanceH2D(densities, x_range=[-np.inf, np.inf]):
     """ Returns a distance matrx.
     """
     s = len(densities)
-    dmat = np.zeros((s,s))
+    dmat = np.zeros((s, s))
 
     for i in trange(s):
-        for j in trange(i+1, s):
-            dmat[i,j] = Hellinger2D(densities[i], densities[j], x_range[0],
-                    x_range[1])
-            dmat[j,i] = dmat[i,j]
-    
+        for j in trange(i + 1, s):
+            dmat[i, j] = Hellinger2D(densities[i], densities[j], x_range[0],
+                                     x_range[1])
+            dmat[j, i] = dmat[i, j]
+
     return dmat
 
 
@@ -473,28 +476,29 @@ def meanEuclidean(func1, func2, x_range):
     def integrand(x):
         f1 = lambda y: func1(y, x)
         f2 = lambda y: func2(y, x)
-        
+
         return EuclideanDistance(f1, f2, x_range)
 
-    out = quad(integrand, x_range[0], x_range[1])     
+
+    out = quad(integrand, x_range[0], x_range[1])
 
     return out[0] / (float(x_range[1]) -
-            float(x_range[0]))
-            
+                     float(x_range[0]))
 
-def distanceL2(densities, x_range=[-10,10]):
+
+def distanceL2(densities, x_range=[-10, 10]):
     """ Returns a distance matrx.
     """
     s = len(densities)
-    dmat = np.zeros((s,s))
+    dmat = np.zeros((s, s))
 
     for i in range(s):
-        for j in range(i+1, s):
-            #func_i = lambda y: densities[i](y, 0.5)
-            #func_j = lambda y: densities[j](y, 0.5)
-            #dmat[i,j] = EuclideanDistance(func_i, func_j, x_range)
-            #dmat[j,i] = dmat[i,j]
-            dmat[i,j] = meanEuclidean(densities[i], densities[j], x_range)
-            dmat[j,i] = dmat[i,j]
-    
+        for j in range(i + 1, s):
+            # func_i = lambda y: densities[i](y, 0.5)
+            # func_j = lambda y: densities[j](y, 0.5)
+            # dmat[i,j] = EuclideanDistance(func_i, func_j, x_range)
+            # dmat[j,i] = dmat[i,j]
+            dmat[i, j] = meanEuclidean(densities[i], densities[j], x_range)
+            dmat[j, i] = dmat[i, j]
+
     return dmat
