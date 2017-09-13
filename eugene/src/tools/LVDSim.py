@@ -291,7 +291,9 @@ def resultsByPoint(param_arr, iterations, per_point):
 def rangeCover(data):
     """ Keyword arguments:
             data -- an array of 2-tuples of pairs of arrays, i.e. data[0] holds
-                the records for f and f'. f and f' have the same length. E.g.
+                the records for f and f' (f and f' have the same length), and 
+                data[1] holds the records for g and g' (g and g' have the same
+                length). E.g.
                 array([[[ 0,  2,  8,  6,  4],
                     [99, 98, 97, 96, 95]],
 
@@ -300,11 +302,11 @@ def rangeCover(data):
     """
 
     frames = []
-    keys = []
+    # highestLow will come to contain max([min(f), min(g)])
     highestLow = min(data[0][0])
+    # lowestHigh will come to contain min([max(f), max(g)])
     lowestHigh = max(data[0][0])
     for tup in data:
-        keys.append(tup[0])
         tupDf = pd.DataFrame(data=np.array(tup))
         frames.append(tupDf.sort_values([0, 1], 1))
 
