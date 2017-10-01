@@ -9,3 +9,4 @@ from .src.virtual_sys import LotkaVolterra2D
 from .src.virtual_sys import LotkaVolterraND
 from .src.auxiliary import probability
 from .src.auxiliary import csv_to_dataframe
+from .src.auxiliary import sampling
