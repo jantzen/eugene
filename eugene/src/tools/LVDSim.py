@@ -13,6 +13,7 @@ import pandas as pd
 from sklearn.neighbors import KernelDensity
 from scipy.integrate import quad
 from tqdm import tqdm, trange
+import eugene.src.auxiliary.sampling.resample as resample
 import pdb
 
 
@@ -152,14 +153,16 @@ def simData(params, max_time, num_times, overlay):
     lv_trans = []
     for param_set in params:
         lv.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[3], 0))
-        lv_trans.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[3], 0))
+        lv_trans.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[4], 0))
 
     times = []
     times_trans = []
     for i in range(len(lv)):
-        times.append(np.sort(np.random.uniform(0, max_time, num_times)))
+#        times.append(np.sort(np.random.uniform(0, max_time, num_times)))
+        times.append(np.linspace(0., max_time, num_times))
     for i in range(len(lv_trans)):
-        times_trans.append(np.sort(np.random.uniform(0, max_time, num_times)))
+#        times_trans.append(np.sort(np.random.uniform(0, max_time, num_times)))
+        times_trans.append(np.linspace(0., max_time, num_times))
 
     xs = []
     xs_trans = []
@@ -176,9 +179,9 @@ def simData(params, max_time, num_times, overlay):
 
     raw_data = np.array(raw_data)
 
-    data = rangeCover(raw_data)
+    data, high, low = rangeCover(raw_data)
 
-    return data
+    return data, low, high
 
 
 def randInitPopsSim(r, k, alpha, iterations, delta_t=1):
@@ -333,9 +336,9 @@ def rangeCover(data):
 
         output.append((keys, values))
 
-    print(lowestHigh)
-    print(highestLow)
-    return output
+#    print(lowestHigh)
+#    print(highestLow)
+    return output, lowestHigh, highestLow
 
 
 def downSample(data):
@@ -372,6 +375,19 @@ def tuplesToBlocks(data):
         col1 = np.array(tup[0])[:, np.newaxis]
         col2 = np.array(tup[1])[:, np.newaxis]
         out.append(np.hstack((col1, col2)))
+
+    return out
+
+
+def resampleToUniform(data, low, high):
+    """ Converts a list of 2-d numpy arrays to a list of 2-d arrays that have
+    been resampled so that the values in the first column are uniformly
+    distributed.
+    """
+
+    out = []
+    for block in data:
+        out.append(resample.uniform(block, bounds=[low,high]))
 
     return out
 
@@ -459,7 +475,7 @@ def distanceH(densities, x_range=[-np.inf, np.inf]):
     return dmat
 
 
-def distanceH2D(densities, x_range=[-np.inf, np.inf]):
+def distanceH2D(densities, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf]):
     """ Returns a distance matrx.
     """
     s = len(densities)
@@ -468,7 +484,7 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf]):
     for i in trange(s):
         for j in trange(i + 1, s):
             dmat[i, j] = Hellinger2D(densities[i], densities[j], x_range[0],
-                                     x_range[1])
+                                     x_range[1], y_range[0], y_range[1])
             dmat[j, i] = dmat[i, j]
 
     return dmat

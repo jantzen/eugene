@@ -3,6 +3,7 @@
 import scipy
 import numpy as np
 from scipy.integrate import quad, dblquad
+import pdb
 
 ################################################################################
 # Functions:
@@ -92,6 +93,12 @@ def Hellinger2D(dist1, dist2, x_low=-np.inf, x_high=np.inf, y_low=None,
     if y_high == None:
         y_high = lambda x: x_high
 
+    if type(y_low) == np.float64:
+        y_low = lambda x, y_low=y_low: y_low
+
+    if type(y_high) == np.float64:
+        y_high = lambda x, y_high=y_high: y_high
+    
     func = lambda x,y: (np.sqrt(dist1(x,y) * dist2(x,y))).reshape(-1, 1)
 
     out = dblquad(func, x_low, x_high, y_low, y_high) 
