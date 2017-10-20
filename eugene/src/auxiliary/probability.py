@@ -93,10 +93,10 @@ def Hellinger2D(dist1, dist2, x_low=-np.inf, x_high=np.inf, y_low=None,
     if y_high == None:
         y_high = lambda x: x_high
 
-    if type(y_low) == np.float64:
+    if type(y_low) == np.float64 or type(y_low)==float:
         y_low = lambda x, y_low=y_low: y_low
 
-    if type(y_high) == np.float64:
+    if type(y_high) == np.float64 or type(y_high)==float:
         y_high = lambda x, y_high=y_high: y_high
     
     func = lambda x,y: (np.sqrt(dist1(x,y) * dist2(x,y))).reshape(-1, 1)
