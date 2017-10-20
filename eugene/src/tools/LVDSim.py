@@ -12,9 +12,10 @@ import multiprocessing
 import pandas as pd
 from sklearn.neighbors import KernelDensity
 from scipy.integrate import quad
+from scipy import stats
 from tqdm import tqdm, trange
 import eugene.src.auxiliary.sampling.resample as resample
-import pdb
+#import pdb
 
 
 # Classes
@@ -436,8 +437,9 @@ def blocksToScipyDensities(data):
     """
     densities = []
     for block in data:
-        kde = stats.gaussian_kde(block)
-        pdf = kde.evaluate(block)
+        kde = stats.gaussian_kde(block.T)
+#        pdf = kde.evaluate(block.T)
+        pdf = lambda x, y, kde=kde: kde.evaluate(np.array([x,y]).reshape(2,1))
         densities.append(pdf)
 
     return densities
