@@ -492,6 +492,29 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf]):
     return dmat
 
 
+def AveHellinger(tuples, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf]):
+    """ Given a list of tuples (f', f), returns a distance matrix.
+    """
+    s = len(tuples)
+    dmat = np.zeros((s, s))
+
+    for i in trange(s):
+        for j in trange(i + 1, s):
+            data, high, low = rangeCover([tuples[i],tuples[j]])
+
+            blocks = tuplesToBlocks(data)
+
+            rblocks = resampleToUniform(blocks, low, high)
+
+            densities = blocksToScipyDensities(rblocks)
+
+            dmat[i, j] = Hellinger2D(densities[0], densities[1], x_range[0],
+                                     x_range[1], y_range[0], y_range[1])
+            dmat[j, i] = dmat[i, j]
+
+    return dmat
+
+
 def meanEuclidean(func1, func2, x_range):
     def integrand(x):
         f1 = lambda y: func1(y, x)
