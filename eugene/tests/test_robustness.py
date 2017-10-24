@@ -5,8 +5,26 @@ from eugene.src.tools.LVDSim import *
 from eugene.src.tools.StochasticTools import *
 import unittest
 
+# TODO: create toolbox method to take 2 data sets and produce distances.
+
 
 class TestRobustness(unittest.TestCase):
+
+    def pair_dist(self, data, low, high):
+        blocks = tuplesToBlocks(data)
+
+        rblocks = resampleToUniform(blocks, low, high)
+
+        kdes = blocksToKDEs(rblocks)
+
+        densities = KDEsToDensities(kdes)
+
+        dmat = distanceH2D(densities, y_range=[low, high])
+
+        dist = dmat[0][1] - dmat[0][0]
+        return dist
+
+
     @unittest.skip
     def test_same_more_data(self):
         print ("test_same_more_data")
@@ -30,33 +48,33 @@ class TestRobustness(unittest.TestCase):
 
         overlay = lambda x: np.mean(x, axis=1)
 
-        data = simData([params1, params2], 5., 500, overlay)
+        data, low, high = simData([params1, params2], 5., 500, overlay)
 
-        ddata = downSample(data)
+        blocks = tuplesToBlocks(data)
 
-        blocks = tuplesToBlocks(ddata)
+        rblocks = resampleToUniform(blocks, low, high)
 
-        kdes = blocksToKDEs(blocks)
+        kdes = blocksToKDEs(rblocks)
 
         densities = KDEsToDensities(kdes)
 
-        dmat = distanceH2D(densities)
+        dmat = distanceH2D(densities, y_range=[low, high])
 
         dist1 = dmat[0][1] - dmat[0][0]
 
-        more_data = simData([params1, params2], 5., 1000, overlay)
+        more_data, more_low, more_high = simData([params1, params2], 5., 1000, overlay)
 
-        more_ddata = downSample(more_data)
+        more_blocks = tuplesToBlocks(more_data)
 
-        more_blocks = tuplesToBlocks(more_ddata)
+        more_rblocks = resampleToUniform(more_blocks, more_low, more_high)
 
-        more_kdes = blocksToKDEs(more_blocks)
+        more_kdes = blocksToKDEs(more_rblocks)
 
         more_densities = KDEsToDensities(more_kdes)
 
-        dmat2 = distanceH2D(more_densities)
+        dmat2 = distanceH2D(more_densities, y_range=[more_low, more_high])
 
-        dist2 = dmat2[0][1] - dmat[0][0]
+        dist2 = dmat2[0][1] - dmat2[0][0]
 
         self.assertTrue(dist1 > dist2)
 
@@ -65,9 +83,10 @@ class TestRobustness(unittest.TestCase):
         print ("test_diff_more_data")
 
         r1 = np.array([1., 2.])
-        r2 = 1.5 * r1
+        r2 = r1
 
-        k1 = k2 = np.array([100., 110.])
+        k1 = np.array([100., 100.])
+        k2 = np.array([150., 150.])
 
         alpha1 = np.array([[1., 0.5], [0.7, 1.]])
         alpha2 = alpha1
@@ -83,42 +102,34 @@ class TestRobustness(unittest.TestCase):
 
         overlay = lambda x: np.mean(x, axis=1)
 
-        data = simData([params1, params2], 5., 500, overlay)
+        dists = []
+        for x in trange(10):
+            n = 10.0 * np.power(2, x)
+            data, low, high = simData([params1, params2], 5., 50, overlay)
+            dist = self.pair_dist(data, low, high)
+            dists.append(dist)
 
-        ddata = downSample(data)
+        # data, low, high = simData([params1, params2], 5., 50, overlay)
+        #
+        # dist1 = self.pair_dist(data, low, high)
+        #
+        # more_data, more_low, more_high = simData([params1, params2], 5., 5000, overlay)
+        #
+        # dist2 = self.pair_dist(more_data, more_low, more_high)
 
-        blocks = tuplesToBlocks(ddata)
+        # print (dist1)
+        # print (dist2)
+        # self.assertTrue(dist1 < dist2)
 
-        kdes = blocksToKDEs(blocks)
-
-        densities = KDEsToDensities(kdes)
-
-        dmat = distanceH2D(densities)
-
-        dist1 = dmat[0][1] - dmat[0][0]
-
-        more_data = simData([params1, params2], 5., 1000, overlay)
-
-        more_ddata = downSample(more_data)
-
-        more_blocks = tuplesToBlocks(more_ddata)
-
-        more_kdes = blocksToKDEs(more_blocks)
-
-        more_densities = KDEsToDensities(more_kdes)
-
-        dmat2 = distanceH2D(more_densities)
-
-        dist2 = dmat2[0][1] - dmat[0][0]
-
-        print (dist1)
-        print (dist2)
-        self.assertTrue(dist1 < dist2)
+        print (dists)
+        self.assertTrue(dists[0] < dists[-1])
 
 
     @unittest.skip
     def test_same_more_info(self):
         print ("test_same_more_info")
+        # currently out of commission as comparing more than one variable is...
+        # difficult.
 
         r1 = np.array([1., 2.])
         r2 = 1.5 * r1
@@ -139,35 +150,35 @@ class TestRobustness(unittest.TestCase):
 
         overlay = lambda x: np.mean(x, axis=1)
 
-        data = simData([params1, params2], 5., 500, overlay)
+        data, low, high = simData([params1, params2], 5., 500, overlay)
 
-        ddata = downSample(data)
+        blocks = tuplesToBlocks(data)
 
-        blocks = tuplesToBlocks(ddata)
+        rblocks = resampleToUniform(blocks, low, high)
 
-        kdes = blocksToKDEs(blocks)
+        kdes = blocksToKDEs(rblocks)
 
         densities = KDEsToDensities(kdes)
 
-        dmat = distanceH2D(densities)
+        dmat = distanceH2D(densities, y_range=[low, high])
 
         dist1 = dmat[0][1] - dmat[0][0]
 
         less_overlay = lambda x: x
 
-        more_data = simData([params1, params2], 5., 500, less_overlay)
+        more_data, more_low, more_high = simData([params1, params2], 5., 500, less_overlay)
 
-        more_ddata = downSample(more_data)
+        more_blocks = tuplesToBlocks(more_data)
 
-        more_blocks = tuplesToBlocks(more_ddata)
+        more_rblocks = resampleToUniform(more_blocks, more_low, more_high)
 
-        more_kdes = blocksToKDEs(more_blocks)
+        more_kdes = blocksToKDEs(more_rblocks)
 
         more_densities = KDEsToDensities(more_kdes)
 
-        dmat2 = distanceH2D(more_densities)
+        dmat2 = distanceH2D(more_densities, y_range=[more_low, more_high])
 
-        dist2 = dmat2[0][1] - dmat[0][0]
+        dist2 = dmat2[0][1] - dmat2[0][0]
 
         self.assertTrue(dist1 > dist2)
 
