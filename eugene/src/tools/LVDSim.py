@@ -12,9 +12,11 @@ import multiprocessing
 import pandas as pd
 from sklearn.neighbors import KernelDensity
 from scipy.integrate import quad
+from scipy import stats
 from tqdm import tqdm, trange
 import eugene.src.auxiliary.sampling.resample as resample
-import pdb
+from multiprocessing import cpu_count
+#import pdb
 
 
 # Classes
@@ -436,8 +438,9 @@ def blocksToScipyDensities(data):
     """
     densities = []
     for block in data:
-        kde = stats.gaussian_kde(block)
-        pdf = kde.evaluate(block)
+        kde = stats.gaussian_kde(block.T)
+#        pdf = kde.evaluate(block.T)
+        pdf = lambda x, y, kde=kde: kde.evaluate(np.array([x,y]).reshape(2,1))
         densities.append(pdf)
 
     return densities
@@ -485,6 +488,51 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf]):
         for j in trange(i + 1, s):
             dmat[i, j] = Hellinger2D(densities[i], densities[j], x_range[0],
                                      x_range[1], y_range[0], y_range[1])
+            dmat[j, i] = dmat[i, j]
+
+    return dmat
+
+def AH_loop_function(i, j, tuples, x_range, y_range):
+    data, high, low = rangeCover([tuples[i],tuples[j]])
+
+    blocks = tuplesToBlocks(data)
+
+    rblocks = resampleToUniform(blocks, low, high)
+
+    densities = blocksToScipyDensities(rblocks)
+
+    return Hellinger2D(densities[0], densities[1], x_range[0],
+                             x_range[1], y_range[0], y_range[1])
+
+def AveHellinger(tuples, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf],
+        free_cores=2):
+    """ Given a list of tuples (f', f), returns a distance matrix.
+    """
+    s = len(tuples)
+    dmat = np.zeros((s, s))
+
+    cpus = max(cpu_count() - free_cores, 1)
+
+
+#    for i in trange(s):
+#        for j in trange(i + 1, s):
+#            data, high, low = rangeCover([tuples[i],tuples[j]])
+#
+#            blocks = tuplesToBlocks(data)
+#
+#            rblocks = resampleToUniform(blocks, low, high)
+#
+#            densities = blocksToScipyDensities(rblocks)
+#
+#            dmat[i, j] = Hellinger2D(densities[0], densities[1], x_range[0],
+#                                     x_range[1], y_range[0], y_range[1])
+#            dmat[j, i] = dmat[i, j]
+
+    out = Parallel(n_jobs=cpus,verbose=100)(delayed(AH_loop_function)(i,j,tuples,x_range,y_range) for i in range(s) for j in range(i + 1, s))
+
+    for i in trange(s):
+        for j in trange(i + 1, s):
+            dmat[i, j] = out[i * (s - i -1) + (j - i -1)]
             dmat[j, i] = dmat[i, j]
 
     return dmat
