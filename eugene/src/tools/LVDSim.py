@@ -4,6 +4,7 @@
 
 # from LotkaVolterraND import LotkaVolterraND
 from eugene.src.virtual_sys.LotkaVolterraND import LotkaVolterraND
+from eugene.src.virtual_sys.LotkaVolterraSND import LotkaVolterraSND
 from eugene.src.auxiliary.probability import *
 import random
 import numpy as np
@@ -115,7 +116,7 @@ def speciesAlive(populations, threshold=0.01):
     return sum(i > threshold for i in populations)
 
 
-def simData(params, max_time, num_times, overlay):
+def simData(params, max_time, num_times, overlay, stochastic_reps=None):
     """ Generates data for a list of parameters corresponding to systems and 
     returns a list of arrays of data that cover the same range.
             
@@ -153,33 +154,68 @@ def simData(params, max_time, num_times, overlay):
 
     lv = []
     lv_trans = []
-    for param_set in params:
-        lv.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[3], 0))
-        lv_trans.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[4], 0))
-
+    if stochastic_reps is None:
+        for param_set in params:
+            lv.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[3], 0))
+            lv_trans.append(LotkaVolterraND(param_set[0], param_set[1], 
+                param_set[2], param_set[4], 0))
+    else:
+        for param_set in params:
+            lv.append(LotkaVolterraSND(param_set[0], param_set[1], param_set[2],
+                param_set[3], param_set[4], 0))
+            lv_trans.append(LotkaVolterraSND(param_set[0], param_set[1], 
+                param_set[2], param_set[3], param_set[5], 0))
+ 
     times = []
     times_trans = []
     for i in range(len(lv)):
-#        times.append(np.sort(np.random.uniform(0, max_time, num_times)))
         times.append(np.linspace(0., max_time, num_times))
     for i in range(len(lv_trans)):
-#        times_trans.append(np.sort(np.random.uniform(0, max_time, num_times)))
         times_trans.append(np.linspace(0., max_time, num_times))
 
-    xs = []
-    xs_trans = []
-    for i, sys in enumerate(lv):
-        xs.append(sys.check_xs(times[i]))
-    for i, sys in enumerate(lv_trans):
-        xs_trans.append(sys.check_xs(times[i]))
+    if stochastic_reps is None:
+        xs = []
+        xs_trans = []
+        for i, sys in enumerate(lv):
+            xs.append(sys.check_xs(times[i]))
+        for i, sys in enumerate(lv_trans):
+            xs_trans.append(sys.check_xs(times[i]))
+        
+        raw_data = []
+        for i in range(len(lv)):
+            f = overlay(xs[i])
+            f_trans = overlay(xs_trans[i])
+            raw_data.append([f, f_trans])
 
-    raw_data = []
-    for i in range(len(lv)):
-        f = overlay(xs[i])
-        f_trans = overlay(xs_trans[i])
-        raw_data.append([f, f_trans])
+    else:
+        xs = []
+        xs_trans = []
+        for i, sys in enumerate(lv):
+            temp = sys.check_xs(times[i])
+            sys._x = sys._init_x
+            for r in range(stochastic_reps-1):
+                temp = np.vstack((temp,sys.check_xs(times[i])))
+                sys._x = sys._init_x
+            xs.append(temp)
 
-    raw_data = np.array(raw_data)
+        for i, sys in enumerate(lv_trans):
+            temp = sys.check_xs(times[i])
+            sys._x = sys._init_x
+            for r in range(stochastic_reps-1):
+                temp = np.vstack((temp,sys.check_xs(times[i])))
+                sys._x = sys._init_x
+            xs_trans.append(temp)
+
+        raw_data = []
+        for i in range(len(lv)):
+            f = overlay(xs[i])
+            f_trans = overlay(xs_trans[i])
+            raw_data.append([f, f_trans])
+
+
+#    pdb.set_trace()
+    
+#    raw_data = np.array(raw_data)
 
     data, high, low = rangeCover(raw_data)
 
@@ -438,8 +474,10 @@ def blocksToScipyDensities(data):
     """
     densities = []
     for block in data:
-        kde = stats.gaussian_kde(block.T)
-#        pdf = kde.evaluate(block.T)
+        try:
+            kde = stats.gaussian_kde(block.T)
+        except:
+            kde = stats.guassian_kde(block.T,bw_method=0.1)
         pdf = lambda x, y, kde=kde: kde.evaluate(np.array([x,y]).reshape(2,1))
         densities.append(pdf)
 
@@ -494,6 +532,7 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf]):
 
 def AH_loop_function(i, j, tuples, x_range, y_range):
     data, high, low = rangeCover([tuples[i],tuples[j]])
+    print(i,j)
 
     blocks = tuplesToBlocks(data)
 

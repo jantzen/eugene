@@ -9,14 +9,15 @@
 import random
 import numpy as np
 import scipy.integrate
-
+# from tqdm import tqdm, trange
+import pdb
 
 class LotkaVolterraSND( object ):
     """ Implementation of stochastic N species Competitive Lotka-Volterra 
         equations.        
     """
 
-    def __init__(self, r, k, alpha, sigma, init_x, init_t=0):
+    def __init__(self, r, k, alpha, sigma, init_x, init_t=0, steps=10**3):
         """ Initializes a stochastic competitive Lotka-Volterra model with n 
             species
         
@@ -48,25 +49,68 @@ class LotkaVolterraSND( object ):
         self._x = init_x
         self._time = float(init_t)
         self._delta_t = 1
+        self._steps = steps
         
         self._sigma = sigma
         
 
+#    def update_x(self, elapsed_time):
+#
+#        t = np.array([0., elapsed_time])
+#        #t = np.arange(0, elapsed_time) 
+#        self._delta_t = elapsed_time
+#        #self._noise = np.random.rand(np.size(self._r), elapsed_time)
+#        out = scipy.integrate.odeint(self.deriv, self._x, t)
+#        self._x = out[-1]
+#        
+#
+#    def deriv(self, X, t):
+#        terms = np.zeros(len(X))
+#        
+#        for i in range(len(X)):
+#            noise = np.random.normal()
+#            #noise = self._noise
+#            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] *
+#                X)/self._k[i]) ) + (self._sigma[i] * X[i] * noise / (2. *
+#                    np.sqrt(self._delta_t) ) ) + (self._sigma[i]**2 / 2.) * X[i]
+#                * (noise**2 - 1.)
+#        return terms
+
+
     def update_x(self, elapsed_time):
 
-        t = np.array([0., elapsed_time])
-        #t = np.arange(0, elapsed_time) 
-        self._delta_t = elapsed_time
-        #self._noise = np.random.rand(np.size(self._r), elapsed_time)
-        out = scipy.integrate.odeint(self.deriv, self._x, t)
-        self._x = out[-1]
-        
+        if elapsed_time == 0.:
+            return None
 
-    def deriv(self, X, t):
-        terms = np.zeros(len(X))
+        delta = float(elapsed_time) / float(self._steps)
+        X = self._x
+        dX = np.zeros(len(X))
+        for s in range(self._steps):
+            for i in range(len(X)): 
+                noise = np.random.normal()
+                
+                dX[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] *
+                X)/self._k[i]) ) + (self._sigma[i] * X[i] * noise / (2. *
+                np.sqrt(delta) ) ) + (self._sigma[i]**2 / 2.) * (X[i]
+                * (noise**2 - 1.))
+
+                if not np.isfinite(dX[i]): 
+                    pdb.set_trace()
+
+                X[i] = X[i] + dX[i] * delta
+ 
+        self._x = X
+
+
+    def check_xs(self, times):
+        t_n = 0.
+        xs = self._x.reshape(1, len(self._x))
+        for i in range(1,len(times)):
+            if times[i] == 0.:
+                continue
+            interval = times[i] - t_n
+            t_n = times[i]
+            self.update_x(interval)
+            xs = np.vstack((xs, self._x.reshape(1, len(self._x))))
         
-        for i in range(len(X)):
-            noise = np.random.normal()
-            #noise = self._noise
-            terms[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] * X)/self._k) ) + (self._sigma[i] * X[i] * noise / (2 * np.sqrt(self._delta_t) ) ) + (self._sigma[i]**2 / 2) * X[i] * (noise**2 - 1)
-        return terms
+        return xs

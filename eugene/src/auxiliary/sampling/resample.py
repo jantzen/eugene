@@ -19,7 +19,8 @@ def uniform(data, samples=None, bounds=None):
         bounds = [np.amin(data[:,0]), np.amax(data[:,0])]
 
     if bounds[0] > bounds[1]:
-        raise ValueError('lower bound must be less than upper bound')
+        raise ValueError('lower bound {0} is not less than upper bound {1}'.format(
+            bounds[0],bounds[1]))
 
     # draw random samples from the specified half-open interval
     rs = (bounds[1] - bounds[0]) * random_sample(samples) + bounds[0]
