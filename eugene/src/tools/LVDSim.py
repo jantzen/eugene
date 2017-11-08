@@ -16,7 +16,9 @@ from scipy import stats
 from tqdm import tqdm, trange
 import eugene.src.auxiliary.sampling.resample as resample
 from multiprocessing import cpu_count
-#import pdb
+
+
+# import pdb
 
 
 # Classes
@@ -48,7 +50,8 @@ class Conditional_Density(object):
 
         # compute unconditional probability of X = x
         func = lambda z: np.exp(self._kde.score_samples(np.array([x,
-                                                                  z]).reshape(1, -1)))
+                                                                  z]).reshape(1,
+                                                                              -1)))
         temp = quad(func, self._xrange[0],
                     self._xrange[1], epsabs=1. * 10 ** (-6), limit=30)
         p_x = temp[0]
@@ -154,16 +157,19 @@ def simData(params, max_time, num_times, overlay):
     lv = []
     lv_trans = []
     for param_set in params:
-        lv.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[3], 0))
-        lv_trans.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[4], 0))
+        lv.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2],
+                                  param_set[3], 0))
+        lv_trans.append(
+            LotkaVolterraND(param_set[0], param_set[1], param_set[2],
+                            param_set[4], 0))
 
     times = []
     times_trans = []
     for i in range(len(lv)):
-#        times.append(np.sort(np.random.uniform(0, max_time, num_times)))
+        # times.append(np.sort(np.random.uniform(0, max_time, num_times)))
         times.append(np.linspace(0., max_time, num_times))
     for i in range(len(lv_trans)):
-#        times_trans.append(np.sort(np.random.uniform(0, max_time, num_times)))
+        # times_trans.append(np.sort(np.random.uniform(0, max_time, num_times)))
         times_trans.append(np.linspace(0., max_time, num_times))
 
     xs = []
@@ -172,6 +178,10 @@ def simData(params, max_time, num_times, overlay):
         xs.append(sys.check_xs(times[i]))
     for i, sys in enumerate(lv_trans):
         xs_trans.append(sys.check_xs(times[i]))
+
+    # num_cores = multiprocessing.cpu_count() - 2
+    # xs = Parallel(n_jobs=num_cores)(delayed(sys.check_xs)(times[i]) for i, sys in enumerate(lv))
+    # xs_trans = Parallel(n_jobs=num_cores)(delayed(sys.check_xs)(times[i]) for i, sys in enumerate(lv_trans))
 
     raw_data = []
     for i in range(len(lv)):
@@ -241,7 +251,8 @@ def runByArray(param_arr, iterations):
     # populations = []
     num_cores = multiprocessing.cpu_count() - 2
     results = Parallel(n_jobs=num_cores)(
-        delayed(randInitPopsSim)(params[0], params[1], params[2], iterations) for params in param_arr)
+        delayed(randInitPopsSim)(params[0], params[1], params[2], iterations)
+        for params in param_arr)
     # for params in tqdm(param_arr):
     #    r = params[0]
     #    alpha = params[1]
@@ -338,8 +349,8 @@ def rangeCover(data):
 
         output.append((keys, values))
 
-#    print(lowestHigh)
-#    print(highestLow)
+    #    print(lowestHigh)
+    #    print(highestLow)
     return output, lowestHigh, highestLow
 
 
@@ -389,7 +400,7 @@ def resampleToUniform(data, low, high):
 
     out = []
     for block in data:
-        out.append(resample.uniform(block, bounds=[low,high]))
+        out.append(resample.uniform(block, bounds=[low, high]))
 
     return out
 
@@ -415,7 +426,8 @@ def KDEsToDensities(kde_objects):
     densities = []
     for kde in kde_objects:
         func = lambda x, y, kde=kde: np.exp(kde.score_samples(np.array([x,
-                                                                        y]).reshape(1, -1)))
+                                                                        y]).reshape(
+            1, -1)))
         # note the dummy variable used above to capture the current kde value
         densities.append(func)
 
@@ -439,8 +451,8 @@ def blocksToScipyDensities(data):
     densities = []
     for block in data:
         kde = stats.gaussian_kde(block.T)
-#        pdf = kde.evaluate(block.T)
-        pdf = lambda x, y, kde=kde: kde.evaluate(np.array([x,y]).reshape(2,1))
+        #        pdf = kde.evaluate(block.T)
+        pdf = lambda x, y, kde=kde: kde.evaluate(np.array([x, y]).reshape(2, 1))
         densities.append(pdf)
 
     return densities
@@ -454,7 +466,8 @@ def meanHellinger(func1, func2, x_range):
         return HellingerDistance(f1, f2, x_range)
 
 
-    out = quad(integrand, x_range[0], x_range[1], epsabs=1. * 10 ** (-6), limit=30)
+    out = quad(integrand, x_range[0], x_range[1], epsabs=1. * 10 ** (-6),
+               limit=30)
 
     return out[0] / (float(x_range[1]) -
                      float(x_range[0]))
@@ -478,7 +491,8 @@ def distanceH(densities, x_range=[-np.inf, np.inf]):
     return dmat
 
 
-def distanceH2D(densities, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf]):
+def distanceH2D(densities, x_range=[-np.inf, np.inf],
+                y_range=[-np.inf, np.inf]):
     """ Returns a distance matrx.
     """
     s = len(densities)
@@ -492,8 +506,9 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf]):
 
     return dmat
 
+
 def AH_loop_function(i, j, tuples, x_range, y_range):
-    data, high, low = rangeCover([tuples[i],tuples[j]])
+    data, high, low = rangeCover([tuples[i], tuples[j]])
 
     blocks = tuplesToBlocks(data)
 
@@ -502,10 +517,11 @@ def AH_loop_function(i, j, tuples, x_range, y_range):
     densities = blocksToScipyDensities(rblocks)
 
     return Hellinger2D(densities[0], densities[1], x_range[0],
-                             x_range[1], y_range[0], y_range[1])
+                       x_range[1], y_range[0], y_range[1])
 
-def AveHellinger(tuples, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf],
-        free_cores=2):
+
+def AveHellinger(tuples, x_range=[-np.inf, np.inf], y_range=[-np.inf, np.inf],
+                 free_cores=2):
     """ Given a list of tuples (f', f), returns a distance matrix.
     """
     s = len(tuples)
@@ -513,26 +529,27 @@ def AveHellinger(tuples, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf],
 
     cpus = max(cpu_count() - free_cores, 1)
 
+    #    for i in trange(s):
+    #        for j in trange(i + 1, s):
+    #            data, high, low = rangeCover([tuples[i],tuples[j]])
+    #
+    #            blocks = tuplesToBlocks(data)
+    #
+    #            rblocks = resampleToUniform(blocks, low, high)
+    #
+    #            densities = blocksToScipyDensities(rblocks)
+    #
+    #            dmat[i, j] = Hellinger2D(densities[0], densities[1], x_range[0],
+    #                                     x_range[1], y_range[0], y_range[1])
+    #            dmat[j, i] = dmat[i, j]
 
-#    for i in trange(s):
-#        for j in trange(i + 1, s):
-#            data, high, low = rangeCover([tuples[i],tuples[j]])
-#
-#            blocks = tuplesToBlocks(data)
-#
-#            rblocks = resampleToUniform(blocks, low, high)
-#
-#            densities = blocksToScipyDensities(rblocks)
-#
-#            dmat[i, j] = Hellinger2D(densities[0], densities[1], x_range[0],
-#                                     x_range[1], y_range[0], y_range[1])
-#            dmat[j, i] = dmat[i, j]
-
-    out = Parallel(n_jobs=cpus,verbose=100)(delayed(AH_loop_function)(i,j,tuples,x_range,y_range) for i in range(s) for j in range(i + 1, s))
+    out = Parallel(n_jobs=cpus, verbose=100)(
+        delayed(AH_loop_function)(i, j, tuples, x_range, y_range) for i in
+        range(s) for j in range(i + 1, s))
 
     for i in trange(s):
         for j in trange(i + 1, s):
-            dmat[i, j] = out[i * (s - i -1) + (j - i -1)]
+            dmat[i, j] = out[i * (s - i - 1) + (j - i - 1)]
             dmat[j, i] = dmat[i, j]
 
     return dmat
