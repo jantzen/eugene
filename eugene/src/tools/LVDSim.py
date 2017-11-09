@@ -193,7 +193,7 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None):
         for i, sys in enumerate(lv):
             temp = sys.check_xs(times[i])
             sys._x = sys._init_x
-            for r in range(stochastic_reps-1):
+            for r in range(stochastic_reps):
                 temp = np.vstack((temp,sys.check_xs(times[i])))
                 sys._x = sys._init_x
             xs.append(temp)
@@ -201,7 +201,7 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None):
         for i, sys in enumerate(lv_trans):
             temp = sys.check_xs(times[i])
             sys._x = sys._init_x
-            for r in range(stochastic_reps-1):
+            for r in range(stochastic_reps):
                 temp = np.vstack((temp,sys.check_xs(times[i])))
                 sys._x = sys._init_x
             xs_trans.append(temp)
@@ -211,7 +211,6 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None):
             f = overlay(xs[i])
             f_trans = overlay(xs_trans[i])
             raw_data.append([f, f_trans])
-
 
 #    pdb.set_trace()
     
@@ -467,20 +466,26 @@ def jointToConditional(joint_densities, x_range=[-np.inf, np.inf]):
     return out
 
 
-def blocksToScipyDensities(data):
+def blocksToScipyDensities(data, low, high):
     """ For a list of 2-D arrays of data, uses kernel density esitmation to
     estimate joint probability densities, and outpus a list of trained sklearn KernelDensity
     objects.
     """
     densities = []
     for block in data:
-        try:
-            kde = stats.gaussian_kde(block.T)
-        except:
-            kde = stats.guassian_kde(block.T,bw_method=0.1)
-        pdf = lambda x, y, kde=kde: kde.evaluate(np.array([x,y]).reshape(2,1))
-        densities.append(pdf)
-
+        if len(block) < 10:
+            pdf = lambda x, y: np.nan
+            densities.append(pdf)
+        else:
+            try:
+                kde = stats.gaussian_kde(block.T)
+                pdf = lambda x, y, kde=kde: kde.evaluate(np.array([x,y]).reshape(2,1))
+                densities.append(pdf)
+            except:
+#                print("in blocksToScipyDensities, reverting to fixed bw\n")
+#                kde = stats.gaussian_kde(block.T,bw_method=0.1)
+                pdf = lambda x, y: np.nan
+                densities.append(pdf)
     return densities
 
 
@@ -530,21 +535,22 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf]):
 
     return dmat
 
-def AH_loop_function(i, j, tuples, x_range, y_range):
+def AH_loop_function(i, j, tuples):
     data, high, low = rangeCover([tuples[i],tuples[j]])
     print(i,j)
+
+    if low >= high:
+        return np.nan
 
     blocks = tuplesToBlocks(data)
 
     rblocks = resampleToUniform(blocks, low, high)
 
-    densities = blocksToScipyDensities(rblocks)
+    densities = blocksToScipyDensities(rblocks, low, high)
 
-    return Hellinger2D(densities[0], densities[1], x_range[0],
-                             x_range[1], y_range[0], y_range[1])
+    return Hellinger2D(densities[0], densities[1], low, high, -np.inf, np.inf)
 
-def AveHellinger(tuples, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf],
-        free_cores=2):
+def AveHellinger(tuples, free_cores=2):
     """ Given a list of tuples (f', f), returns a distance matrix.
     """
     s = len(tuples)
@@ -567,7 +573,7 @@ def AveHellinger(tuples, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf],
 #                                     x_range[1], y_range[0], y_range[1])
 #            dmat[j, i] = dmat[i, j]
 
-    out = Parallel(n_jobs=cpus,verbose=100)(delayed(AH_loop_function)(i,j,tuples,x_range,y_range) for i in range(s) for j in range(i + 1, s))
+    out = Parallel(n_jobs=cpus,verbose=100)(delayed(AH_loop_function)(i,j,tuples) for i in range(s) for j in range(i + 1, s))
 
     for i in trange(s):
         for j in trange(i + 1, s):
