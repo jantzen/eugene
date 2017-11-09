@@ -17,7 +17,9 @@ from scipy import stats
 from tqdm import tqdm, trange
 import eugene.src.auxiliary.sampling.resample as resample
 from multiprocessing import cpu_count
-#import pdb
+
+
+# import pdb
 
 
 # Classes
@@ -49,7 +51,8 @@ class Conditional_Density(object):
 
         # compute unconditional probability of X = x
         func = lambda z: np.exp(self._kde.score_samples(np.array([x,
-                                                                  z]).reshape(1, -1)))
+                                                                  z]).reshape(1,
+                                                                              -1)))
         temp = quad(func, self._xrange[0],
                     self._xrange[1], epsabs=1. * 10 ** (-6), limit=30)
         p_x = temp[0]
@@ -276,7 +279,8 @@ def runByArray(param_arr, iterations):
     # populations = []
     num_cores = multiprocessing.cpu_count() - 2
     results = Parallel(n_jobs=num_cores)(
-        delayed(randInitPopsSim)(params[0], params[1], params[2], iterations) for params in param_arr)
+        delayed(randInitPopsSim)(params[0], params[1], params[2], iterations)
+        for params in param_arr)
     # for params in tqdm(param_arr):
     #    r = params[0]
     #    alpha = params[1]
@@ -373,8 +377,8 @@ def rangeCover(data):
 
         output.append((keys, values))
 
-#    print(lowestHigh)
-#    print(highestLow)
+    #    print(lowestHigh)
+    #    print(highestLow)
     return output, lowestHigh, highestLow
 
 
@@ -424,7 +428,7 @@ def resampleToUniform(data, low, high):
 
     out = []
     for block in data:
-        out.append(resample.uniform(block, bounds=[low,high]))
+        out.append(resample.uniform(block, bounds=[low, high]))
 
     return out
 
@@ -450,7 +454,8 @@ def KDEsToDensities(kde_objects):
     densities = []
     for kde in kde_objects:
         func = lambda x, y, kde=kde: np.exp(kde.score_samples(np.array([x,
-                                                                        y]).reshape(1, -1)))
+                                                                        y]).reshape(
+            1, -1)))
         # note the dummy variable used above to capture the current kde value
         densities.append(func)
 
@@ -497,7 +502,8 @@ def meanHellinger(func1, func2, x_range):
         return HellingerDistance(f1, f2, x_range)
 
 
-    out = quad(integrand, x_range[0], x_range[1], epsabs=1. * 10 ** (-6), limit=30)
+    out = quad(integrand, x_range[0], x_range[1], epsabs=1. * 10 ** (-6),
+               limit=30)
 
     return out[0] / (float(x_range[1]) -
                      float(x_range[0]))
@@ -521,7 +527,8 @@ def distanceH(densities, x_range=[-np.inf, np.inf]):
     return dmat
 
 
-def distanceH2D(densities, x_range=[-np.inf, np.inf], y_range=[-np.inf,np.inf]):
+def distanceH2D(densities, x_range=[-np.inf, np.inf],
+                y_range=[-np.inf, np.inf]):
     """ Returns a distance matrx.
     """
     s = len(densities)
@@ -558,7 +565,6 @@ def AveHellinger(tuples, free_cores=2):
 
     cpus = max(cpu_count() - free_cores, 1)
 
-
 #    for i in trange(s):
 #        for j in trange(i + 1, s):
 #            data, high, low = rangeCover([tuples[i],tuples[j]])
@@ -577,7 +583,7 @@ def AveHellinger(tuples, free_cores=2):
 
     for i in trange(s):
         for j in trange(i + 1, s):
-            dmat[i, j] = out[i * (s - i -1) + (j - i -1)]
+            dmat[i, j] = out[i * (s - i - 1) + (j - i - 1)]
             dmat[j, i] = dmat[i, j]
 
     return dmat
