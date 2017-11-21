@@ -119,7 +119,8 @@ def speciesAlive(populations, threshold=0.01):
     return sum(i > threshold for i in populations)
 
 
-def simData(params, max_time, num_times, overlay, stochastic_reps=None):
+def simData(params, max_time, num_times, overlay, stochastic_reps=None,
+        range_cover=True):
     """ Generates data for a list of parameters corresponding to systems and 
     returns a list of arrays of data that cover the same range.
             
@@ -215,13 +216,12 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None):
             f_trans = overlay(xs_trans[i])
             raw_data.append([f, f_trans])
 
-#    pdb.set_trace()
-    
-#    raw_data = np.array(raw_data)
+    if range_cover:
+        data, high, low = rangeCover(raw_data)
+        return data, low, high
 
-    data, high, low = rangeCover(raw_data)
-
-    return data, low, high
+    else:
+        return raw_data
 
 
 def randInitPopsSim(r, k, alpha, iterations, delta_t=1):
@@ -471,9 +471,9 @@ def jointToConditional(joint_densities, x_range=[-np.inf, np.inf]):
     return out
 
 
-def blocksToScipyDensities(data, low, high):
+def blocksToScipyDensities(data):
     """ For a list of 2-D arrays of data, uses kernel density esitmation to
-    estimate joint probability densities, and outpus a list of trained sklearn KernelDensity
+    estimate joint probability densities, and outputs a list of trained sklearn KernelDensity
     objects.
     """
     densities = []
