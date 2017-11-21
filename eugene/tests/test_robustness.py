@@ -11,14 +11,33 @@ import unittest
 
 class TestRobustness(unittest.TestCase):
 
-    def pair_dist(self, data, low, high):
+    def pair_dist(self, data):
         blocks = tuplesToBlocks(data)
 
-        rblocks = resampleToUniform(blocks, low, high)
+        x_min = []
+        x_max = []
+        x_std = []
+        y_min = []
+        y_max = []
+        y_std = []
+        for block in blocks:
+            x_min.append(np.min(block[:, 0]))
+            x_max.append(np.max(block[:, 0]))
+            x_std.append(np.std(block[:, 0]))
+            y_min.append(np.min(block[:, 1]))
+            y_max.append(np.max(block[:, 1]))
+            y_std.append(np.std(block[:, 1]))
+        x_std = np.max(x_std)
+        x_min = np.min(x_min) - x_std
+        x_max = np.max(x_max) + x_std
+        y_std = np.max(y_std)
+        y_min = np.min(y_min) - y_std
+        y_max = np.max(y_max) + y_std
 
-        densities = blocksToScipyDensities(rblocks)
+        densities = blocksToScipyDensities(blocks)
 
-        dmat = distanceH2D(densities, y_range=[low, high])
+        dmat = distanceH2D(densities, x_range=[x_min, x_max],
+                           y_range=[y_min, y_max])
 
         dist = dmat[0][1] - dmat[0][0]
         return dist
@@ -34,7 +53,7 @@ class TestRobustness(unittest.TestCase):
         print ("test_same_more_data")
 
         r1 = np.array([1., 2.])
-        r2 = r1 * 3.0
+        r2 = r1 * 1.5
 
         k1 = np.array([100., 100.])
         k2 = np.array([100., 100.])
@@ -55,11 +74,11 @@ class TestRobustness(unittest.TestCase):
 
         dists = []
         lens = []
-        for x in trange(10):
-            n = 10.0 * np.power(2, x)
+        for x in trange(9):
+            n = 10.0 * np.power(2, x+1)
             lens.append(n)
             data, low, high = simData([params1, params2], 5., n, overlay)
-            dist = self.ave_pair_dist(data)
+            dist = self.pair_dist(data)
             dists.append(dist)
 
         print(dists)
@@ -67,7 +86,6 @@ class TestRobustness(unittest.TestCase):
         self.assertTrue(dists[0] > dists[-1])
 
 
-    @unittest.skip
     def test_diff_more_data(self):
         print ("test_diff_more_data")
 
@@ -93,11 +111,11 @@ class TestRobustness(unittest.TestCase):
 
         dists = []
         lens = []
-        for x in trange(10):
-            n = 10.0 * np.power(2, x)
+        for x in trange(9):
+            n = 10.0 * np.power(2, x+1)
             lens.append(n)
             data, low, high = simData([params1, params2], 5., n, overlay)
-            dist = self.ave_pair_dist(data)
+            dist = self.pair_dist(data)
             dists.append(dist)
 
         print (dists)
