@@ -24,9 +24,9 @@ class TestRobustness(unittest.TestCase):
         return dist
 
 
-    def ave_pair_dist(self, data, low, high):
-        dmat = AveHellinger(data, y_range=[low, high])
+    def ave_pair_dist(self, data):
 
+        dmat = AveHellinger(data)
         dist = dmat[0][1] - dmat[0][0]
         return dist
 
@@ -34,7 +34,7 @@ class TestRobustness(unittest.TestCase):
         print ("test_same_more_data")
 
         r1 = np.array([1., 2.])
-        r2 = r1 * 1.5
+        r2 = r1 * 3.0
 
         k1 = np.array([100., 100.])
         k2 = np.array([100., 100.])
@@ -59,7 +59,7 @@ class TestRobustness(unittest.TestCase):
             n = 10.0 * np.power(2, x)
             lens.append(n)
             data, low, high = simData([params1, params2], 5., n, overlay)
-            dist = self.ave_pair_dist(data, low, high)
+            dist = self.ave_pair_dist(data)
             dists.append(dist)
 
         print(dists)
@@ -67,6 +67,7 @@ class TestRobustness(unittest.TestCase):
         self.assertTrue(dists[0] > dists[-1])
 
 
+    @unittest.skip
     def test_diff_more_data(self):
         print ("test_diff_more_data")
 
@@ -96,7 +97,7 @@ class TestRobustness(unittest.TestCase):
             n = 10.0 * np.power(2, x)
             lens.append(n)
             data, low, high = simData([params1, params2], 5., n, overlay)
-            dist = self.ave_pair_dist(data, low, high)
+            dist = self.ave_pair_dist(data)
             dists.append(dist)
 
         print (dists)

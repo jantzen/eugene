@@ -14,7 +14,7 @@ def map_data(init_pops, trans_pops, caps, max_time, num_times, overlay, depth):
 
     data, low, high = simData(params, max_time, num_times, overlay)
 
-    dmat = AveHellinger(data, y_range=[low, high])
+    dmat = AveHellinger(data)
     return dmat
 
 
@@ -24,7 +24,7 @@ def point_to_param(point, init_pops, trans_pops, caps):
 
 
 def map_dmat(data, low, high):
-    dmat = AveHellinger(data, y_range=[low, high])
+    dmat = AveHellinger(data)
     return dmat
 
 

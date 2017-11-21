@@ -9,6 +9,7 @@ from sympy.physics import mechanics
 
 from sympy import Dummy, lambdify
 from scipy.integrate import odeint
+from eugene.src.tools.LVDsim import rangeCover
 
 def integrate_pendulum(n, times,
                        initial_positions=135,
@@ -125,3 +126,88 @@ def get_data(pendulums, t_0=0, t_elapsed=10, delta_t=1000):
     t = np.linspace(t_0, t_elapsed, delta_t)
     p = integrate_pendulum(n=pendulums, times=t)
     return get_xy_coords(p)
+
+
+def simData(params, max_time, num_times, overlay, stochastic_reps=None):
+    """ Generates data for a list of parameters corresponding to systems and
+    returns a list of arrays of data that cover the same range. Initial velocity
+    is always set to zero.
+
+            Keyword arguments:
+            params -- a list containing parameter sets. Each parameter set
+                is a list that contains, in order: a number of pendulums,
+                an original starting position, a transformed starting position,
+                and an array of arm lengths.
+            max_time -- the highest time value to sample the system at.
+            num_times -- the number of times to sample the system between t=0
+                and t=max_time.
+            overlay -- a function that takes an array of coordinates and returns
+                a new data array. This function is overlaid on the data.
+
+            Returns:
+            2d array -- two arrays of data from the systems that cover the same
+                range.
+    """
+
+    pend = []
+    pend_trans = []
+    if stochastic_reps is None:
+        for param_set in params:
+            pend.append([param_set[0], param_set[1], param_set[3]])
+            pend_trans.append([param_set[0], param_set[2], param_set[3]])
+
+    # TODO: Implement stochastic data generation
+
+    times = []
+    times_trans = []
+    for i in range(len(pend)):
+        times.append(np.linspace(0., max_time, num_times))
+    for i in range(len(pend_trans)):
+        times_trans.append(np.linspace(0., max_time, num_times))
+
+    if stochastic_reps is None:
+        xys = []
+        xys_trans = []
+        for i, sys in enumerate(pend):
+            p = integrate_pendulum(n=sys[0], times=times[i],
+                                   initial_positions=sys[1], lengths=sys[2])
+            xys.append(get_xy_coords(p))
+        for i, sys in enumerate(pend_trans):
+            p = integrate_pendulum(n=sys[0], times=times[i],
+                                   initial_positions=sys[1], lengths=sys[2])
+            xys_trans.append(get_xy_coords(p))
+
+        raw_data = []
+        for i in range(len(pend)):
+            f = overlay(xys[i])
+            f_trans = overlay(xys_trans[i])
+            raw_data.append([f, f_trans])
+
+    # else:
+    #     xys = []
+    #     xys_trans = []
+    #     for i, sys in enumerate(pend):
+    #         temp = sys.check_xs(times[i])
+    #         sys._x = sys._init_x
+    #         for r in range(stochastic_reps):
+    #             temp = np.vstack((temp, sys.check_xs(times[i])))
+    #             sys._x = sys._init_x
+    #         xys.append(temp)
+    #
+    #     for i, sys in enumerate(pend_trans):
+    #         temp = sys.check_xs(times[i])
+    #         sys._x = sys._init_x
+    #         for r in range(stochastic_reps):
+    #             temp = np.vstack((temp, sys.check_xs(times[i])))
+    #             sys._x = sys._init_x
+    #         xys_trans.append(temp)
+    #
+    #     raw_data = []
+    #     for i in range(len(pend)):
+    #         f = overlay(xys[i])
+    #         f_trans = overlay(xys_trans[i])
+    #         raw_data.append([f, f_trans])
+
+    data, high, low = rangeCover(raw_data)
+
+    return data, low, high
