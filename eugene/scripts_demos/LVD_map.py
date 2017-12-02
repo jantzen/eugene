@@ -14,7 +14,32 @@ def map_data(init_pops, trans_pops, caps, max_time, num_times, overlay, depth):
 
     data, low, high = simData(params, max_time, num_times, overlay)
 
-    dmat = AveHellinger(data)
+    blocks = tuplesToBlocks(data)
+
+    x_min = []
+    x_max = []
+    x_std = []
+    y_min = []
+    y_max = []
+    y_std = []
+    for block in blocks:
+        x_min.append(np.min(block[:, 0]))
+        x_max.append(np.max(block[:, 0]))
+        x_std.append(np.std(block[:, 0]))
+        y_min.append(np.min(block[:, 1]))
+        y_max.append(np.max(block[:, 1]))
+        y_std.append(np.std(block[:, 1]))
+    x_std = np.max(x_std)
+    x_min = np.min(x_min) - x_std
+    x_max = np.max(x_max) + x_std
+    y_std = np.max(y_std)
+    y_min = np.min(y_min) - y_std
+    y_max = np.max(y_max) + y_std
+
+    densities = blocksToScipyDensities(blocks)
+
+    dmat = distanceH2D(densities, x_range=[x_min, x_max],
+                       y_range=[y_min, y_max])
     return dmat
 
 
@@ -39,7 +64,7 @@ if __name__ == '__main__':
     trans_pops = np.array([1.2, 1.2, 1.2, 1.2])
     # data, low, high = map_data(init_pops, trans_pops, k, 1000, 1000, overlay, 10)
     # dmat = map_dmat(data, low, high)
-    dmat = map_data(init_pops, trans_pops, k, 100., 1000., overlay, 10.)
+    dmat = map_data(init_pops, trans_pops, k, 100., 1000., overlay, 5.)
     fig, ax = plt.subplots()
     heatmap = ax.pcolor(dmat, cmap=plt.cm.Blues)
     plt.show(heatmap)

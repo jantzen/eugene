@@ -49,6 +49,8 @@ class TestRobustness(unittest.TestCase):
         dist = dmat[0][1] - dmat[0][0]
         return dist
 
+
+    @unittest.skip
     def test_same_more_data(self):
         print ("test_same_more_data")
 
@@ -86,6 +88,99 @@ class TestRobustness(unittest.TestCase):
         self.assertTrue(dists[0] > dists[-1])
 
 
+    @unittest.skip
+    def test_same_more_data_noisy(self):
+        print("test_same_more_data_noisy")
+
+        sigma = [0.1, 0.1]
+
+        r1 = np.array([1., 2.])
+        r2 = r1 * 1.5
+
+        k1 = np.array([100., 100.])
+        k2 = np.array([100., 100.])
+
+        alpha1 = np.array([[1., 0.5], [0.7, 1.]])
+        alpha2 = alpha1
+
+        init1 = np.array([1, 1])
+        init2 = init1
+
+        init_trans1 = np.array([1.2, 1.2])
+        init_trans2 = init_trans1
+
+        params1 = [r1, k1, alpha1, init1, init_trans1]
+        params2 = [r2, k2, alpha2, init2, init_trans2]
+
+        overlay = lambda x: np.mean(x, axis=1)
+
+        dists = []
+        lens = []
+        stdev = 1.0
+        for x in trange(9):
+            n = 10.0 * np.power(2, x + 1)
+            lens.append(n)
+            data, low, high = simData([params1, params2], 5., n, overlay)
+            noisy_data = []
+            for tup in data:
+                ntup = []
+                for curve in tup:
+                    ncurve = []
+                    for point in curve:
+                        ncurve.append(point + np.random.normal(0., stdev))
+                    ntup.append(ncurve)
+                noisy_data.append(ntup)
+
+            data = noisy_data
+            dist = self.pair_dist(data)
+            dists.append(dist)
+
+        print(dists)
+
+        self.assertTrue(dists[0] > dists[-1])
+
+
+    @unittest.skip
+    def test_same_more_data_stochastic(self):
+        print ("test_same_more_data_stochastic")
+
+        sigma = [0.1, 0.1]
+
+        r1 = np.array([1., 2.])
+        r2 = r1 * 1.5
+
+        k1 = np.array([100., 100.])
+        k2 = np.array([100., 100.])
+
+        alpha1 = np.array([[1., 0.5], [0.7, 1.]])
+        alpha2 = alpha1
+
+        init1 = np.array([5., 5.])
+        init2 = init1
+
+        init_trans1 = np.array([8., 8.])
+        init_trans2 = init_trans1
+
+        params1 = [r1, k1, alpha1, sigma, init1, init_trans1]
+        params2 = [r2, k2, alpha2, sigma, init2, init_trans2]
+
+        overlay = lambda x: np.mean(x, axis=1)
+
+        dists = []
+        lens = []
+        for x in trange(9):
+            n = 10.0 * np.power(2, x+1)
+            lens.append(n)
+            data, low, high = simData([params1, params2], 5., n, overlay, stochastic_reps=10)
+            dist = self.pair_dist(data)
+            dists.append(dist)
+
+        print(dists)
+
+        self.assertTrue(dists[0] > dists[-1])
+
+
+    @unittest.skip
     def test_diff_more_data(self):
         print ("test_diff_more_data")
 
@@ -115,6 +210,95 @@ class TestRobustness(unittest.TestCase):
             n = 10.0 * np.power(2, x+1)
             lens.append(n)
             data, low, high = simData([params1, params2], 5., n, overlay)
+            dist = self.pair_dist(data)
+            dists.append(dist)
+
+        print (dists)
+
+        self.assertTrue(dists[0] < dists[-1])
+
+
+    @unittest.skip
+    def test_diff_more_data_noisy(self):
+        print("test_diff_more_data_noisy")
+
+        r1 = np.array([1., 2.])
+        r2 = r1
+
+        k1 = np.array([100., 100.])
+        k2 = np.array([150., 150.])
+
+        alpha1 = np.array([[1., 0.5], [0.7, 1.]])
+        alpha2 = alpha1
+
+        init1 = np.array([5., 5.])
+        init2 = init1
+
+        init_trans1 = np.array([8., 8.])
+        init_trans2 = init_trans1
+
+        params1 = [r1, k1, alpha1, init1, init_trans1]
+        params2 = [r2, k2, alpha2, init2, init_trans2]
+
+        overlay = lambda x: np.mean(x, axis=1)
+
+        dists = []
+        lens = []
+        stdev = 1.5
+        for x in trange(9):
+            n = 10.0 * np.power(2, x + 1)
+            lens.append(n)
+            data, low, high = simData([params1, params2], 5., n, overlay)
+            noisy_data = []
+            for tup in data:
+                ntup = []
+                for curve in tup:
+                    ncurve = []
+                    for point in curve:
+                        ncurve.append(point + np.random.normal(0., stdev))
+                    ntup.append(ncurve)
+                noisy_data.append(ntup)
+
+            data = noisy_data
+            dist = self.pair_dist(data)
+            dists.append(dist)
+
+        print(dists)
+
+        self.assertTrue(dists[0] < dists[-1])
+
+
+    def test_diff_more_data_stochastic(self):
+        print ("test_diff_more_data_stochastic")
+
+        sigma = [0.1, 0.1]
+
+        r1 = np.array([1., 2.])
+        r2 = r1
+
+        k1 = np.array([100., 100.])
+        k2 = np.array([150., 150.])
+
+        alpha1 = np.array([[1., 0.5], [0.7, 1.]])
+        alpha2 = alpha1
+
+        init1 = np.array([1, 1])
+        init2 = init1
+
+        init_trans1 = np.array([1.2, 1.2])
+        init_trans2 = init_trans1
+
+        params1 = [r1, k1, alpha1, sigma, init1, init_trans1]
+        params2 = [r2, k2, alpha2, sigma, init2, init_trans2]
+
+        overlay = lambda x: np.mean(x, axis=1)
+
+        dists = []
+        lens = []
+        for x in trange(9):
+            n = 10.0 * np.power(2, x+1)
+            lens.append(n)
+            data, low, high = simData([params1, params2], 5., n, overlay, stochastic_reps=10)
             dist = self.pair_dist(data)
             dists.append(dist)
 
