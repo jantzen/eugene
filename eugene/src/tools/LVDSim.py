@@ -478,12 +478,15 @@ def blocksToScipyDensities(data):
     """
     densities = []
     for block in data:
-        if len(block) < 10:
+        if block.shape[0] > block.shape[1]:
+            block = block.T
+        print('Block shape for kde = {}'.format(block.shape))
+        if np.max(block.shape) < 10:
             pdf = lambda x, y: np.nan
             densities.append(pdf)
         else:
             try:
-                kde = stats.gaussian_kde(block.T)
+                kde = stats.gaussian_kde(block)
                 pdf = lambda x, y, kde=kde: kde.evaluate(np.array([x,y]).reshape(2,1))
                 densities.append(pdf)
             except:
@@ -535,7 +538,7 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf],
     dmat = np.zeros((s, s))
 
     for i in trange(s):
-        for j in trange(i + 1, s):
+        for j in trange(i, s):
             dmat[i, j] = Hellinger2D(densities[i], densities[j], x_range[0],
                                      x_range[1], y_range[0], y_range[1])
             dmat[j, i] = dmat[i, j]
@@ -544,18 +547,48 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf],
 
 def AH_loop_function(i, j, tuples):
     data, high, low = rangeCover([tuples[i],tuples[j]])
-    print(i,j)
 
     if low >= high:
         return np.nan
 
     blocks = tuplesToBlocks(data)
+    
+    for block in blocks:
+        print(block.shape)
 
-    rblocks = resampleToUniform(blocks, low, high)
+    x_min = []
+    x_max = []
+    x_std = []
+    y_min = []
+    y_max = []
+    y_std = []
+    for block in blocks:
+        try:
+            x_min.append(np.min(block[:,0]))
+            x_max.append(np.max(block[:,0]))
+            x_std.append(np.std(block[:,0]))
+            y_min.append(np.min(block[:,1]))
+            y_max.append(np.max(block[:,1]))
+            y_std.append(np.std(block[:,1]))
+        except:
+            if block.shape[0] == 0:
+                print("Block is empty.")
+                return np.nan
 
-    densities = blocksToScipyDensities(rblocks, low, high)
+    x_std = np.max(x_std)
+    x_min = np.min(x_min) - x_std
+    x_max = np.max(x_max) + x_std
+    y_std = np.max(y_std)
+    y_min = np.min(y_min) - y_std
+    y_max = np.max(y_max) + y_std
 
-    return Hellinger2D(densities[0], densities[1], low, high, -np.inf, np.inf)
+    densities = blocksToScipyDensities(blocks)
+
+    if i == j:
+        assert densities[0](x_min, y_min) == densities[1](x_min, y_min)
+
+    return Hellinger2D(densities[0], densities[1], x_min, x_max, y_min, y_max)
+
 
 def AveHellinger(tuples, free_cores=2):
     """ Given a list of tuples (f', f), returns a distance matrix.
@@ -579,11 +612,11 @@ def AveHellinger(tuples, free_cores=2):
 #                                     x_range[1], y_range[0], y_range[1])
 #            dmat[j, i] = dmat[i, j]
 
-    out = Parallel(n_jobs=cpus,verbose=100)(delayed(AH_loop_function)(i,j,tuples) for i in range(s) for j in range(i + 1, s))
+    out = Parallel(n_jobs=cpus,verbose=100)(delayed(AH_loop_function)(i,j,tuples) for i in range(s) for j in range(i, s))
 
     for i in trange(s):
-        for j in trange(i + 1, s):
-            dmat[i, j] = out[i * (s - i - 1) + (j - i - 1)]
+        for j in trange(i, s):
+            dmat[i, j] = out[i * (s - i) + (j - i)]
             dmat[j, i] = dmat[i, j]
 
     return dmat

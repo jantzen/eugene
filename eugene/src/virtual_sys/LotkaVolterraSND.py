@@ -10,7 +10,7 @@ import random
 import numpy as np
 import scipy.integrate
 # from tqdm import tqdm, trange
-import pdb
+import copy
 
 class LotkaVolterraSND( object ):
     """ Implementation of stochastic N species Competitive Lotka-Volterra 
@@ -43,10 +43,10 @@ class LotkaVolterraSND( object ):
         self._alpha = alpha
         self._k = k
 
-        self._init_x = init_x
+        self._init_x = copy.deepcopy(init_x)
         self._init_t = float(init_t)
 
-        self._x = init_x
+        self._x = copy.deepcopy(init_x)
         self._time = float(init_t)
         self._delta_t = 1
         self._steps = steps
@@ -94,8 +94,8 @@ class LotkaVolterraSND( object ):
                 np.sqrt(delta) ) ) + (self._sigma[i]**2 / 2.) * (X[i]
                 * (noise**2 - 1.))
 
-                if not np.isfinite(dX[i]): 
-                    pdb.set_trace()
+#                if not np.isfinite(dX[i]): 
+#                    pdb.set_trace()
 
                 X[i] = X[i] + dX[i] * delta
  
