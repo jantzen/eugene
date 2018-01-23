@@ -545,6 +545,21 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf],
 
     return dmat
 
+
+def energyDistanceMatrix(data):
+    """ Returns a distance matrx.
+    """
+    s = len(data)
+    dmat = np.zeros((s, s))
+
+    for i in trange(s):
+        for j in trange(i, s):
+            dmat[i, j] = EnergyDistance(data[i], data[j])
+            dmat[j, i] = dmat[i, j]
+
+    return dmat
+
+
 def AH_loop_function(i, j, tuples):
     data, high, low = rangeCover([tuples[i],tuples[j]])
 
@@ -666,3 +681,54 @@ def distanceL2(densities, x_range=[-10, 10]):
             dmat[j, i] = dmat[i, j]
 
     return dmat
+
+
+def energy_loop_function(i, j, blocks):
+    
+    for block in blocks:
+        print(block.shape)
+
+        if block.shape[0] == 0:
+            print("Block is empty.")
+            return [i, j, np.nan]
+
+    out = [i, j, EnergyDistance(blocks[i], blocks[j])]
+    
+    if i == j:
+        print("self distance = {}".format(out[2]))
+
+    return out
+
+
+def energyDistanceMatrixParallel(blocks, free_cores=2):
+    """ Given a list of tuples (f', f), returns a distance matrix.
+    """
+    s = len(blocks)
+    dmat = np.zeros((s, s))
+
+    cpus = max(cpu_count() - free_cores, 1)
+
+    out = Parallel(n_jobs=cpus,verbose=100)(delayed(energy_loop_function)(i,j,blocks) 
+            for i in range(s) for j in range(i, s))
+
+    for cell in out:
+        print cell
+        dmat[cell[0], cell[1]] = dmat[cell[1], cell[0]] = cell[2]
+
+    return dmat
+
+
+def energyDistanceMatrix(data):
+    """ Returns a distance matrx.
+    """
+    s = len(data)
+    dmat = np.zeros((s, s))
+
+    for i in trange(s):
+        for j in trange(i, s):
+            dmat[i, j] = EnergyDistance(data[i], data[j])
+            dmat[j, i] = dmat[i, j]
+
+    return dmat
+
+
