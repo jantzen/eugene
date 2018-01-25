@@ -30,11 +30,11 @@ def map_data(init_pops, trans_pops, caps, max_time, num_times, overlay, depth):
         y_max.append(np.max(block[:, 1]))
         y_std.append(np.std(block[:, 1]))
     x_std = np.max(x_std)
-    x_min = np.min(x_min) - x_std
-    x_max = np.max(x_max) + x_std
+    x_min = np.min(x_min)
+    x_max = np.max(x_max)
     y_std = np.max(y_std)
-    y_min = np.min(y_min) - y_std
-    y_max = np.max(y_max) + y_std
+    y_min = np.min(y_min)
+    y_max = np.max(y_max)
 
     densities = blocksToScipyDensities(blocks)
 
@@ -60,8 +60,8 @@ def map_dmat(data, low, high):
 if __name__ == '__main__':
     overlay = lambda x: np.mean(x, axis=1)
     k = np.array([100., 100., 100., 100.])
-    init_pops = np.array([1., 1., 1., 1.])
-    trans_pops = np.array([1.2, 1.2, 1.2, 1.2])
+    init_pops = np.array([5., 5., 5., 5.])
+    trans_pops = np.array([8., 8., 8., 8.])
     # data, low, high = map_data(init_pops, trans_pops, k, 1000, 1000, overlay, 10)
     # dmat = map_dmat(data, low, high)
     dmat = map_data(init_pops, trans_pops, k, 100., 1000., overlay, 5.)
