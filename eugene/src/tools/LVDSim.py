@@ -545,11 +545,26 @@ def distanceH2D(densities, x_range=[-np.inf, np.inf],
 
     return dmat
 
+
+def energyDistanceMatrix(data):
+    """ Returns a distance matrx.
+    """
+    s = len(data)
+    dmat = np.zeros((s, s))
+
+    for i in trange(s):
+        for j in trange(i, s):
+            dmat[i, j] = EnergyDistance(data[i], data[j])
+            dmat[j, i] = dmat[i, j]
+
+    return dmat
+
+
 def AH_loop_function(i, j, tuples):
     data, high, low = rangeCover([tuples[i],tuples[j]])
 
     if low >= high:
-        return np.nan
+        return [i, j, np.nan]
 
     blocks = tuplesToBlocks(data)
     
@@ -558,36 +573,46 @@ def AH_loop_function(i, j, tuples):
 
     x_min = []
     x_max = []
-    x_std = []
+#    x_std = []
     y_min = []
     y_max = []
-    y_std = []
+#    y_std = []
     for block in blocks:
         try:
             x_min.append(np.min(block[:,0]))
             x_max.append(np.max(block[:,0]))
-            x_std.append(np.std(block[:,0]))
+#            x_std.append(np.std(block[:,0]))
             y_min.append(np.min(block[:,1]))
             y_max.append(np.max(block[:,1]))
-            y_std.append(np.std(block[:,1]))
+#            y_std.append(np.std(block[:,1]))
         except:
             if block.shape[0] == 0:
                 print("Block is empty.")
-                return np.nan
+                return [i, j, np.nan]
 
-    x_std = np.max(x_std)
-    x_min = np.min(x_min) - x_std
-    x_max = np.max(x_max) + x_std
-    y_std = np.max(y_std)
-    y_min = np.min(y_min) - y_std
-    y_max = np.max(y_max) + y_std
+#    x_std = np.max(x_std)
+#    x_min = np.min(x_min) - x_std
+#    x_max = np.max(x_max) + x_std
+#    y_std = np.max(y_std)
+#    y_min = np.min(y_min) - y_std
+#    y_max = np.max(y_max) + y_std
+
+    x_min = np.min(x_min)
+    x_max = np.max(x_max)
+    y_min = np.min(y_min)
+    y_max = np.max(y_max)
 
     densities = blocksToScipyDensities(blocks)
 
     if i == j:
         assert densities[0](x_min, y_min) == densities[1](x_min, y_min)
 
-    return Hellinger2D(densities[0], densities[1], x_min, x_max, y_min, y_max)
+    out = [i, j, Hellinger2D(densities[0], densities[1], x_min, x_max, y_min, y_max)]
+    
+    if i == j:
+        print("self distance = {}".format(out))
+
+    return out
 
 
 def AveHellinger(tuples, free_cores=2):
@@ -614,10 +639,14 @@ def AveHellinger(tuples, free_cores=2):
 
     out = Parallel(n_jobs=cpus,verbose=100)(delayed(AH_loop_function)(i,j,tuples) for i in range(s) for j in range(i, s))
 
-    for i in trange(s):
-        for j in trange(i, s):
-            dmat[i, j] = out[i * (s - i) + (j - i)]
-            dmat[j, i] = dmat[i, j]
+#    for i in trange(s):
+#        for j in trange(i, s):
+#            dmat[i, j] = out[i * (s - i) + (j - i)]
+#            dmat[j, i] = dmat[i, j]
+
+    for cell in out:
+        print cell
+        dmat[cell[0], cell[1]] = dmat[cell[1], cell[0]] = cell[2]
 
     return dmat
 
@@ -652,3 +681,54 @@ def distanceL2(densities, x_range=[-10, 10]):
             dmat[j, i] = dmat[i, j]
 
     return dmat
+
+
+def energy_loop_function(i, j, blocks):
+    
+    for block in blocks:
+        print(block.shape)
+
+        if block.shape[0] == 0:
+            print("Block is empty.")
+            return [i, j, np.nan]
+
+    out = [i, j, EnergyDistance(blocks[i], blocks[j])]
+    
+    if i == j:
+        print("self distance = {}".format(out[2]))
+
+    return out
+
+
+def energyDistanceMatrixParallel(blocks, free_cores=2):
+    """ Given a list of tuples (f', f), returns a distance matrix.
+    """
+    s = len(blocks)
+    dmat = np.zeros((s, s))
+
+    cpus = max(cpu_count() - free_cores, 1)
+
+    out = Parallel(n_jobs=cpus,verbose=100)(delayed(energy_loop_function)(i,j,blocks) 
+            for i in range(s) for j in range(i, s))
+
+    for cell in out:
+        print cell
+        dmat[cell[0], cell[1]] = dmat[cell[1], cell[0]] = cell[2]
+
+    return dmat
+
+
+def energyDistanceMatrix(data):
+    """ Returns a distance matrx.
+    """
+    s = len(data)
+    dmat = np.zeros((s, s))
+
+    for i in trange(s):
+        for j in trange(i, s):
+            dmat[i, j] = EnergyDistance(data[i], data[j])
+            dmat[j, i] = dmat[i, j]
+
+    return dmat
+
+

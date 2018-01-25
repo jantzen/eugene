@@ -127,3 +127,53 @@ def EuclideanDistance(dist1, dist2, x_range=[-10,10]):
     l2 = np.sqrt(out)
     
     return l2
+
+
+def EnergyDistance(X, Y):
+    """ Computes the energy distance (a statistical distance) between the
+    cumulative distribution functions F and G of the independent random vectors
+    X and Y.
+
+    Inputs:
+        X, Y: each is a s x d np-array, where d is the dimension of X and Y
+        (assumed to be the same) and s is the number of samples
+
+    Output:
+        the energy distance, D, where:
+        D^2(F,G) = 2 E||X - Y|| - E||X - X'|| - E||Y - Y'||
+
+    (see https://en.wikipedia.org/wiki/Energy_distance)
+    """
+
+    n = X.shape[0]
+    m = Y.shape[0]
+
+    # Compute A = E||X - Y||
+    A = 0.
+    for row in X:
+        diff = Y - row
+        norms = np.sum(diff**2, axis=-1)**(1./2.)
+        A += np.sum(norms)
+    A /= (n * m)
+
+    # Compute B = E||X - X'||
+    B = 0.
+    for row in X:
+        diff = X - row
+        norms = np.sum(diff**2, axis=-1)**(1./2.)
+        B += np.sum(norms)
+    B /= (n * n)
+
+    # Compute C = E||Y - Y'||
+    C = 0.
+    for row in Y:
+        diff = Y - row
+        norms = np.sum(diff**2, axis=-1)**(1./2.)
+        C += np.sum(norms)
+    C /= (m * m)
+
+    # Compute energy distance
+    D2 = 2. * A - B - C
+    D = D2 ** (1./2.)
+
+    return D
