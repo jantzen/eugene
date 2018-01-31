@@ -48,3 +48,47 @@ class LogisticGrowthModel(object):
     def reset(self):
         self._x = self._init_x
         self._time = self._init_t
+
+
+class GompertzGrowthModel(object):
+    """Simulates an arbitrary member of the class of Gompertz models.
+    """
+
+    def __init__(self, a, b, init_x, init_t, stochastic=False):
+
+        # set a flag indicating whether the dynamics is stochastic or
+        # deterministic
+        self._stochastic = stochastic
+
+        # set the initial population based on passed data
+        if init_x > 0:
+            self._x = float(init_x)
+        else:
+            raise ValueError('Invalid initial population assignment. Must be greater than 0')
+
+        # set the time corresponding to that initial concentration
+        self._time = init_t
+        self._init_t = init_t
+
+        #set remaining attributes
+        self._a = float(a)
+        self._b = float(b)
+        self._init_x = float(init_x) 
+ 
+    
+    def update_x(self, elapsed_time):
+        func = lambda x,t: self._b * x * np.exp(self._a - self._b * t)
+
+        t = np.array([self._time, self._time + elapsed_time])
+        x = scipy.integrate.odeint(func, self._x, t)
+
+        if self._stochastic:
+            pass
+        else:
+            self._x = float(x[1])
+            self._time += elapsed_time
+
+
+    def reset(self):
+        self._x = self._init_x
+        self._time = self._init_t
