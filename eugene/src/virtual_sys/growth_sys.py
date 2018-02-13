@@ -6,11 +6,13 @@ class LogisticGrowthModel(object):
     """
 
     def __init__(self, r, init_x, K, alpha, beta, gamma, init_t,
-            stochastic=False):
+            stochastic=False, sigma=0.1, steps=1000):
 
         # set a flag indicating whether the dynamics is stochastic or
         # deterministic
         self._stochastic = stochastic
+        self._sigma = sigma
+        self._steps = steps
 
         # set the initial population based on passed data
         if init_x > 0:
@@ -32,16 +34,33 @@ class LogisticGrowthModel(object):
  
     
     def update_x(self, elapsed_time):
-        func = lambda x,t: self._r * x**self._alpha * (1. - (x /
-            self._K)**self._beta)**self._gamma
-
-        t = np.array([0., elapsed_time])
-        x = scipy.integrate.odeint(func, self._x, t)
-
         if self._stochastic:
-            self._x = float(x[1]) + (np.random.normal(0., 0.5)**2 * elapsed_time /
-                self._r / (1 + elapsed_time) * self._K)
+            if elapsed_time == 0.:
+                return None
+
+            delta = float(elapsed_time) / float(self._steps)
+            X = self._x
+            for s in range(self._steps):
+                noise = np.random.normal()
+                
+                dX = self._r * X * (1 - (np.sum(self._alpha *
+                X)/self._K) ) + (self._sigma * X * noise / (2. *
+                np.sqrt(delta) ) ) + (self._sigma**2 / 2.) * (X
+                * (noise**2 - 1.))
+
+                X = X + dX * delta
+ 
+            self._x = X
+#            self._x = float(x[1]) + (np.random.normal(0., 0.5)**2 * elapsed_time /
+#                self._r / (1 + elapsed_time) * self._K)
         else:
+            func = lambda x,t: self._r * x**self._alpha * (1. - (x /
+                self._K)**self._beta)**self._gamma
+
+            t = np.array([0., elapsed_time])
+            x = scipy.integrate.odeint(func, self._x, t)
+
+
             self._x = float(x[1])
 
 
