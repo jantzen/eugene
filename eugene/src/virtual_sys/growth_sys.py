@@ -43,8 +43,8 @@ class LogisticGrowthModel(object):
             for s in range(self._steps):
                 noise = np.random.normal()
                 
-                dX = self._r * X * (1 - (np.sum(self._alpha *
-                X)/self._K) ) + (self._sigma * X * noise / (2. *
+                dX = self._r * X**(self._alpha) * (1 - (X/self._K)**(self._beta)
+                        )**self._gamma + (self._sigma * X * noise / (2. *
                 np.sqrt(delta) ) ) + (self._sigma**2 / 2.) * (X
                 * (noise**2 - 1.))
 
