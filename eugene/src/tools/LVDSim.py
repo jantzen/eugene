@@ -686,7 +686,7 @@ def distanceL2(densities, x_range=[-10, 10]):
 def energy_loop_function(i, j, blocks):
     
     for block in blocks:
-        print(block.shape)
+#        print(block.shape)
 
         if block.shape[0] == 0:
             print("Block is empty.")
@@ -700,7 +700,7 @@ def energy_loop_function(i, j, blocks):
     return out
 
 
-def energyDistanceMatrixParallel(blocks, free_cores=2):
+def energyDistanceMatrixParallel(blocks, free_cores=2, verbose=0):
     """ Given a list of tuples (f', f), returns a distance matrix.
     """
     s = len(blocks)
@@ -708,11 +708,11 @@ def energyDistanceMatrixParallel(blocks, free_cores=2):
 
     cpus = max(cpu_count() - free_cores, 1)
 
-    out = Parallel(n_jobs=cpus,verbose=100)(delayed(energy_loop_function)(i,j,blocks) 
+    out = Parallel(n_jobs=cpus,verbose=verbose)(delayed(energy_loop_function)(i,j,blocks) 
             for i in range(s) for j in range(i, s))
 
     for cell in out:
-        print cell
+#        print cell
         dmat[cell[0], cell[1]] = dmat[cell[1], cell[0]] = cell[2]
 
     return dmat

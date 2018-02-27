@@ -50,6 +50,8 @@ class LogisticGrowthModel(object):
 
                 X = X + dX * delta
  
+                X = np.max([X, 0.])
+
             self._x = X
 #            self._x = float(x[1]) + (np.random.normal(0., 0.5)**2 * elapsed_time /
 #                self._r / (1 + elapsed_time) * self._K)
