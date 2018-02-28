@@ -413,9 +413,16 @@ def tuplesToBlocks(data):
 
     out = []
     for tup in data:
-        col1 = np.array(tup[0])[:, np.newaxis]
-        col2 = np.array(tup[1])[:, np.newaxis]
-        out.append(np.hstack((col1, col2)))
+        if type(tup[0]) == list and type(tup[1])==list:
+            col1 = np.array(tup[0])[:, np.newaxis]
+            col2 = np.array(tup[1])[:, np.newaxis]
+            out.append(np.hstack((col1, col2)))
+        elif type(tup[0]) == np.ndarray and type(tup[1]) == np.ndarray:
+            col1 = tup[0]
+            col2 = tup[1]
+            out.append(np.hstack((col1, col2)))
+        else:
+            raise ValueError('Cannot convert tuples to blocks; wrong format.')
 
     return out
 
