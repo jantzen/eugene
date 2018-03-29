@@ -9,7 +9,7 @@ from sympy.physics import mechanics
 
 from sympy import Dummy, lambdify
 from scipy.integrate import odeint
-from eugene.src.tools.LVDsim import rangeCover
+from eugene.src.tools.LVDSim import rangeCover
 
 def integrate_pendulum(n, times,
                        initial_positions=135,
@@ -208,6 +208,6 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None):
     #         f_trans = overlay(xys_trans[i])
     #         raw_data.append([f, f_trans])
 
-    data, high, low = rangeCover(raw_data)
+    # data, high, low = rangeCover(raw_data)
 
-    return data, low, high
+    return np.array(raw_data)
