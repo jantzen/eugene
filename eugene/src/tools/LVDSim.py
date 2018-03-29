@@ -413,9 +413,16 @@ def tuplesToBlocks(data):
 
     out = []
     for tup in data:
-        col1 = np.array(tup[0])[:, np.newaxis]
-        col2 = np.array(tup[1])[:, np.newaxis]
-        out.append(np.hstack((col1, col2)))
+        if type(tup[0]) == list and type(tup[1])==list:
+            col1 = np.array(tup[0])[:, np.newaxis]
+            col2 = np.array(tup[1])[:, np.newaxis]
+            out.append(np.hstack((col1, col2)))
+        elif type(tup[0]) == np.ndarray and type(tup[1]) == np.ndarray:
+            col1 = tup[0]
+            col2 = tup[1]
+            out.append(np.hstack((col1, col2)))
+        else:
+            raise ValueError('Cannot convert tuples to blocks; wrong format.')
 
     return out
 
@@ -686,7 +693,7 @@ def distanceL2(densities, x_range=[-10, 10]):
 def energy_loop_function(i, j, blocks):
     
     for block in blocks:
-        print(block.shape)
+#        print(block.shape)
 
         if block.shape[0] == 0:
             print("Block is empty.")
@@ -700,7 +707,7 @@ def energy_loop_function(i, j, blocks):
     return out
 
 
-def energyDistanceMatrixParallel(blocks, free_cores=2):
+def energyDistanceMatrixParallel(blocks, free_cores=2, verbose=0):
     """ Given a list of tuples (f', f), returns a distance matrix.
     """
     s = len(blocks)
@@ -708,11 +715,11 @@ def energyDistanceMatrixParallel(blocks, free_cores=2):
 
     cpus = max(cpu_count() - free_cores, 1)
 
-    out = Parallel(n_jobs=cpus,verbose=100)(delayed(energy_loop_function)(i,j,blocks) 
+    out = Parallel(n_jobs=cpus,verbose=verbose)(delayed(energy_loop_function)(i,j,blocks) 
             for i in range(s) for j in range(i, s))
 
     for cell in out:
-        print cell
+#        print cell
         dmat[cell[0], cell[1]] = dmat[cell[1], cell[0]] = cell[2]
 
     return dmat
