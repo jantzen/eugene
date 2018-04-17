@@ -1,71 +1,51 @@
 # LVD_map.py
 
-from eugene.src.tools.LVDSim import *
+from joblib import Parallel, delayed
+from eugene.src.tools.LVDSim import simData, tuplesToBlocks, energyDistanceMatrixParallel
+import multiprocessing
 from eugene.src.tools.alphaBetaGrid import *
 from multiprocessing import cpu_count
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def map_data(init_pops, trans_pops, caps, max_time, num_times, overlay, depth):
+def map_data(init_pops, trans_pops, caps, max_time, num_times, depth):
     num_cores = multiprocessing.cpu_count() - 2
     list_of_points = lv_map_points(alpha_steps=depth, beta_steps=depth)
     params = Parallel(n_jobs=num_cores)(delayed(point_to_param)(point, init_pops, trans_pops, caps) for point in list_of_points)
 
-    data, low, high = simData(params, max_time, num_times, overlay)
+    data = Parallel(n_jobs=num_cores)(delayed(simData)([param], max_time, num_times, overlaid, stochastic_reps=5, range_cover=False) for param in params)
 
-    blocks = tuplesToBlocks(data)
+    # data = simData(params, max_time, num_times, overlay, range_cover=False)
+    new_data = []
+    for c in data:
+        new_data.append(c[0])
 
-    x_min = []
-    x_max = []
-    x_std = []
-    y_min = []
-    y_max = []
-    y_std = []
-    for block in blocks:
-        x_min.append(np.min(block[:, 0]))
-        x_max.append(np.max(block[:, 0]))
-        x_std.append(np.std(block[:, 0]))
-        y_min.append(np.min(block[:, 1]))
-        y_max.append(np.max(block[:, 1]))
-        y_std.append(np.std(block[:, 1]))
-    x_std = np.max(x_std)
-    x_min = np.min(x_min)
-    x_max = np.max(x_max)
-    y_std = np.max(y_std)
-    y_min = np.min(y_min)
-    y_max = np.max(y_max)
+    blocks = tuplesToBlocks(new_data)
 
-    densities = blocksToScipyDensities(blocks)
-
-    dmat = distanceH2D(densities, x_range=[x_min, x_max],
-                       y_range=[y_min, y_max])
+    dmat = energyDistanceMatrixParallel(blocks)
     return dmat
 
 
 def point_to_param(point, init_pops, trans_pops, caps):
-    param = [point[0], caps, point[1], init_pops, trans_pops]
+    sigma = [0.1, 0.1, 0.1, 0.1]
+    param = [point[0], caps, point[1], sigma, init_pops, trans_pops]
     return param
 
-
-def map_dmat(data, low, high):
-    dmat = AveHellinger(data)
-    return dmat
-
+def overlaid(x):
+    return x
 
 # def map_demo():
     #do something
 
 
 if __name__ == '__main__':
-    overlay = lambda x: np.mean(x, axis=1)
+    # overlay = lambda x: np.mean(x, axis=1)
+    # overlay = lambda x: x
     k = np.array([100., 100., 100., 100.])
     init_pops = np.array([5., 5., 5., 5.])
     trans_pops = np.array([8., 8., 8., 8.])
-    # data, low, high = map_data(init_pops, trans_pops, k, 1000, 1000, overlay, 10)
-    # dmat = map_dmat(data, low, high)
-    dmat = map_data(init_pops, trans_pops, k, 100., 1000., overlay, 5.)
-    fig, ax = plt.subplots()
-    heatmap = ax.pcolor(dmat, cmap=plt.cm.Blues)
-    plt.show(heatmap)
-    np.savetxt("LVD_map_dmat.txt", dmat, fmt='%.5f')
+    dist_mat = map_data(init_pops, trans_pops, k, 100., 10., 6.)
+    plt.imshow(dist_mat, cmap='hot', interpolation='nearest')
+    plt.show()
+    np.savetxt("LVD_map_dmat.txt", dist_mat, fmt='%.5f')
