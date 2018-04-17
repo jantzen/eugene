@@ -128,7 +128,7 @@ def get_data(pendulums, t_0=0, t_elapsed=10, delta_t=1000):
     return get_xy_coords(p)
 
 
-def simData(params, max_time, num_times, overlay, stochastic_reps=None):
+def simData(params, max_time, num_times, overlay, stochastic_reps=None, range_cover=True):
     """ Generates data for a list of parameters corresponding to systems and
     returns a list of arrays of data that cover the same range. Initial velocity
     is always set to zero.
@@ -216,6 +216,8 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None):
     #         f_trans = overlay(xys_trans[i])
     #         raw_data.append([f, f_trans])
 
-    data, high, low = rangeCover(raw_data)
+    if range_cover:
+        data, high, low = rangeCover(raw_data)
 
-    return data, low, high
+
+    return np.array(raw_data)
