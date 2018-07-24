@@ -770,7 +770,7 @@ def AveHellinger(tuples, free_cores=2):
 #            dmat[j, i] = dmat[i, j]
 
     for cell in out:
-        print cell
+        print(cell)
         dmat[cell[0], cell[1]] = dmat[cell[1], cell[0]] = cell[2]
 
     return dmat

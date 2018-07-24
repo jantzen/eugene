@@ -9,7 +9,7 @@ from sympy.physics import mechanics
 
 from sympy import Dummy, lambdify
 from scipy.integrate import odeint
-from eugene.src.tools.LVDsim import rangeCover
+from eugene.src.tools.LVDSim import rangeCover
 
 def integrate_pendulum(n, times,
                        initial_positions=135,
@@ -128,7 +128,7 @@ def get_data(pendulums, t_0=0, t_elapsed=10, delta_t=1000):
     return get_xy_coords(p)
 
 
-def simData(params, max_time, num_times, overlay, stochastic_reps=None):
+def simData(params, max_time, num_times, overlay, stochastic_reps=None, range_cover=True):
     """ Generates data for a list of parameters corresponding to systems and
     returns a list of arrays of data that cover the same range. Initial velocity
     is always set to zero.
@@ -171,11 +171,19 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None):
         for i, sys in enumerate(pend):
             p = integrate_pendulum(n=sys[0], times=times[i],
                                    initial_positions=sys[1], lengths=sys[2])
-            xys.append(get_xy_coords(p))
+            xy = np.array(get_xy_coords(p, lengths=np.array(sys[2])))
+            xs = xy[0,:,2]
+            ys = xy[1,:,2]
+            xy = [xs, ys]
+            xys.append(xy)
         for i, sys in enumerate(pend_trans):
             p = integrate_pendulum(n=sys[0], times=times[i],
                                    initial_positions=sys[1], lengths=sys[2])
-            xys_trans.append(get_xy_coords(p))
+            xy = np.array(get_xy_coords(p, lengths=np.array(sys[2])))
+            xs = xy[0, :, 2]
+            ys = xy[1, :, 2]
+            xy = [xs, ys]
+            xys_trans.append(xy)
 
         raw_data = []
         for i in range(len(pend)):
@@ -208,6 +216,8 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None):
     #         f_trans = overlay(xys_trans[i])
     #         raw_data.append([f, f_trans])
 
-    data, high, low = rangeCover(raw_data)
+    if range_cover:
+        data, high, low = rangeCover(raw_data)
 
-    return data, low, high
+
+    return np.array(raw_data)
