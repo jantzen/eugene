@@ -576,21 +576,25 @@ class TestRobustness(unittest.TestCase):
         overlay = lambda x: np.mean(x, axis=1)
 
         dists = []
-        variances = np.zeros((10, 10))
-        for x in trange(10):
-            n = 10.0 * np.power(2, x+1)
+        variances = np.zeros((2, 2))
+        values = [1, 10]
+        for x in trange(2):
+            n = 10.0 * np.power(2, values[x])
             inner_dists = []
-            for y in trange(10):
+            for y in trange(2):
                 data = simData([params1, params2], 5., n, overlay,
-                               stochastic_reps=y + 1, range_cover=False)
-                dist = self.pair_dist(data)
+                               stochastic_reps=values[y], range_cover=False)
+                data = [data[0][0], data[1][0]]
+                # dist = self.pair_dist(data)
+                dist = energyDistanceMatrixParallel(data)
                 inner_dists.append(dist)
                 variances[x, y] = np.var(dist)
             dists.append(inner_dists)
 
         print(dists)
+        print(variances)
         plt.imshow(variances, interpolation='nearest')
-        self.assertTrue(variances[0,0] > variances[8, 8])
+        self.assertTrue(variances[0,0] > variances[1, 1])
 
 
 if __name__ == '__main__':

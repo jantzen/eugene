@@ -5,6 +5,7 @@ from eugene.src.tools.LVDSim import simData, tuplesToBlocks, energyDistanceMatri
 import multiprocessing
 from eugene.src.tools.alphaBetaGrid import *
 from multiprocessing import cpu_count
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -14,7 +15,7 @@ def map_data(init_pops, trans_pops, caps, max_time, num_times, depth):
     list_of_points = lv_map_points(alpha_steps=depth, beta_steps=depth)
     params = Parallel(n_jobs=num_cores)(delayed(point_to_param)(point, init_pops, trans_pops, caps) for point in list_of_points)
 
-    data = Parallel(n_jobs=num_cores)(delayed(simData)([param], max_time, num_times, overlaid, stochastic_reps=5, range_cover=False) for param in params)
+    data = Parallel(n_jobs=num_cores)(delayed(simData)([param], max_time, num_times, overlaid, stochastic_reps=None, range_cover=False) for param in tqdm(params))
 
     # data = simData(params, max_time, num_times, overlay, range_cover=False)
     new_data = []
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     k = np.array([100., 100., 100., 100.])
     init_pops = np.array([5., 5., 5., 5.])
     trans_pops = np.array([8., 8., 8., 8.])
-    dist_mat = map_data(init_pops, trans_pops, k, 100., 10., 6.)
+    dist_mat = map_data(init_pops, trans_pops, k, 50., 50., 30.)
     plt.imshow(dist_mat, cmap='hot', interpolation='nearest')
     plt.show()
-    np.savetxt("LVD_map_dmat.txt", dist_mat, fmt='%.5f')
+    np.savetxt("LV_map_dmat.txt", dist_mat, fmt='%.5f')

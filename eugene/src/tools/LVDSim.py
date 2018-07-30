@@ -716,7 +716,7 @@ def energyDistanceMatrixParallel(blocks, free_cores=2, verbose=0):
     cpus = max(cpu_count() - free_cores, 1)
 
     out = Parallel(n_jobs=cpus,verbose=verbose)(delayed(energy_loop_function)(i,j,blocks) 
-            for i in range(s) for j in range(i, s))
+            for i in trange(s) for j in trange(i, s))
 
     for cell in out:
 #        print cell
