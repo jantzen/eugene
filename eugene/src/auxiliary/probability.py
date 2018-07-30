@@ -3,6 +3,8 @@
 import scipy
 import numpy as np
 from scipy.integrate import quad, dblquad
+import warnings
+import torch
 import pdb
 
 ################################################################################
@@ -129,7 +131,7 @@ def EuclideanDistance(dist1, dist2, x_range=[-10,10]):
     return l2
 
 
-def EnergyDistance(X, Y):
+def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
     """ Computes the energy distance (a statistical distance) between the
     cumulative distribution functions F and G of the independent random vectors
     X and Y.
@@ -137,6 +139,8 @@ def EnergyDistance(X, Y):
     Inputs:
         X, Y: each is a s x d np-array, where d is the dimension of X and Y
         (assumed to be the same) and s is the number of samples
+        tolerance: the threshold in relative error for deciding whether negative 
+        values of D2 should count as 0, or result in an error
 
     Output:
         the energy distance, D, where:
@@ -145,35 +149,122 @@ def EnergyDistance(X, Y):
     (see https://en.wikipedia.org/wiki/Energy_distance)
     """
 
+    if X.shape[0] < X.shape[1]:
+        warnings.warn("X appears to be transposed.")
+    if Y.shape[0] < Y.shape[1]:
+        warnings.warn("Y appears to be transposed.")
+
     n = X.shape[0]
     m = Y.shape[0]
 
-    # Compute A = E||X - Y||
-    A = 0.
-    for row in X:
-        diff = Y - row
-        norms = np.sum(diff**2, axis=-1)**(1./2.)
-        A += np.sum(norms)
-    A /= (n * m)
+    if gpu:
+        if not torch.cuda.is_available():
+            gpu = False
+            raise WarningMessage("No gpu available. Reverting to CPU method.")
 
-    # Compute B = E||X - X'||
-    B = 0.
-    for row in X:
-        diff = X - row
-        norms = np.sum(diff**2, axis=-1)**(1./2.)
-        B += np.sum(norms)
-    B /= (n * n)
+    if gpu:
+        device = torch.device("cuda")
 
-    # Compute C = E||Y - Y'||
-    C = 0.
-    for row in Y:
-        diff = Y - row
-        norms = np.sum(diff**2, axis=-1)**(1./2.)
-        C += np.sum(norms)
-    C /= (m * m)
+        n = torch.tensor(n, device=device, dtype=torch.double)
+        m = torch.tensor(m, device=device, dtype=torch.double)
+        Xg = torch.from_numpy(X).to(device)
+        Yg = torch.from_numpy(Y).to(device)
 
-    # Compute energy distance
-    D2 = 2. * A - B - C
-    D = D2 ** (1./2.)
+        # Compute A = E||X - Y||
+        A = torch.tensor(0., device=device, dtype=torch.double)
+        for row in X:
+            row = torch.from_numpy(row).to(device)
+            diff = Yg - row
+            norms = torch.sum(diff**2, -1)**(1./2.)
+            A = A + torch.sum(norms,0)
+        A /= (n * m)
+        A = A.cpu().numpy()
 
-    return D
+        # Compute B = E||X - X'||
+        B = torch.tensor(0., device=device, dtype=torch.double)
+        for row in X:
+            row = torch.from_numpy(row).to(device)
+            diff = Xg - row
+            norms = torch.sum(diff**2, -1)**(1./2.)
+            B += torch.sum(norms,0)
+        B /= (n * n)
+        B = B.cpu().numpy()
+
+        # Compute C = E||Y - Y'||
+        C = torch.tensor(0., device=device, dtype=torch.double)
+        for row in Y:
+            row = torch.from_numpy(row).to(device)
+            diff = Yg - row
+            norms = torch.sum(diff**2, -1)**(1./2.)
+            C += torch.sum(norms,0)
+        C /= (m * m)
+        C = C.cpu().numpy()
+
+        # Compute energy distance
+        D2 = 2. * A - B - C
+        D = D2 ** (1./2.)
+
+        if not np.isfinite(D):
+            if abs(D2 / np.max([A, B + C]) / 2.) < tol:
+                D = 0.
+            else:
+                raise ValueError("D^2 is negative ({0}) and " + 
+                "this does not appear to be a machine precision issue.\n" +
+                " A = {1}, B={2}, C={3}".format(D2,A,B,C))
+
+        return D
+
+    else:
+        # Compute A = E||X - Y||
+        A = 0.
+        for row in X:
+            diff = Y - row
+            norms = np.sum(diff**2, axis=-1)**(1./2.)
+            A += np.sum(norms)
+        A /= (n * m)
+
+        # Compute B = E||X - X'||
+        B = 0.
+        for row in X:
+            diff = X - row
+            norms = np.sum(diff**2, axis=-1)**(1./2.)
+            B += np.sum(norms)
+        B /= (n * n)
+
+        # Compute C = E||Y - Y'||
+        C = 0.
+        for row in Y:
+            diff = Y - row
+            norms = np.sum(diff**2, axis=-1)**(1./2.)
+            C += np.sum(norms)
+        C /= (m * m)
+
+        # Compute energy distance
+        D2 = 2. * A - B - C
+        D = D2 ** (1./2.)
+
+        if not np.isfinite(D):
+            if abs(D2 / np.max([A, B + C]) / 2.) < tol:
+                D = 0.
+            else:
+                raise ValueError("D^2 is negative ({0}) and " + 
+                "this does not appear to be a machine precision issue.\n" +
+                " A = {1}, B={2}, C={3}".format(D2,A,B,C))
+
+        return D
+
+
+def nd_gaussian_pdf(mu, cov, points):
+    """ Returns the value of the pdf of a multivariate Gaussian distribution
+    with mean mu (of dimension vars x 1) and covariance cov (vars x vars) at the
+    points in points (vars x num_points).
+    """
+    normalization = np.power(np.linalg.det(2. * np.pi * cov), -1./2.)
+    diff = points - mu
+    inv_cov = np.linalg.inv(cov)
+    energies = -1./2. * np.sum(diff * np.dot(inv_cov, diff), axis=0)
+    out = normalization * np.exp(energies).reshape(1,-1)
+
+    return out
+
+

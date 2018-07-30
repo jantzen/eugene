@@ -83,21 +83,28 @@ class LotkaVolterraSND( object ):
             return None
 
         delta = float(elapsed_time) / float(self._steps)
+        if delta < 0:
+            print delta
         X = self._x
         dX = np.zeros(len(X))
         for s in range(self._steps):
             for i in range(len(X)): 
                 noise = np.random.normal()
                 
-                dX[i] = self._r[i] * X[i] * (1 - (np.sum(self._alpha[i] *
+                dX[i] = self._r[i] * X[i] * (1. - (np.sum(self._alpha[i] *
                 X)/self._k[i]) ) + (self._sigma[i] * X[i] * noise / (2. *
                 np.sqrt(delta) ) ) + (self._sigma[i]**2 / 2.) * (X[i]
                 * (noise**2 - 1.))
 
 #                if not np.isfinite(dX[i]): 
+#                    print(dX[i],X[i],delta,self._sigma[i])
 #                    pdb.set_trace()
 
                 X[i] = X[i] + dX[i] * delta
+                X[i] = np.max([X[i], 0.])
+#                if X[i] > 10 ** 100:
+#                    print("Warning: X[{0}] > 10**100.")
+#                    X[i] = np.float64(10 ** 20)
  
         self._x = X
 

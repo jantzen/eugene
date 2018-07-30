@@ -223,6 +223,124 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None,
     else:
         return raw_data
 
+def simDataAlt(params, max_time, num_times, overlay, stochastic_reps=None):
+    """ Generates data for a list of parameters corresponding to systems and 
+    returns a list of arrays of data that cover the same range.
+            
+            Keyword arguments:
+            params1 -- an array of species growth rates "r", an array of 
+                species carrying capacities "k", and interaction
+                matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
+                and alpha[i,j] is the effect of species j on the population of 
+                species i. Item params1[0] shall be the first simulation's
+                array of growth rates, params1[1] shall be the first
+                simulation's carrying capacity, params1[2] shall be the first
+                simulation's interaction matrix, and params1[3] shall be the
+                first simulation's initial populations.
+            params2 -- an array of species growth rates "r", an array of 
+                species carrying capacities "k", and interaction
+                matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
+                and alpha[i,j] is the effect of species j on the population of 
+                species i. Item params2[0] shall be the second simulation's
+                array of growth rates, params2[1] shall be the second
+                simulation's carrying capacity, params2[2] shall be the second
+                simulation's interaction matrix, and params2[3] shall be the
+                first populations's initial popoulations.
+            max_time -- the highest time value to sample the system at.
+            num_times -- the number of times to sample the system between t=0
+                and t=max_time.
+            overlay -- a function that takes an array of data and returns an
+                a new data array. This function is overlaid on the data.
+                
+            Returns:
+            2d array -- two arrays of data from the systems that cover the same
+                range.
+    """
+
+    lv = []
+    lv_trans = []
+    if stochastic_reps is None:
+        for param_set in params:
+            lv.append(LotkaVolterraND(param_set[0], param_set[1], param_set[2], param_set[3], 0))
+            lv_trans.append(LotkaVolterraND(param_set[0], param_set[1], 
+                param_set[2], param_set[4], 0))
+    else:
+        for param_set in params:
+            lv.append(LotkaVolterraSND(param_set[0], param_set[1], param_set[2],
+                param_set[3], param_set[4], 0))
+            lv_trans.append(LotkaVolterraSND(param_set[0], param_set[1], 
+                param_set[2], param_set[3], param_set[5], 0))
+ 
+    times = []
+    times_trans = []
+    for i in range(len(lv)):
+        times.append(np.linspace(0., max_time, num_times))
+    for i in range(len(lv_trans)):
+        times_trans.append(np.linspace(0., max_time, num_times))
+
+    if stochastic_reps is None:
+        xs = []
+        xs_trans = []
+        out_of_range = True
+        while out_of_range:
+            for i, sys in enumerate(lv):
+                temp = sys.check_xs(times[i])
+            for i, sys in enumerate(lv_trans):
+                temp_trans = ys.check_xs(times[i])
+            if not (np.max(temp) < np.max(sys._k) * 2. and 
+                    np.max(temp_trans) < np.max(sys._k) * 2.):
+                # overrange
+                times[i] = np.linspace(0., np.max(times[i]) / 2., num_times)
+            elif not (np.max(temp) > np.max(sys._k / 4.) and
+                    np.max(temp_trans) > np.max(sys._k / 4.)):
+                # underrange
+                times[i] = np.linspace(0., np.max(times[i]) * 1.3, 
+                        num_times)
+            elif not (np.all(np.isfinite(temp)) and 
+                    np.all(np.isfinite(temp))):
+                # probably overrange
+                times[i] = np.linspace(0., np.max(times[i]) / 2., num_times)
+            else:
+                xs.append(temp)
+                xs_trans.append(temp_trans)
+                out_of_range = False
+        
+        raw_data = []
+        for i in range(len(lv)):
+            f = overlay(xs[i])
+            f_trans = overlay(xs_trans[i])
+            raw_data.append([f, f_trans])
+
+    else:
+        xs = []
+        xs_trans = []
+        for i, sys in enumerate(lv):
+            temp = sys.check_xs(times[i])
+            sys._x = sys._init_x
+            for r in range(stochastic_reps):
+                temp = np.vstack((temp,sys.check_xs(times[i])))
+                sys._x = sys._init_x
+            xs.append(temp)
+
+        for i, sys in enumerate(lv_trans):
+            temp = sys.check_xs(times[i])
+            sys._x = sys._init_x
+            for r in range(stochastic_reps):
+                temp = np.vstack((temp,sys.check_xs(times[i])))
+                sys._x = sys._init_x
+            xs_trans.append(temp)
+
+        raw_data = []
+        for i in range(len(lv)):
+            f = overlay(xs[i])
+            f_trans = overlay(xs_trans[i])
+            raw_data.append([f, f_trans])
+
+    return raw_data
+
+
 
 def randInitPopsSim(r, k, alpha, iterations, delta_t=1):
     """ Simulates a competitive Lotka-Volterra model with n 
