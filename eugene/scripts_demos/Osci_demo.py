@@ -9,9 +9,7 @@ import numpy as np
 
 
 def kind_dists(data):
-    blocks = tuplesToBlocks(data)
-
-    dmat = energyDistanceMatrixParallel(blocks)
+    dmat = energyDistanceMatrixParallel(data)
 
     return dmat
 
@@ -37,6 +35,7 @@ def changing_zeta():
 
     data = simData(params, 15., 1000.0, overlay, range_cover=False)
     print(params)
+    print(data.shape)
     dmat = kind_dists(data)
 
     print(zetas)
@@ -78,5 +77,5 @@ def changing_positions():
 
 
 if __name__ == '__main__':
-    changing_zeta()
-    # changing_positions()
+    # changing_zeta()
+    changing_positions()

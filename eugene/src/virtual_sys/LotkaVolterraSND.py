@@ -84,7 +84,7 @@ class LotkaVolterraSND( object ):
 
         delta = float(elapsed_time) / float(self._steps)
         if delta < 0:
-            print delta
+            print(delta)
         X = self._x
         dX = np.zeros(len(X))
         for s in range(self._steps):
