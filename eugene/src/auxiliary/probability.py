@@ -153,6 +153,7 @@ def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
     if len(Y.shape) > 1 and Y.shape[0] < Y.shape[1]:
         warnings.warn("Y appears to be transposed.")
 
+
     n = X.shape[0]
     m = Y.shape[0]
 
