@@ -8,6 +8,9 @@ from multiprocessing import cpu_count
 import matplotlib.pyplot as plt
 import numpy as np
 import sys, os, pickle
+# a hack to import from AutomatedDiscovery
+sys.path.insert(0, '../../../AutomatedDiscovery/DADS2018/')
+import clipping
 
 
 def map_data(init_pops, trans_pops, caps, max_time, num_times, depth):
@@ -25,8 +28,13 @@ def map_data(init_pops, trans_pops, caps, max_time, num_times, depth):
     for c in data:
         new_data.append(c[0])
 
-    blocks = tuplesToBlocks(new_data)
+    # clip data
+    for i, entry in enumerate(new_data):
+        a_clipped, b_clipped = clipping.clip_segments(entry[0], entry[1], 24)
+        new_data[i][0] = a_clipped
+        new_data[i][1] = b_clipped
 
+    blocks = tuplesToBlocks(new_data)
     # clean data
     bad_data = []
     for i, block in enumerate(blocks):
@@ -35,6 +43,8 @@ def map_data(init_pops, trans_pops, caps, max_time, num_times, depth):
             bad_data.append([params[i], block])
             blocks[i] = blocks[i][~np.isnan(blocks[i]).any(axis=1)]
 
+    # clip data
+    clipping.clip_segments(blocks[:][0], blocks[:][1], 5)
     dmat = energyDistanceMatrixParallel(blocks)
     return dmat, bad_data
 
@@ -67,7 +77,7 @@ if __name__ == '__main__':
     k = np.array([100., 100., 100., 100.])
     init_pops = np.array([5., 5., 5., 5.])
     trans_pops = np.array([8., 8., 8., 8.])
-    dist_mat, bad_data = map_data(init_pops, trans_pops, k, 10., 100., 100.)
+    dist_mat, bad_data = map_data(init_pops, trans_pops, k, 10., 10., 10.)
     plt.imshow(dist_mat, cmap='hot', interpolation='nearest')
     np.savetxt(folder+"LVD_map_dmat.txt", dist_mat, fmt='%.5f')
     bad_file = open(folder+"LVD_map_bad_data.pkl",'wb')
