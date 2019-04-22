@@ -17,6 +17,7 @@ from scipy import stats
 from tqdm import tqdm, trange
 import eugene.src.auxiliary.sampling.resample as resample
 from multiprocessing import cpu_count
+import copy
 
 
 # import pdb
@@ -195,20 +196,30 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None,
         xs = []
         xs_trans = []
         for i, sys in enumerate(lv):
-            temp = sys.check_xs(times[i])
-            sys._x = sys._init_x
+            reps = []
+            init_x = copy.deepcopy(sys._init_x)
+            # temp = sys.check_xs(times[i])
+            # sys._x = init_x
             for r in range(stochastic_reps):
-                temp = np.vstack((temp,sys.check_xs(times[i])))
-                sys._x = sys._init_x
-            xs.append(temp)
+                # reps.append(sys.check_xs(times[i]))
+                reps.append(sys.check_xs(times[i]).T)
+                # temp = np.vstack((temp,sys.check_xs(times[i])))
+                sys._x = copy.copy(init_x)
+            # xs.append(temp)
+            xs.append(reps)
 
         for i, sys in enumerate(lv_trans):
-            temp = sys.check_xs(times[i])
-            sys._x = sys._init_x
+            reps_trans = []
+            init_x = copy.deepcopy(sys._init_x)
+            # temp = sys.check_xs(times[i])
+            # sys._x = init_x
             for r in range(stochastic_reps):
-                temp = np.vstack((temp,sys.check_xs(times[i])))
-                sys._x = sys._init_x
-            xs_trans.append(temp)
+                # reps_trans.append(sys.check_xs(times[i]))
+                reps_trans.append(sys.check_xs(times[i]).T)
+                # temp = np.vstack((temp,sys.check_xs(times[i])))
+                sys._x = copy.copy(init_x)
+            # xs_trans.append(temp)
+            xs_trans.append(reps_trans)
 
         raw_data = []
         for i in range(len(lv)):
