@@ -9,8 +9,8 @@ import numpy as np
 import sys
 from os import makedirs, listdir
 from os.path import isdir, join, exists
-sys.path.insert(0, 'E:/User Data/GitHub/vabacon/')
-sys.path.insert(0, 'E:/User Data/GitHub/AutomatedDiscovery/DADS2018/')
+sys.path.insert(0, '/home/colin/Documents/GitHub/autodisc/vabacon/')
+sys.path.insert(0, '/home/colin/Documents/GitHub/autodisc/AutomatedDiscovery/DADS2018/')
 import approximate_kinds
 import scipy.io
 import pandas
@@ -45,13 +45,42 @@ def test_data():
     return data_list
 
 
+def choose_pairs(sysA_dir, sysB_dir, sysC_dir):
+    #TODO: make this generalized for any number of systems
+    dataA = load_data(sysA_dir)
+    dataB = load_data(sysB_dir)
+    dataC = load_data(sysC_dir)
+    
+    ica1 = np.take(dataA[0], [0], -1).flatten()
+    ica2 = np.take(dataA[1], [0], -1).flatten()
+    icb1 = np.take(dataB[0], [0], -1).flatten()
+    icb2 = np.take(dataB[1], [0], -1).flatten()
+    icc1 = np.take(dataC[0], [0], -1).flatten()
+    icc2 = np.take(dataC[1], [0], -1).flatten()
+    
+    a1_b1_dist = np.linalg.norm(ica1-icb1)
+    a1_b2_dist = np.linalg.norm(ica1-icb2)
+    a1_b_min_index = np.argmin([a1_b1_dist, a1_b2_dist])
+    
+    a1_c1_dist = np.linalg.norm(ica1-icc1)
+    a1_c2_dist = np.linalg.norm(ica1-icc2)
+    a1_c_min_index = np.argmin([a1_c1_dist, a1_c2_dist])
+    
+    data_dict = {"untransA":dataA[0], "transA":dataA[1],
+                 "untransB":dataB[a1_b_min_index],
+                 "transB":dataB[not a1_b_min_index],
+                 "untransC":dataC[a1_c_min_index],
+                 "transC":dataC[not a1_c_min_index]}
+    return data_dict
+
+
 def choose_data(sysA_dir, sysB_dir):
     # load dataA
-#    dataA = test_data()
-    dataA = load_data(sysA_dir)
+    dataA = test_data()
+#    dataA = load_data(sysA_dir)
     # load dataB
-#    dataB = test_data()
-    dataB = load_data(sysB_dir)
+    dataB = test_data()
+#    dataB = load_data(sysB_dir)
     # choose data from sysA using choose_trans_untrans
     #TODO: how to deal with data of different sample size?
     #   currently do this by cutting each dataset to smallest size
@@ -118,7 +147,20 @@ if __name__ == '__main__':
     if not exists(out_dir):
         makedirs(out_dir)
 
-    selected = choose_data(sysA_dir, sysB_dir)
+    sysC_dir = None        
+    if len(sys.argv) > 4:
+        sysC_dir = sys.argv[3]
+        assert isdir(sysC_dir), "Can't find Systems B directory."
+        if not sysC_dir[-1] == '/':
+            sysC_dir = sysC_dir + '/'
+        sysC_names = listdir(sysC_dir)
+        assert len(sysC_names) > 0, "Systems C directory is empty."
+        out_dir = sys.argv[4]
+        if not exists(out_dir):
+            makedirs(out_dir)
+
+    #selected = choose_data(sysA_dir, sysB_dir)
+    selected = choose_pairs(sysA_dir, sysB_dir, sysC_dir)
     # each selected is a dataset of dim x samples
     # put each dataset in a csv
     for name, data in selected.items():
