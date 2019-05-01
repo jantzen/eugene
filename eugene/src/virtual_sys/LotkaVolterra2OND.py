@@ -54,7 +54,6 @@ class LotkaVolterra2OND( object ):
 #        print(y)
         out = scipy.integrate.odeint(self.deriv, y, t)
         ys = np.array_split(out[1], 2)
-        print(ys)
         self._x = ys[0]
         self._y = ys[1]
         
@@ -74,7 +73,7 @@ class LotkaVolterra2OND( object ):
             # xi'' = (rn - ani*xi)(ri*xi - xi') + (1/xi)(xi')^2
 
             terms1 = Y[i]
-            terms2 = self._ord_scale*(self._r[i] * X[i] * (1 - (np.sum(self._alpha[i]*X)/self._k[i])) - Y[i])
+            terms2 = self._ord_scale*(self._r[i] * X[i] * (1 - (np.sum(self._alpha[i]*X)/self._k[i])) + Y[i])
             terms[0, i] = terms1
             terms[1, i] = terms2
             
@@ -93,8 +92,6 @@ class LotkaVolterra2OND( object ):
             interval = times[i] - t_n
             t_n = times[i]
             self.update_x(interval)
-            print(self._x)
-            print(self._y)
             xs = np.vstack((xs, self._x.reshape(1, len(self._x))))
             ys = np.vstack((ys, self._y.reshape(1, len(self._y))))
         
