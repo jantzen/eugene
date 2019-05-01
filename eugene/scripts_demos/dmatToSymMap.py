@@ -16,5 +16,5 @@ def dmatToSymMap(dmat, shape, n=3, order='C'):
     reduced *= 1.0/reduced.max()
     reduced = np.reshape(reduced, (shape[0], shape[1], 3), order=order)
     plt.figure()
-    plt.imshow(reduced, interpolation='nearest')
+    plt.imshow(reduced, interpolation='nearest', origin='lower')
     plt.show()
