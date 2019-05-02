@@ -73,7 +73,7 @@ class LotkaVolterra2OND( object ):
             # xi'' = (rn - ani*xi)(ri*xi - xi') + (1/xi)(xi')^2
 
             terms1 = Y[i]
-            terms2 = self._ord_scale*(self._r[i] * X[i] * (1 - (np.sum(self._alpha[i]*X)/self._k[i])) + Y[i])
+            terms2 = self._ord_scale*(self._r[i] * X[i] * (1 - (np.sum(self._alpha[i]*X)/self._k[i])) - Y[i])
             terms[0, i] = terms1
             terms[1, i] = terms2
             
@@ -86,14 +86,19 @@ class LotkaVolterra2OND( object ):
         t_n = 0.
         xs = np.array(self._x).reshape(1, len(self._x))
         ys = np.array(self._y).reshape(1, len(self._y))
+        out = np.array([xs, ys]).flatten()
         for i in range(len(times)):
             if times[i] == 0.:
                 continue
             interval = times[i] - t_n
             t_n = times[i]
             self.update_x(interval)
+            xt = self._x.reshape(1, len(self._x))
+            yt = self._y.reshape(1, len(self._y))
+            outt = np.array([xt, yt]).flatten()
+            out = np.vstack((out, outt))
             xs = np.vstack((xs, self._x.reshape(1, len(self._x))))
             ys = np.vstack((ys, self._y.reshape(1, len(self._y))))
         
-        return (xs, ys)
+        return out
         

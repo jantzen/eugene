@@ -356,7 +356,7 @@ class TestRobustness(unittest.TestCase):
         dists = []
         lens = []
         for x in trange(10):
-            n = x + 1.
+            n = np.power(10, x)
             # n = np.tan(np.power(x, 2))
             lens.append(n)
             data_name = test_name + "-" + str(n)
@@ -368,7 +368,7 @@ class TestRobustness(unittest.TestCase):
             if isfile(data_path):
                 data = np.load(data_path)
             else:
-                data = simData(params, 10., 20, no_overlay,
+                data = simData2OD(params, 10., 20, no_overlay,
                                range_cover=False)
                 # np.save(data_path, data)
             dist = self.pair_dist(data, reps=False, clip=True)
