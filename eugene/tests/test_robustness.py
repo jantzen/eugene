@@ -339,6 +339,50 @@ class TestRobustness(unittest.TestCase):
         return dmat[0][1]
 
 
+    @unittest.skip
+    def test_same_cap_more_linear(self):
+        test_name = "test_same_cap_more_linear"
+        print(test_name)
+
+        params = setup_params()
+        params1 = params[0]
+        params1.append(0.)
+        params2 = params[1]
+        params2.append(0.)
+
+        dists = []
+        lens = []
+        for x in trange(10):
+            n = x/5
+            # n = np.tan(np.power(x, 2))
+            lens.append(n)
+            data_name = test_name + "-" + str(n)
+            data_path = join("test_data", data_name + ".npy")
+            params1[-1] = 1.
+            params2[-1] = n
+            params = [params1, params2]
+            data = None
+            if isfile(data_path):
+                data = np.load(data_path)
+            else:
+                data = simDataLin(params, 10., 20, no_overlay)
+                # np.save(data_path, data)
+            dist = self.pair_dist(data, reps=False, clip=True)
+            dists.append(dist)
+
+        print(dists)
+        fig, ax = plt.subplots()
+        ax.plot(lens, dists, 'bo')
+        ax.set(xlabel='linearity factor', ylabel='distance',
+               title='Two Systems with Same Capacity and Different Linearity')
+        # plt.show()
+        plt.savefig(test_name + ".pdf")
+
+        dists1 = np.array(dists[0:3])
+        dists2 = np.array(dists[-4:-1])
+        self.assertTrue(dists1.var() > dists2.var())
+
+
     # @unittest.skip
     def test_same_cap_more_2nd_order(self):
         test_name = "test_same_cap_more_2nd_order"
