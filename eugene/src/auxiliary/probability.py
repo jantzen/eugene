@@ -4,8 +4,7 @@ import scipy
 import numpy as np
 from scipy.integrate import quad, dblquad
 import warnings
-import torch
-import pdb
+import imp
 
 ################################################################################
 # Functions:
@@ -150,17 +149,31 @@ def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
     """
 
     if X.shape[0] < X.shape[1]:
-        warnings.warn("X appears to be transposed.")
+        errmsg = "X appears to be transposed. X dim: {}".format(X.shape)
+        warnings.warn(errmsg)
     if Y.shape[0] < Y.shape[1]:
-        warnings.warn("Y appears to be transposed.")
+        errmsg = "Y appears to be transposed. Y dim: {}".format(Y.shape)
+        warnings.warn(errmsg)
 
     n = X.shape[0]
     m = Y.shape[0]
 
     if gpu:
+        try:
+            imp.find_module('torch')
+            found = True
+        except ImportError:
+            found = False
+        if found:
+            import torch
+        else:
+            gpu = False
+
+    if gpu:
         if not torch.cuda.is_available():
             gpu = False
-            raise WarningMessage("No gpu available. Reverting to CPU method.")
+            errmsg = "No gpu available. Reverting to CPU method."
+            warnings.warn(errmsg)
 
     if gpu:
         device = torch.device("cuda")
@@ -259,11 +272,19 @@ def nd_gaussian_pdf(mu, cov, points):
     with mean mu (of dimension vars x 1) and covariance cov (vars x vars) at the
     points in points (vars x num_points).
     """
-    normalization = np.power(np.linalg.det(2. * np.pi * cov), -1./2.)
-    diff = points - mu
-    inv_cov = np.linalg.inv(cov)
-    energies = -1./2. * np.sum(diff * np.dot(inv_cov, diff), axis=0)
-    out = normalization * np.exp(energies).reshape(1,-1)
+    if ((type(mu) is float or type(mu) is np.float64) and (type(cov) is float
+            or type(cov) is np.float64)):
+        normalization = np.power(2. * np.pi * cov, -1./2.)
+        diff = points - mu
+        energies = -1./2. * np.power(diff, 2.) / cov
+        out = normalization * np.exp(energies).reshape(1, -1)
+
+    else:
+        normalization = np.power(np.linalg.det(2. * np.pi * cov), -1./2.)
+        diff = points - mu
+        inv_cov = np.linalg.inv(cov)
+        energies = -1./2. * np.sum(diff * np.dot(inv_cov, diff), axis=0)
+        out = normalization * np.exp(energies).reshape(1,-1)
 
     return out
 
