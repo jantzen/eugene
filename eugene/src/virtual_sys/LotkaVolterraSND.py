@@ -43,10 +43,10 @@ class LotkaVolterraSND( object ):
         self._alpha = alpha
         self._k = k
 
-        self._init_x = copy.deepcopy(init_x)
+        self._init_x = copy.copy(init_x)
         self._init_t = float(init_t)
 
-        self._x = copy.deepcopy(init_x)
+        self._x = copy.copy(init_x)
         self._time = float(init_t)
         self._delta_t = 1
         self._steps = steps
@@ -84,7 +84,7 @@ class LotkaVolterraSND( object ):
 
         delta = float(elapsed_time) / float(self._steps)
         if delta < 0:
-            print delta
+            print(delta)
         X = self._x
         dX = np.zeros(len(X))
         for s in range(self._steps):

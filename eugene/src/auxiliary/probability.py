@@ -148,15 +148,21 @@ def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
     (see https://en.wikipedia.org/wiki/Energy_distance)
     """
 
-    if X.shape[0] < X.shape[1]:
+    if len(X.shape) == 2 and X.shape[0] < X.shape[1]:
         errmsg = "X appears to be transposed. X dim: {}".format(X.shape)
         warnings.warn(errmsg)
-    if Y.shape[0] < Y.shape[1]:
+    if len(Y.shape) == 2 and Y.shape[0] < Y.shape[1]:
         errmsg = "Y appears to be transposed. Y dim: {}".format(Y.shape)
         warnings.warn(errmsg)
 
-    n = X.shape[0]
-    m = Y.shape[0]
+    if len(X.shape) == 2 and len(Y.shape) == 2:
+        n = X.shape[0]
+        m = Y.shape[0]
+    else:
+        X = X.reshape(-1, 1)
+        Y = Y.reshape(-1, 1)
+        n = X.shape[0]
+        m = Y.shape[0]
 
     if gpu:
         try:
@@ -260,9 +266,9 @@ def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
             if abs(D2 / np.max([A, B + C]) / 2.) < tol:
                 D = 0.
             else:
-                raise ValueError("D^2 is negative ({0}) and " + 
+                raise ValueError("D^2 is negative ({0}) and ".format(D2) +
                 "this does not appear to be a machine precision issue.\n" +
-                " A = {1}, B={2}, C={3}".format(D2,A,B,C))
+                " A = {1}, B = {2}, C = {3}".format(D2,A,B,C))
 
         return D
 

@@ -61,7 +61,7 @@ class LotkaVolterraND( object ):
     
     def check_xs(self, times):
         t_n = 0.
-        xs = self._x.reshape(1, len(self._x))
+        xs = np.array(self._x).reshape(1, len(self._x))
         for i in range(len(times)):
             if times[i] == 0.:
                 continue
