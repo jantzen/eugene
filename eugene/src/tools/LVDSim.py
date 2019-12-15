@@ -5,6 +5,8 @@
 # from LotkaVolterraND import LotkaVolterraND
 from eugene.src.virtual_sys.LotkaVolterraND import LotkaVolterraND
 from eugene.src.virtual_sys.LotkaVolterraSND import LotkaVolterraSND
+from eugene.src.virtual_sys.LotkaVolterra2OND import LotkaVolterra2OND
+from eugene.src.virtual_sys.LotkaVolterraNDLin import LotkaVolterraNDLin
 from eugene.src.auxiliary.probability import *
 import random
 import numpy as np
@@ -233,6 +235,157 @@ def simData(params, max_time, num_times, overlay, stochastic_reps=None,
 
     else:
         return raw_data
+
+
+def simDataLin(params, max_time, num_times, overlay, range_cover=False):
+    """ Generates data for a list of parameters corresponding to systems and
+    returns a list of arrays of data that cover the same range.
+
+            Keyword arguments:
+            params[n] -- an array of species growth rates "r", an array of
+                species carrying capacities "k", and interaction
+                matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
+                and alpha[i,j] is the effect of species j on the population of
+                species i. Item params1[0] shall be the first simulation's
+                array of growth rates, params1[1] shall be the first
+                simulation's carrying capacity, params1[2] shall be the first
+                simulation's interaction matrix, and params1[3] shall be the
+                first simulation's initial populations, params1[4] shall be the
+                first simulation's transformed initial populations, and
+                params1[5] shall be the scale of the non-linear term in the
+                equation.
+            max_time -- the highest time value to sample the system at.
+            num_times -- the number of times to sample the system between t=0
+                and t=max_time.
+            overlay -- a function that takes an array of data and returns an
+                a new data array. This function is overlaid on the data.
+
+            Returns:
+            2d array -- two arrays of data from the systems that cover the same
+                range.
+    """
+
+    lv = []
+    lv_trans = []
+    for param_set in params:
+        lv.append(LotkaVolterraNDLin(param_set[0], param_set[1], param_set[2],
+                                     param_set[3], param_set[5], 0))
+        lv_trans.append(LotkaVolterraNDLin(param_set[0], param_set[1],
+                                           param_set[2], param_set[4],
+                                           param_set[5], 0))
+    times = []
+    times_trans = []
+    for i in range(len(lv)):
+        times.append(np.linspace(0., max_time, num_times))
+    for i in range(len(lv_trans)):
+        times_trans.append(np.linspace(0., max_time, num_times))
+
+    xs = []
+    xs_trans = []
+    for i, sys in enumerate(lv):
+        xs.append(sys.check_xs(times[i]))
+    for i, sys in enumerate(lv_trans):
+        xs_trans.append(sys.check_xs(times[i]))
+
+    raw_data = []
+    for i in range(len(lv)):
+        f = overlay(xs[i])
+        f_trans = overlay(xs_trans[i])
+        raw_data.append([f, f_trans])
+
+    if range_cover:
+        data, high, low = rangeCover(raw_data)
+        return data, low, high
+
+    else:
+        return raw_data
+
+
+def simData2OD(params, max_time, num_times, overlay, range_cover=False):
+    """ Generates data for a list of parameters corresponding to systems and
+    returns a list of arrays of data that cover the same range.
+
+            Keyword arguments:
+            prams -- a list of parameters for each system desired to simulate.
+                params[n][0] is an array-like of species growth rates "r" for
+                species in system n. params[n][1] is an array-like of species
+                carrying capacities "k". params[n][2] is the interaction matrix
+                "alpha". params[n][3] is an array-like of initial populations.
+                params[n][4] is an array-like of initial populations for the
+                transformed version of the system. params[n][5] is an array-like
+                of species ~growth velocities~. params[n][6] is a scalar that
+                dictates how strong the second order effects of the system is.
+            params1 -- an array of species growth rates "r", an array of
+                species carrying capacities "k", interaction
+                matrices "alpha", and growth velocities "y"; where r[i] is the
+                growth rate of species i, k[i] is the carrying capacity of
+                species i, alpha[i,j] is the effect of species j on the
+                population of species i, and y[i] is the growth velocity of
+                species i. Item params1[0] shall be the first simulation's
+                array of growth rates, params1[1] shall be the first
+                simulation's carrying capacity, params1[2] shall be the first
+                simulation's interaction matrix, and params1[3] shall be the
+                first simulation's initial populations and params1[4] shall be
+                the first simulation's growth velocity.
+            params2 -- an array of species growth rates "r", an array of
+                species carrying capacities "k", and interaction
+                matrices "alpha"; where r[i] is the growth rate of species i,
+                k[i] is the carrying capacity of species i,
+                and alpha[i,j] is the effect of species j on the population of
+                species i. Item params2[0] shall be the second simulation's
+                array of growth rates, params2[1] shall be the second
+                simulation's carrying capacity, params2[2] shall be the second
+                simulation's interaction matrix, and params2[3] shall be the
+                first populations's initial popoulations.
+            max_time -- the highest time value to sample the system at.
+            num_times -- the number of times to sample the system between t=0
+                and t=max_time.
+            overlay -- a function that takes an array of data and returns an
+                a new data array. This function is overlaid on the data.
+
+            Returns:
+            2d array -- two arrays of data from the systems that cover the same
+                range.
+    """
+
+    lv = []
+    lv_trans = []
+    for param_set in params:
+        lv.append(LotkaVolterra2OND(param_set[0], param_set[1],
+                                    param_set[2], param_set[3],
+                                    param_set[5], param_set[6], 0))
+        lv_trans.append(LotkaVolterra2OND(param_set[0], param_set[1],
+                                          param_set[2], param_set[4],
+                                          param_set[5], param_set[6], 0))
+
+    times = []
+    times_trans = []
+    for i in range(len(lv)):
+        times.append(np.linspace(0., max_time, num_times))
+    for i in range(len(lv_trans)):
+        times_trans.append(np.linspace(0., max_time, num_times))
+
+    xs = []
+    xs_trans = []
+    for i, sys in enumerate(lv):
+        xs.append(sys.check_xs(times[i]))
+    for i, sys in enumerate(lv_trans):
+        xs_trans.append(sys.check_xs(times[i]))
+
+    raw_data = []
+    for i in range(len(lv)):
+        f = overlay(xs[i])
+        f_trans = overlay(xs_trans[i])
+        raw_data.append([f, f_trans])
+
+    if range_cover:
+        data, high, low = rangeCover(raw_data)
+        return data, low, high
+
+    else:
+        return raw_data
+
 
 def simDataAlt(params, max_time, num_times, overlay, stochastic_reps=None):
     """ Generates data for a list of parameters corresponding to systems and 

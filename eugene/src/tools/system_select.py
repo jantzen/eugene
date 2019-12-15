@@ -23,8 +23,8 @@ def load_data(directory):
     for set_name in set_names:
         set_path = join(directory, set_name)
         mat_data = scipy.io.loadmat(set_path)
-        data_name = list(mat_data.keys())[-1]
-        data = mat_data[data_name]
+        data_name = list(mat_data.keys())[0]
+        data = np.asarray(mat_data[data_name])
         sets.append(data.T)
     min_size = np.min([np.shape(x)[-1] for x in sets])
     for i, data in enumerate(sets):
@@ -57,7 +57,13 @@ def choose_pairs(sysA_dir, sysB_dir, sysC_dir):
     icb2 = np.take(dataB[1], [0], -1).flatten()
     icc1 = np.take(dataC[0], [0], -1).flatten()
     icc2 = np.take(dataC[1], [0], -1).flatten()
-    
+#    ica1 = dataA[0][0]
+#    ica2 = dataA[1][0]
+#    icb1 = dataB[0][0]
+#    icb2 = dataB[1][0]
+#    icc1 = dataC[0][0]
+#    icc2 = dataC[1][0]
+#    
     a1_b1_dist = np.linalg.norm(ica1-icb1)
     a1_b2_dist = np.linalg.norm(ica1-icb2)
     a1_b_min_index = np.argmin([a1_b1_dist, a1_b2_dist])
