@@ -148,12 +148,14 @@ def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
     (see https://en.wikipedia.org/wiki/Energy_distance)
     """
 
-    if len(X.shape) == 2 and X.shape[0] < X.shape[1]:
-        errmsg = "X appears to be transposed. X dim: {}".format(X.shape)
-        warnings.warn(errmsg)
-    if len(Y.shape) == 2 and Y.shape[0] < Y.shape[1]:
-        errmsg = "Y appears to be transposed. Y dim: {}".format(Y.shape)
-        warnings.warn(errmsg)
+    if len(X.shape) > 1 and X.shape[0] < X.shape[1]:
+        warning_str = ("X appears to be transposed." + 
+            " Shape of X: {}".format(X.shape))
+        warnings.warn(warning_str)
+    if len(Y.shape) > 1 and Y.shape[0] < Y.shape[1]:
+        warning_str = ("Y appears to be transposed." + 
+            " Shape of Y: {}".format(Y.shape))
+        warnings.warn(warning_str)
 
     if len(X.shape) == 2 and len(Y.shape) == 2:
         n = X.shape[0]
