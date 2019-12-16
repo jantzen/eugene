@@ -164,6 +164,16 @@ def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
         n = X.shape[0]
         m = Y.shape[0]
 
+    tmpX = X[np.all(np.isfinite(X), axis=1)]
+    tmpY = Y[np.all(np.isfinite(Y), axis=1)]
+    if not tmpX.shape == X.shape:
+        errmsg = 'Warning: removing rows with bad values from X.'
+        warnings.warn(errmsg)
+    if not tmpY.shape == Y.shape:
+        errmsg = 'Warning: removing rows with bad values from Y.'
+        warnings.warn(errmsg)
+
+
     if gpu:
         try:
             imp.find_module('torch')
