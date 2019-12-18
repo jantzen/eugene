@@ -9,6 +9,7 @@ from joblib import Parallel, delayed
 import numpy as np
 from colorama import Fore, Style
 import copy
+import pdb
 
 
 class Scanner( object ):
@@ -73,27 +74,25 @@ class DiffScanner( Scanner ):
         self._data = timeseries
 
         if window_width is None:
-            self._window_width = max(self._data.shape)/10
+            self._window_width = int(max(self._data.shape)/10)
         else:
-            self._window_width = window_width
+            self._window_width = int(window_width)
         
         if lag is None:
-            self._lag = self._window_width / 10
+            self._lag = int(self._window_width / 10)
         else:
-            self._lag = lag
+            self._lag = int(lag)
         
         self._step_size = step_size
         self._steps = 10
 
     def start_scan(self, frags=100, reps=10, alpha=1., free_cores=1, verbose=25):
-
         length = self._data.shape[1]
         w = self._window_width
         c = frags
         g = self._lag
 
         cpus = max(cpu_count() - free_cores, 1)
-
         tmp = Parallel(
                 n_jobs=cpus,verbose=verbose,max_nbytes=1e6,temp_folder='/tmp'
                 )(delayed(_scan_loop)(i,w,c, reps, alpha, 
