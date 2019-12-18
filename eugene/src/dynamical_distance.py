@@ -58,7 +58,7 @@ def distance_matrix(untrans, trans, minimum_length, steps=10, parallel_compute=T
 
     if parallel_compute:
         out = Parallel(n_jobs=cpus,
-                verbose=100)(delayed(distance_matrix_loop_func)(ii,jj,untrans,trans,
+                verbose=5)(delayed(distance_matrix_loop_func)(ii,jj,untrans,trans,
                     minimum_length,steps,return_partials,gpu) 
                     for ii in range(len(untrans)) 
                     for jj in range(ii, len(untrans)))

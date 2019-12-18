@@ -5,12 +5,16 @@ import warnings
 from eugene.src.auxiliary.probability import EnergyDistance, nd_gaussian_pdf
 
 
-def _choose_untrans_trans_1D(data_in, num_reps, alpha=0.5, beta=0.2):
+def _choose_untrans_trans_1D(data_in, num_reps, alpha=0.5, beta=0.2,
+        report=False):
     data = copy.deepcopy(data_in)
 
-    num_condtions = len(data)
+    num_conditions = len(data)
 
     pools = data
+
+    if report:
+        error_flag = np.zeros((num_conditions, num_conditions), dtype='int8') 
 
     # choose a pair of Gaussians from the joint data set (of initial values)
 
@@ -76,6 +80,9 @@ def _choose_untrans_trans_1D(data_in, num_reps, alpha=0.5, beta=0.2):
                 errmsg = """Warning: the untrans initial conditions for
                 conditions {} and {} do not match (p < 0.005).""".format(ii, jj)
                 warnings.warn(errmsg)
+                if report:
+                    error_flag[ii,jj] += 1
+                    error_flag[jj,ii] += 1
 
     # test trans
     nn = len(trans_scores)
@@ -86,11 +93,17 @@ def _choose_untrans_trans_1D(data_in, num_reps, alpha=0.5, beta=0.2):
                 errmsg = """Warning: the trans initial conditions for
                 conditions {} and {} do not match (p < 0.005).""".format(ii, jj)
                 warnings.warn(errmsg)
+                if report:
+                    error_flag[ii,jj] += 2
+                    error_flag[jj,ii] += 2
 
-    return untrans, trans
+    if report:
+        return untrans, trans, error_flag
+    else:
+        return untrans, trans
 
 
-def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2):
+def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, report=False):
     """ Input:
         data: A list of lists of numpy ndarrays, one for each condition. They are expected to 
         be dim x p where dim is the dimension and p the number of samples.
@@ -106,7 +119,8 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2):
 
     if data[0][0].ndim == 1 or min(data[0][0].shape)==1:
         print("Choosing untrans and trans segments for 1-D data...")
-        return _choose_untrans_trans_1D(data_in, num_reps, alpha=alpha, beta=beta)
+        return _choose_untrans_trans_1D(data_in, num_reps, alpha=alpha,
+                beta=beta, report=report)
 
     # check the segments for proper format
     for j, subset in enumerate(data):
@@ -122,6 +136,9 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2):
                 data[j][i] = seg.T
 
     pools = data
+
+    if report:
+        error_flag = np.zeros((num_conditions, num_conditions), dtype='int8') 
 
     # choose a pair of Gaussians from the joint data set (of initial values)
 
@@ -209,6 +226,9 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2):
                 errmsg = """Warning: the trans initial conditions for
                 conditions {} and {} do not match (p < 0.005).""".format(ii, jj)
                 warnings.warn(errmsg)
+                if report:
+                    error_flag[ii,jj] += 1
+                    error_flag[jj,ii] += 1
 
     # test trans
     nn = len(trans_scores)
@@ -219,8 +239,13 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2):
                 errmsg = """Warning: the trans initial conditions for
                 conditions {} and {} do not match (p < 0.005).""".format(ii, jj)
                 warnings.warn(errmsg)
+                if report:
+                    error_flag[ii,jj] += 2
+                    error_flag[jj,ii] += 2
 
-
-    return untrans, trans
+    if report:
+        return untrans, trans, error_flag
+    else:
+        return untrans, trans
 
 
