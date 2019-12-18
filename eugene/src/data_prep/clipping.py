@@ -4,17 +4,43 @@ import numpy as np
 from eugene.src.auxiliary.probability import EnergyDistance
 import copy
 
+#Classes:
+#   none
+
+#Functions:
+#   clip_segments_1d
+#   clip_segments
+#   clip_to_match_1d
+#   clip_to_match
+#   zip_curves_1d
+#   zip_curves
+
+
+###################################################################
+###################################################################
+#Functions
+
 
 def clip_segments_1d(A, B, minimum_length, steps=10):
-    """ Assumes that the curves in lists A and B are all of the same length.
+    """ This covers the 1-d case of the more general function clip_segments. i
+    Implements dynamical scaling: Clips either the curves in A or the curves
+    in B in order to minimize the mean energy distance between each point in A
+    and the corresponding point in B. Assumes that the curves in lists A and B are 
+    all of the same length.
+
         Inputs:
-            A: a list of np-arrays of length n
-            B: a list of np-arrays of length n
-            minimum_length: the shortest allowed array length after clipping (0 < minimum_length <= n)
-            steps: an integer indicating the number of steps to take in searching for a cut point between index minimum_length and (n-1)
+            A: a list of 1-d np-arrays of length n
+            B: a list of 1-d np-arrays of length n
+            minimum_length: the shortest allowed array length after clipping 
+                (0 < minimum_length <= n)
+            steps: an integer indicating the number of steps to take in searching 
+                for a cut point between index minimum_length and (n-1)
+
         Returns:
-            A_clipped, B_clipped (lists of np-arrays where one set has been cut at the optimal index)
+            A_clipped, B_clipped (lists of np-arrays where one set has 
+            been cut at the optimal index)
     """
+
     if minimum_length > max(A[0].shape):
         minimum_length = max(A[0].shape)
     elif minimum_length <= 0:
@@ -98,14 +124,22 @@ def clip_segments_1d(A, B, minimum_length, steps=10):
 
 
 def clip_segments(A, B, minimum_length, steps=10):
-    """ Assumes that the curves in lists A and B are all of the same length.
+    """ Implements dynamical scaling: Clips either the curves in A or the curves
+    in B in order to minimize the mean energy distance between each point in A
+    and the corresponding point in B. Assumes that the curves in lists A and B are 
+    all of the same length.
+
         Inputs:
             A: a list of np-arrays of length n
             B: a list of np-arrays of length n
-            minimum_length: the shortest allowed array length after clipping (0 < minimum_length <= n)
-            steps: an integer indicating the number of steps to take in searching for a cut point between index minimum_length and (n-1)
+            minimum_length: the shortest allowed array length after clipping 
+                (0 < minimum_length <= n)
+            steps: an integer indicating the number of steps to take in searching 
+                for a cut point between index minimum_length and (n-1)
+
         Returns:
-            A_clipped, B_clipped (lists of np-arrays where one set has been cut at the optimal index)
+            A_clipped, B_clipped (lists of np-arrays where one set has 
+            been cut at the optimal index)
     """
 
     if A[0].ndim == 1 or min(A[0].shape)==1:
@@ -203,6 +237,19 @@ def clip_segments(A, B, minimum_length, steps=10):
 
 
 def clip_to_match_1d(A_clipped, B_clipped, C, D):
+    """ This is the 1-d companion to the more general function, clip_to_match. 
+    Given four sets of curves, 
+
+        Inputs:
+            A_clipped: 
+            B_clipped: 
+            C:
+            D:
+
+        Returns:
+            C_clipped, D_clipped:
+    """
+
 
     cut_len1 = len(A_clipped[0])
     cut_len2 = len(B_clipped[0])
