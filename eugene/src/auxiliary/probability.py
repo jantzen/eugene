@@ -4,7 +4,7 @@ import scipy
 import numpy as np
 from scipy.integrate import quad, dblquad
 import warnings
-import pdb
+import imp
 
 ################################################################################
 # Functions:
@@ -149,19 +149,49 @@ def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
     """
 
     if len(X.shape) > 1 and X.shape[0] < X.shape[1]:
-        warnings.warn("X appears to be transposed.")
+        warning_str = ("X appears to be transposed." + 
+            " Shape of X: {}".format(X.shape))
+        warnings.warn(warning_str)
     if len(Y.shape) > 1 and Y.shape[0] < Y.shape[1]:
-        warnings.warn("Y appears to be transposed.")
+        warning_str = ("Y appears to be transposed." + 
+            " Shape of Y: {}".format(Y.shape))
+        warnings.warn(warning_str)
 
+    if len(X.shape) == 2 and len(Y.shape) == 2:
+        n = X.shape[0]
+        m = Y.shape[0]
+    else:
+        X = X.reshape(-1, 1)
+        Y = Y.reshape(-1, 1)
+        n = X.shape[0]
+        m = Y.shape[0]
 
-    n = X.shape[0]
-    m = Y.shape[0]
+    tmpX = X[np.all(np.isfinite(X), axis=1)]
+    tmpY = Y[np.all(np.isfinite(Y), axis=1)]
+    if not tmpX.shape == X.shape:
+        errmsg = 'Warning: removing rows with bad values from X.'
+        warnings.warn(errmsg)
+    if not tmpY.shape == Y.shape:
+        errmsg = 'Warning: removing rows with bad values from Y.'
+        warnings.warn(errmsg)
+
 
     if gpu:
-        import torch
+        try:
+            imp.find_module('torch')
+            found = True
+        except ImportError:
+            found = False
+        if found:
+            import torch
+        else:
+            gpu = False
+
+    if gpu:
         if not torch.cuda.is_available():
             gpu = False
-            raise WarningMessage("No gpu available. Reverting to CPU method.")
+            errmsg = "No gpu available. Reverting to CPU method."
+            warnings.warn(errmsg)
 
     if gpu:
         device = torch.device("cuda")
@@ -260,11 +290,19 @@ def nd_gaussian_pdf(mu, cov, points):
     with mean mu (of dimension vars x 1) and covariance cov (vars x vars) at the
     points in points (vars x num_points).
     """
-    normalization = np.power(np.linalg.det(2. * np.pi * cov), -1./2.)
-    diff = points - mu
-    inv_cov = np.linalg.inv(cov)
-    energies = -1./2. * np.sum(diff * np.dot(inv_cov, diff), axis=0)
-    out = normalization * np.exp(energies).reshape(1,-1)
+    if ((type(mu) is float or type(mu) is np.float64) and (type(cov) is float
+            or type(cov) is np.float64)):
+        normalization = np.power(2. * np.pi * cov, -1./2.)
+        diff = points - mu
+        energies = -1./2. * np.power(diff, 2.) / cov
+        out = normalization * np.exp(energies).reshape(1, -1)
+
+    else:
+        normalization = np.power(np.linalg.det(2. * np.pi * cov), -1./2.)
+        diff = points - mu
+        inv_cov = np.linalg.inv(cov)
+        energies = -1./2. * np.sum(diff * np.dot(inv_cov, diff), axis=0)
+        out = normalization * np.exp(energies).reshape(1,-1)
 
     return out
 
