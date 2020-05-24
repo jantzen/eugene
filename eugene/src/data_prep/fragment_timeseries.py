@@ -7,7 +7,7 @@ import numpy as np
 dynamical distance.
 """
 
-def split_timeseries(data, num_frags):
+def split_timeseries(data, num_frags, verbose=False):
     """ data: a list of length n of (vars x sample)  numpy arrays, presumed 
     to be timeseries describing n different systems or treatments.
 
@@ -36,7 +36,8 @@ def split_timeseries(data, num_frags):
         if (not tmp[0].shape == tmp[-1].shape):
             # find the minimum length
             m = tmp[-1].shape[1]
-            print("Trimming all sub-series to length {}.".format(m))
+            if verbose:
+                print("Trimming all sub-series to length {}.".format(m))
             data_split = []
             for curve in tmp:
                 data_split.append(curve[:,:m])
