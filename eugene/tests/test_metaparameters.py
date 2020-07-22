@@ -2,12 +2,11 @@
 
 from __future__ import division
 import unittest
-from eugene.src.tools.metaparameters import *
+from eugene.src.data_prep.metaparameters import *
 from eugene.src.dynamical_distance import *
 import numpy as np
 from scipy.integrate import ode
 from scipy import zeros_like
-#import matplotlib.pyplot as plt
 
 
 
@@ -77,8 +76,15 @@ class TestMetaparameters(unittest.TestCase):
 
     def test_tune_ic_selection(self):
         print("Testing tune_passive_timeseries...")
-        best_params, cost = tune_ic_selection(self.timeseries)
-        print(best_params, cost)
+        best_params, cost = tune_ic_selection(self.timeseries,
+                parallel_compute=False)
+        print("Best paramters: {}, cost: {}".format(best_params, cost))
+        print("Types: {}, {}".format(type(best_params), type(cost)))
+        print("Testing tune_passive_timeseries with parallel computation...")
+        best_params_p, cost_p = tune_ic_selection(self.timeseries)
+        print("Best paramters: {}, cost: {}".format(best_params, cost))
+#        self.assertEqual(best_params, best_paramsp)
+        self.assertEqual(cost, cost_p)
 
 
 if __name__ == '__main__': 
