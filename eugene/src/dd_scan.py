@@ -52,7 +52,6 @@ class RefScanner( Scanner ):
         self._gpu = False
 
     def start_scan(self, frags=100, reps=10, alpha=1., free_cores=1, verbose=25):
-
         length = self._data.shape[1]
         w = self._window_width
         c = frags
