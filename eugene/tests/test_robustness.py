@@ -340,6 +340,349 @@ class TestRobustness(unittest.TestCase):
 
 
     @unittest.skip
+    def test_into_chaos_growth(self):
+        test_name = "test_into_chaos_growth"
+        print(test_name)
+
+        r1 = np.array([1.7741, 1.0971, 1.5466, 4.4116])
+        k1 = np.array([100., 100., 100., 100.])
+        alpha1 = np.array([[1., 2.419, 2.248, 0.0023],
+                           [0.001, 1., 0.001, 1.3142],
+                           [2.3818, 0.001, 1., 0.4744],
+                           [1.21, 0.5244, 0.001, 1.]])
+        init1 = np.array([5., 5., 5., 5.])
+        init_trans1 = np.array([8., 8., 8., 8.])
+
+        r2 = r1
+        k2 = k1
+        alpha2 = alpha1
+        init2 = init1
+        init_trans2 = init_trans1
+
+        alpha3 = np.array([[1., 2.5, 2.5, 0.1],
+                            [0.1, 1., 0.1, 1.5],
+                            [2.5, 0.1, 1., 0.5],
+                            [1.5, 0.5, 0.1, 1.]])
+
+        params1 = [r1, k1, alpha1, init1, init_trans1]
+        params2 = [r2, k2, alpha2, init2, init_trans2]
+
+        params3 = [r1, k1, alpha3, init1, init_trans1]
+        params4 = [r2, k2, alpha3, init2, init_trans2]
+
+        dists = []
+        dists2 = []
+        lens = []
+        for x in trange(101):
+            n = x/50
+            lens.append(n)
+            data_name = test_name + "-" + str(n)
+            data_path = join("test_data", data_name + ".npy")
+
+            params2[0] = n*r1
+            params = [params1, params2]
+
+            params4[0] = n*r1
+            params0 = [params3, params4]
+            data = None
+            data2 = None
+            if isfile(data_path):
+                data = np.load(data_path)
+            else:
+                data = simData(params, 100., 200, no_overlay, range_cover=False)
+                data2 = simData(params0, 100., 200, no_overlay, range_cover=False)
+                # np.save(data_path, data)
+            dist = self.pair_dist(data, reps=False, clip=True)
+            dist2 = self.pair_dist(data2, reps=False, clip=True)
+            dists.append(dist)
+            dists2.append(dist2)
+
+        print(dists)
+        fig, ax = plt.subplots()
+        ax.plot(lens, dists, 'ro', label='chaotic base')
+        ax.plot(lens, dists2, 'bo', label='non-chaotic base')
+        ax.legend()
+        ax.set(xlabel='scale of growth rate', ylabel='distance',
+               title='Two Systems with Scaled Growth Rate through Chaos')
+        # plt.show()
+        plt.savefig(test_name + ".pdf")
+
+        dists1 = np.array(dists[0:3])
+        dists2 = np.array(dists[-4:-1])
+        self.assertTrue(dists1.var() > dists2.var())
+
+
+    # @unittest.skip
+    def test_into_chaos_interaction(self):
+        test_name = "test_into_chaos_interaction"
+        print(test_name)
+
+        r1 = np.array([1.7741, 1.0971, 1.5466, 4.4116])
+        k1 = np.array([100., 100., 100., 100.])
+        alpha1 = np.array([[1., 2.419, 2.248, 0.0023],
+                           [0.001, 1., 0.001, 1.3142],
+                           [2.3818, 0.001, 1., 0.4744],
+                           [1.21, 0.5244, 0.001, 1.]])
+        init1 = np.array([5., 5., 5., 5.])
+        init_trans1 = np.array([8., 8., 8., 8.])
+
+        r2 = r1
+        k2 = k1
+        alpha2 = alpha1
+        init2 = init1
+        init_trans2 = init_trans1
+
+        alpha_s = np.array([[1., 0.9, 1., 1.],
+                           [1., 1., 1., 1.],
+                           [1., 1., 1., 1.],
+                           [1., 1., 1., 1.]])
+
+        alpha3 = np.array([[1., 2.5, 2.5, 0.1],
+                            [0.1, 1., 0.1, 1.5],
+                            [2.5, 0.1, 1., 0.5],
+                            [1.5, 0.5, 0.1, 1.]])
+
+        # alpha3 = alpha1 * np.power(alpha_s, 1.2)
+        params1 = [r1, k1, alpha1, init1, init_trans1]
+        params2 = [r2, k2, alpha2, init2, init_trans2]
+
+        params3 = [r1, k1, alpha3, init1, init_trans1]
+        params4 = [r2, k2, alpha3, init2, init_trans2]
+
+        dists = []
+        dists2 = []
+        lens = []
+        for x in trange(101):
+            n = (x/50 - 1)*0.1
+            lens.append(n)
+            data_name = test_name + "-" + str(n)
+            data_path = join("test_data", data_name + ".npy")
+            tmp_val = 2.419 + n
+            tmp_a = np.array([[1., tmp_val, 2.248, 0.0023],
+                               [0.001, 1., 0.001, 1.3142],
+                               [2.3818, 0.001, 1., 0.4744],
+                               [1.21, 0.5244, 0.001, 1.]])
+
+            temp_a = alpha1 * np.power(alpha_s, n)
+            params2[2] = tmp_a
+            # lens.append(tmp_val)
+            params = [params1, params2]
+
+            tmp_val2 = 2.5 + n
+            tmp_a2 = np.array([[1., tmp_val2, 2.5, 0.1],
+                               [0.1, 1., 0.1, 1.5],
+                               [2.5, 0.1, 1., 0.5],
+                               [1.5, 0.5, 0.1, 1.]])
+            params4[2] = tmp_a2
+            params0 = [params3, params2]
+            data = None
+            data2 = None
+            if isfile(data_path):
+                data = np.load(data_path)
+            else:
+                data = simData(params, 100., 200, no_overlay, range_cover=False)
+                data2 = simData(params0, 100., 200, no_overlay, range_cover=False)
+                # np.save(data_path, data)
+            dist = self.pair_dist(data, reps=False, clip=True)
+            dist2 = self.pair_dist(data2, reps=False, clip=True)
+            dists.append(dist)
+            dists2.append(dist2)
+
+        print(dists)
+        print(dists2)
+        fig, ax = plt.subplots()
+        ax.plot(lens, dists, 'ro', label='chaotic base')
+        ax.plot(lens, dists2, 'bo', label='non-chaotic base')
+        ax.legend()
+        ax.set(xlabel='change of interaction term (0,1)', ylabel='distance',
+               title='Two Systems with Different Interaction Term through Chaos')
+        # plt.show()
+        plt.savefig(test_name + "-long.pdf")
+
+        dists1 = np.array(dists[0:3])
+        dists2 = np.array(dists[-4:-1])
+        self.assertTrue(dists1.var() > dists2.var())
+
+
+    @unittest.skip
+    def test_same_more_diff(self):
+        print("test_same_more_diff")
+
+        r1 = np.array([1., 2.])
+        r2 = r1 * 1.5
+
+        k1 = np.array([100., 100.])
+        k2 = np.array([100., 100.])
+
+        alpha1 = np.array([[1., 0.5], [0.7, 1.]])
+        alpha2 = alpha1
+
+        init1 = np.array([5, 5])
+        init2 = init1
+
+        init_trans1 = np.array([8, 8])
+        init_trans2 = init_trans1
+
+        params1 = [r1, k1, alpha1, init1, init_trans1]
+        params2 = [r2, k2, alpha2, init2, init_trans2]
+        params3 = [r1, k2, alpha2, init2, init_trans2]
+
+        overlay = lambda x: np.mean(x, axis=1)
+
+        dists = []
+        dists2 = []
+        lens = []
+        for x in trange(10):
+            n = x + 1
+            lens.append(n)
+            data_name = "test_same_more_diff-" + str(n)
+            data_path = join("test_data", data_name + ".npy")
+            params2[1] = k2 * n
+            params3[0] = r1 * n
+            data = None
+            if isfile(data_path):
+                # data = np.load(data_path)
+                pass
+            else:
+                data = simData([params1, params2], 15., 50, no_overlay, range_cover=False)
+                data2 = simData([params1, params3], 15., 50, no_overlay, range_cover=False)
+                # np.save(data_path, data)
+            dist = self.pair_dist(data, reps=False, clip=True)
+            dist2 = self.pair_dist(data2, reps=False, clip=True)
+            dists.append(dist)
+            dists2.append(dist2)
+
+        print(dists)
+        fig, ax = plt.subplots()
+        ax.plot(lens, dists, 'bo', label='parameter = capacities')
+        ax.plot(lens, dists2, 'ro', label='parameter = growth rates')
+        ax.legend()
+        ax.set(xlabel='x * parameter', ylabel='distance',
+               title='Distance Between Two Systems')
+        # plt.show()
+        plt.savefig(data_name + ".pdf")
+
+        dists1 = np.array(dists[0:3])
+        dists2 = np.array(dists[-4:-1])
+        self.assertTrue(dists1.var() > dists2.var())
+
+
+    @unittest.skip
+    def test_into_chaos_interaction_noise(self):
+        test_name = "test_into_chaos_interaction_noise"
+        print(test_name)
+
+        r1 = np.array([1.7741, 1.0971, 1.5466, 4.4116])
+        k1 = np.array([100., 100., 100., 100.])
+        alpha1 = np.array([[1., 2.419, 2.248, 0.0023],
+                           [0.001, 1., 0.001, 1.3142],
+                           [2.3818, 0.001, 1., 0.4744],
+                           [1.21, 0.5244, 0.001, 1.]])
+        init1 = np.array([5., 5., 5., 5.])
+        init_trans1 = np.array([8., 8., 8., 8.])
+
+        r2 = r1
+        k2 = k1
+        alpha2 = alpha1
+        init2 = init1
+        init_trans2 = init_trans1
+
+        alpha_s = np.array([[1., 0.9, 1., 1.],
+                            [1., 1., 1., 1.],
+                            [1., 1., 1., 1.],
+                            [1., 1., 1., 1.]])
+
+        alpha3 = np.array([[1., 2.5, 2.5, 0.1],
+                           [0.1, 1., 0.1, 1.5],
+                           [2.5, 0.1, 1., 0.5],
+                           [1.5, 0.5, 0.1, 1.]])
+
+        # alpha3 = alpha1 * np.power(alpha_s, 1.2)
+        params1 = [r1, k1, alpha1, init1, init_trans1]
+        params2 = [r2, k2, alpha2, init2, init_trans2]
+
+        params3 = [r1, k1, alpha3, init1, init_trans1]
+        params4 = [r2, k2, alpha3, init2, init_trans2]
+
+        dists = []
+        dists2 = []
+        lens = []
+        for x in trange(101):
+            n = (x / 50 - 1) * 0.1
+            lens.append(n)
+            data_name = test_name + "-" + str(n)
+            data_path = join("test_data", data_name + ".npy")
+            tmp_val = 2.419 + n
+            tmp_a = np.array([[1., tmp_val, 2.248, 0.0023],
+                              [0.001, 1., 0.001, 1.3142],
+                              [2.3818, 0.001, 1., 0.4744],
+                              [1.21, 0.5244, 0.001, 1.]])
+
+            temp_a = alpha1 * np.power(alpha_s, n)
+            params2[2] = tmp_a
+            # lens.append(tmp_val)
+            params = [params1, params2]
+
+            tmp_val2 = 2.5 + n
+            tmp_a2 = np.array([[1., tmp_val2, 2.5, 0.1],
+                               [0.1, 1., 0.1, 1.5],
+                               [2.5, 0.1, 1., 0.5],
+                               [1.5, 0.5, 0.1, 1.]])
+            params4[2] = tmp_a2
+            params0 = [params3, params2]
+            data = None
+            data2 = None
+            if isfile(data_path):
+                data = np.load(data_path)
+            else:
+                data = simData(params, 100., 200, no_overlay, range_cover=False)
+                data2 = simData(params0, 100., 200, no_overlay,
+                                range_cover=False)
+                # np.save(data_path, data)
+            noisy_data = []
+            for tup in data:
+                ntup = []
+                for curve in tup:
+                    ncurve = []
+                    for point in curve:
+                        ncurve.append(point + np.random.normal(0., 2))
+                    ntup.append(ncurve)
+                noisy_data.append(ntup)
+
+            data = np.array(noisy_data)
+
+            noisy_data2 = []
+            for tup in data2:
+                ntup = []
+                for curve in tup:
+                    ncurve = []
+                    for point in curve:
+                        ncurve.append(point + np.random.normal(0., 2))
+                    ntup.append(ncurve)
+                noisy_data2.append(ntup)
+
+            data2 = np.array(noisy_data2)
+            dist = self.pair_dist(data, reps=False, clip=True)
+            dist2 = self.pair_dist(data2, reps=False, clip=True)
+            dists.append(dist)
+            dists2.append(dist2)
+
+        print(dists)
+        fig, ax = plt.subplots()
+        ax.plot(lens, dists, 'ro', label='chaotic base')
+        ax.plot(lens, dists2, 'bo', label='non-chaotic base')
+        ax.legend()
+        ax.set(xlabel='change of interaction term (0,1)', ylabel='distance',
+               title='Two Systems with Different Interaction Term through Chaos')
+        # plt.show()
+        plt.savefig(test_name + ".pdf")
+
+        dists1 = np.array(dists[0:3])
+        dists2 = np.array(dists[-4:-1])
+        self.assertTrue(dists1.var() > dists2.var())
+
+
+    @unittest.skip
     def test_same_cap_more_linear(self):
         test_name = "test_same_cap_more_linear"
         print(test_name)
@@ -383,7 +726,7 @@ class TestRobustness(unittest.TestCase):
         self.assertTrue(dists1.var() > dists2.var())
 
 
-    # @unittest.skip
+    @unittest.skip
     def test_same_cap_more_2nd_order(self):
         test_name = "test_same_cap_more_2nd_order"
         print(test_name)
@@ -820,6 +1163,110 @@ class TestRobustness(unittest.TestCase):
         dists1 = np.array(dists[0:3])
         dists2 = np.array(dists[-4:-1])
         self.assertTrue(dists1.var() > dists2.var())
+
+
+    @unittest.skip
+    def test_both_more_noise_stochastic(self):
+        print ("test_both_more_noise_stochastic")
+        test_name = "test_both_more_noise_stochastic"
+
+        sigma = [0.1, 0.1]
+
+        r1 = np.array([1., 2.])
+        r2 = r1 * 1.5
+
+        k1 = np.array([100., 100.])
+        k2 = np.array([100., 100.])
+        k3 = np.array([150., 150.])
+
+        alpha1 = np.array([[1., 0.5], [0.7, 1.]])
+        alpha2 = alpha1
+
+        init1 = np.array([5., 5.])
+        init2 = init1
+
+        init_trans1 = np.array([8., 8.])
+        init_trans2 = init_trans1
+
+        overlay = lambda x: np.mean(x, axis=1)
+
+        dists = []
+        cpus = max(cpu_count() - 2, 1)
+        test_name1 = "test_both_same_more_noise_stochastic-"
+        dist_times = Parallel(n_jobs=cpus)(
+            delayed(stochastic_generation_loop_sigma)(test_name1,
+                                                     [[r1, k1, alpha1,
+                                                       np.array([0.1, 0.1])*(x + 1),
+                                                       init1, init_trans1],
+                                                      [r2, k2, alpha2,
+                                                       np.array([0.1, 0.1])*(x + 1),
+                                                       init2, init_trans2]],
+                                                     15., 50, no_overlay,
+                                                     10) for x in
+            trange(10))
+        test_name2 = "test_both_diff_more_noise_stochastic-"
+        dist_times2 = Parallel(n_jobs=cpus)(
+            delayed(stochastic_generation_loop_sigma)(test_name2,
+                                                     [[r1, k1, alpha1,
+                                                       np.array([0.1, 0.1])*(x + 1),
+                                                       init1, init_trans1],
+                                                      [r2, k3, alpha2,
+                                                       np.array([0.1, 0.1])*(x + 1),
+                                                       init2, init_trans2]],
+                                                     15., 50, no_overlay,
+                                                     10) for x in
+            trange(10))
+        test_name3 = "test_both_same_more_noise_less_info_stochastic-"
+        dist_times3 = Parallel(n_jobs=cpus)(
+            delayed(stochastic_generation_loop_sigma)(test_name3,
+                                                     [[r1, k1, alpha1,
+                                                       np.array([0.1, 0.1])*(x + 1),
+                                                       init1, init_trans1],
+                                                      [r2, k2, alpha2,
+                                                       np.array([0.1, 0.1])*(x + 1),
+                                                       init2, init_trans2]],
+                                                     15., 50, mean_overlay,
+                                                     10) for x in
+            trange(10))
+        test_name4 = "test_both_diff_more_noise_less_info_stochastic-"
+        dist_times4 = Parallel(n_jobs=cpus)(
+            delayed(stochastic_generation_loop_sigma)(test_name4,
+                                                     [[r1, k1, alpha1,
+                                                       np.array([0.1, 0.1])*(x + 1),
+                                                       init1, init_trans1],
+                                                      [r2, k3, alpha2,
+                                                       np.array([0.1, 0.1])*(x + 1),
+                                                       init2, init_trans2]],
+                                                     15., 50, mean_overlay,
+                                                     10) for x in
+            trange(10))
+        dists = np.array(dist_times)[:, 0]
+        dists2 = np.array(dist_times2)[:, 0]
+        dists3 = np.array(dist_times3)[:, 0]
+        dists4 = np.array(dist_times4)[:, 0]
+        sigma = np.array(dist_times)[:, 1]
+        # for x in trange(10):
+        #     sigma = [0.1, 0.1]*(x + 1)
+        #     params1 = [r1, k1, alpha1, sigma, init1, init_trans1]
+        #     params2 = [r2, k2, alpha2, sigma, init2, init_trans2]
+        #     data = simData([params1, params2], 5., 500, overlay, stochastic_reps=10, range_cover=False)
+        #     dist = self.pair_dist(data)
+        #     dists.append(dist)
+
+        print(dists)
+        fig, ax = plt.subplots()
+        ax.plot(sigma, dists, 'bo', label='same kind, SSD')
+        ax.plot(sigma, dists2, 'ro', label='different kind, SSD')
+        ax.plot(sigma, dists3, 'b+', label='same kind, non-SSD')
+        ax.plot(sigma, dists4, 'r+', label='different kind, non-SSD')
+        ax.set(xlabel='sigma', ylabel='distance',
+               title='Distance Between Two Stochastic Systems')
+        ax.legend()
+        # plt.show()
+        plt.savefig(test_name + ".pdf")
+        dists1 = np.array(dists[0:3])
+        dists2 = np.array(dists[-4:-1])
+        self.assertTrue(dists1.var() < dists2.var())
 
 
     @unittest.skip
