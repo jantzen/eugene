@@ -14,10 +14,10 @@ def cost(error_matrix):
     return np.sum(m)
 
 
-def tune_ic_loop_func(num_frags, reps, series):
+def tune_ic_loop_func(num_frags, reps, series, alpha, beta, mu_spec):
     tmp = eu.fragment_timeseries.split_timeseries(series, num_frags)
     untrans, trans, error = eu.initial_conditions.choose_untrans_trans(
-        tmp, reps, report=True)
+        tmp, reps, alpha=alpha, beta=beta, mu_spec=mu_spec, report=True)
     error_full_series = cost(error)
     # compute leave-one-out errors
     sum_of_loo_errors = 0
@@ -28,7 +28,7 @@ def tune_ic_loop_func(num_frags, reps, series):
                 loo_series.append(ss)
         tmp = eu.fragment_timeseries.split_timeseries(loo_series, num_frags)
         untrans, trans, error = eu.initial_conditions.choose_untrans_trans(
-            tmp, reps, report=True)
+            tmp, reps, alpha=alpha, beta=beta, mu_spec=mu_spec, report=True)
         sum_of_loo_errors += cost(error)
 
     ll = sum_of_loo_errors + error_full_series
@@ -53,6 +53,9 @@ def tune_ic_selection(
         max_reps = None, # the maximum number of replicates to consider
         min_len=10, # the minimum tolerable fragment length
         max_len=None, # the maximum tolerable fragment length
+        alpha=0.5,
+        beta=0.2,
+        mu_spec=None,
         parallel_compute=True, # switch for use of multithreading
         free_cores=2, # cores to leave free when multithreading
         warnings=True # indicates whether or not to display warnings
@@ -104,7 +107,7 @@ def tune_ic_selection(
     if parallel_compute:
         cpus = max(multiprocessing.cpu_count() - free_cores, 1)
         out = Parallel(n_jobs=cpus,
-                verbose=5)(delayed(tune_ic_loop_func)(num_frags, reps, series) 
+                verbose=5)(delayed(tune_ic_loop_func)(num_frags, reps, series, alpha, beta, mu_spec) 
                     for num_frags in range(num_frags_range[0], num_frags_range[1] + 1)
                     for reps in range(min_reps, max_reps + 1))
         # find a Pareto optimal solution (the most reps at the lowest cost)
@@ -116,7 +119,7 @@ def tune_ic_selection(
             for reps in range(min_reps, int(num_frags / 2)):
                     tmp = eu.fragment_timeseries.split_timeseries(series, num_frags)
                     untrans, trans, error = eu.initial_conditions.choose_untrans_trans(
-                        tmp, reps, report=True)
+                        tmp, reps, alpha=alpha, beta=beta, mu_spec=mu_spec, report=True)
                     ll = cost(error)
                     if ll < min_cost:
                         min_cost = ll

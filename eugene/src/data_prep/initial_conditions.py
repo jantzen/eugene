@@ -5,7 +5,12 @@ import warnings
 from eugene.src.auxiliary.probability import EnergyDistance, nd_gaussian_pdf
 
 
-def _choose_untrans_trans_1D(data_in, num_reps, alpha=0.5, beta=0.2,
+def _choose_untrans_trans_1D(
+        data_in, 
+        num_reps, 
+        alpha=0.5, 
+        beta=0.2,
+        mu_spec=None, # user-specified means for untrans, trans (2-element list)
         report=False):
     data = copy.deepcopy(data_in)
 
@@ -30,8 +35,13 @@ def _choose_untrans_trans_1D(data_in, num_reps, alpha=0.5, beta=0.2,
     var = np.var(in_data)
 
     # choose means and variance for distributions
-    mu_untrans = mu - alpha * np.sqrt(var)
-    mu_trans = mu + alpha * np.sqrt(var)
+    if mu_spec is not None:
+        mu_untrans = mu_spec[0]
+        mu_trans = mu_spec[1]
+    else:
+        print("Using auto-selected means for untrans and trans distirbutions.")
+        mu_untrans = mu - alpha * np.sqrt(var)
+        mu_trans = mu + alpha * np.sqrt(var)
     var = beta * var 
 
     untrans = []
@@ -103,12 +113,15 @@ def _choose_untrans_trans_1D(data_in, num_reps, alpha=0.5, beta=0.2,
         return untrans, trans
 
 
-def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, report=False):
+def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, report=False):
     """ Input:
         data: A list of lists of numpy ndarrays, one for each condition. They are expected to 
         be dim x p where dim is the dimension and p the number of samples.
-        num_reps_per_ic: The desired (approximate) number of segments to end up
+        num_reps: The desired (approximate) number of segments to end up
             in each group
+        alpha:
+        beta:
+        mu: a list of arrays, each of dim x 1 dimensions
         Output:
         untrans: a list of lists (one for each condition)
         trans: a list of lists (one for each condition)
@@ -167,8 +180,14 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, report=False):
     e_vec = v[:,np.argsort(w)[-1]].reshape(-1,1)
 
     # choose means and covariance matrix for distributions
-    mu_untrans = mu - alpha * w_max * e_vec
-    mu_trans = mu + alpha * w_max * e_vec
+    if mu_spec is not None:
+        mu_untrans = mu_spec[0]
+        mu_trans = mu_spec[1]
+    else:
+        errmsg = "Using auto-selected means for untrans and trans distirbutions."
+        warnings.warn(errmsg)
+        mu_untrans = mu - alpha * w_max * e_vec
+        mu_trans = mu + alpha * w_max * e_vec
     u, s, v = np.linalg.svd(cov)
     s = beta * s
     cov_t = np.dot(np.dot(u, np.diag(s)), v)
