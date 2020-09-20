@@ -5,6 +5,8 @@ import numpy as np
 import multiprocessing
 from joblib import Parallel, delayed
 from operator import itemgetter
+import copy
+import pdb
 
 
 def cost(error_matrix):
@@ -130,3 +132,105 @@ def tune_ic_selection(
                 break
 
     return best_params, min_cost
+
+
+def tune_offsets(
+        series,     # a dictionary of timeseries as d x p np-arrays
+        num_frags,      # number of fragments into which to divide each timeseries
+        reps,       # the number of replicates to select for each timeseries
+        alpha=0.5,
+        beta=0.2,
+        mu_spec=None,
+        warnings=True # indicates whether or not to display warnings
+        ):
+
+    # deal with warnings
+    if not warnings:
+        import warnings
+        warnings.simplefilter("ignore")
+
+    # construct the set of fragments for each time series
+    series_list = []
+    for key in sorted(series.keys()):
+        series_list.append(series[key])
+    frags = eu.fragment_timeseries.split_timeseries(series_list, num_frags)
+
+    # construct the set of initials for each time series
+    series_initials = dict([])
+    for ii, key in enumerate(sorted(series.keys())):
+        initials = []
+        tmp = frags[ii]
+        for seg in tmp:
+            initials.append(seg[:,0].reshape(-1, 1))
+        series_initials[key] = np.concatenate(initials, axis=1)
+        
+    # identify the two sets of initials whose means are the farthest apart
+    max_distance = -1.
+    for ii, key1 in enumerate(sorted(series_initials.keys())):
+        for jj, key2 in enumerate(sorted(series_initials.keys())):
+            if not jj == ii:
+                mu1 = np.mean(series_initials[key1], axis=1)
+                mu2 = np.mean(series_initials[key2], axis=1)
+                distance = np.linalg.norm(mu1 - mu2)
+                if distance > max_distance:
+                    max_distance = distance
+                    gd = [ii, jj]
+                    gd_keys = [key1, key2]
+    
+    # loop to fix offset for the first pair of sets
+    frag_length = frags[gd[0]][0].shape[1]
+    print("Frag length: {}".format(frag_length))
+    best_offset = 0
+    min_cost = np.inf
+    for offset in range(frag_length):
+        data2 = series[gd_keys[1]][:,offset:]
+	data1 = series[gd_keys[0]][:,:data2.shape[1]]
+        tmp = eu.fragment_timeseries.split_timeseries([data1, data2], num_frags)
+        untrans, trans, error = eu.initial_conditions.choose_untrans_trans(
+            tmp, reps, alpha=alpha, beta=beta, mu_spec=mu_spec, report=True)
+        ll = cost(error)
+        if ll < min_cost:
+            min_cost = ll
+            best_offset = offset
+    offsets = dict([])
+    costs = dict([])
+    offsets[gd_keys[0]] = 0
+    offsets[gd_keys[1]] = best_offset
+    costs[gd_keys[0]] = 0
+    costs[gd_keys[1]] = min_cost
+
+    remaining_keys = sorted(series.keys())
+    remaining_keys.remove(gd_keys[0])
+    remaining_keys.remove(gd_keys[1])
+
+    # loop over the remaining sets and possible offsets for each to find the
+    # best overall combination (not necessarily the global best)
+    data = []
+    data.append(series[gd_keys[0]][:,offsets[gd_keys[0]]:])
+    data.append(series[gd_keys[1]][:,offsets[gd_keys[1]]:])
+    for key in remaining_keys:
+        best_offset = 0
+        min_cost = np.inf
+        for offset in range(frag_length):
+            tmp_data = copy.deepcopy(data)
+	    tmp_data.append(series[key][:,offset:])
+	    # trim all of the data to the same length
+	    min_len = np.inf
+	    for td in tmp_data:
+		series_len = td.shape[1]
+		if series_len < min_len:
+		    min_len = series_len
+	    for ii, td in enumerate(tmp_data):
+		tmp_data[ii] = td[:, :min_len]
+            tmp = eu.fragment_timeseries.split_timeseries(tmp_data, num_frags)
+            untrans, trans, error = eu.initial_conditions.choose_untrans_trans(
+                tmp, reps, alpha=alpha, beta=beta, mu_spec=mu_spec, report=True)
+            ll = cost(error)
+            if ll < min_cost:
+                min_cost = ll
+                best_offset = offset
+        offsets[key] = best_offset
+        costs[key] = min_cost
+        data.append(series[key][:,offsets[key]:])
+  
+    return offsets, costs
