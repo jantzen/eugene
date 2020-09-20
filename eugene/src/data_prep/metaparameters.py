@@ -184,7 +184,7 @@ def tune_offsets(
     min_cost = np.inf
     for offset in range(frag_length):
         data2 = series[gd_keys[1]][:,offset:]
-	data1 = series[gd_keys[0]][:,:data2.shape[1]]
+        data1 = series[gd_keys[0]][:,:data2.shape[1]]
         tmp = eu.fragment_timeseries.split_timeseries([data1, data2], num_frags)
         untrans, trans, error = eu.initial_conditions.choose_untrans_trans(
             tmp, reps, alpha=alpha, beta=beta, mu_spec=mu_spec, report=True)
@@ -213,15 +213,15 @@ def tune_offsets(
         min_cost = np.inf
         for offset in range(frag_length):
             tmp_data = copy.deepcopy(data)
-	    tmp_data.append(series[key][:,offset:])
-	    # trim all of the data to the same length
-	    min_len = np.inf
-	    for td in tmp_data:
-		series_len = td.shape[1]
-		if series_len < min_len:
-		    min_len = series_len
-	    for ii, td in enumerate(tmp_data):
-		tmp_data[ii] = td[:, :min_len]
+            tmp_data.append(series[key][:,offset:])
+            # trim all of the data to the same length
+            min_len = np.inf
+            for td in tmp_data:
+                series_len = td.shape[1]
+                if series_len < min_len:
+                    min_len = series_len
+            for ii, td in enumerate(tmp_data):
+                tmp_data[ii] = td[:, :min_len]
             tmp = eu.fragment_timeseries.split_timeseries(tmp_data, num_frags)
             untrans, trans, error = eu.initial_conditions.choose_untrans_trans(
                 tmp, reps, alpha=alpha, beta=beta, mu_spec=mu_spec, report=True)
