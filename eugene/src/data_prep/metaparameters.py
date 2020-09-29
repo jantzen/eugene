@@ -234,3 +234,25 @@ def tune_offsets(
         data.append(series[key][:,offsets[key]:])
   
     return offsets, costs
+
+
+def apply_offsets(offsets, data):
+    offset_data = dict([])
+    for key in sorted(offsets.keys()):
+        offset = offsets[key]
+        offset_data[key] = data[key][:, offset:]
+ 
+    # clip all time series to the same length
+    kk = sorted(offset_data.keys())
+    min_series_len = offset_data[kk[0]].shape[1]
+    for kk in sorted(offset_data.keys()):
+        ll = offset_data[kk].shape[1]
+        if ll < min_series_len:
+            min_series_len = ll
+ 
+    print('Clipping all data to length {}...'.format(min_series_len))
+    for key in sorted(offset_data.keys()):
+        data = offset_data[key][:min_series_len]
+        offset_data[key] = data
+ 
+    return offset_data
