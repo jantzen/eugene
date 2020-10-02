@@ -1,6 +1,8 @@
 # test_probability.py
 from eugene.src.auxiliary.probability import *
+from eugene.src.energy_test_stat import *
 import numpy as np
+
 
 def test_EnergyDistance():
     # 1-D
@@ -68,4 +70,17 @@ def test_nd_gaussian_pdf():
     assert np.abs(densities[0,1] - 0.241971) < 10.**-5
     assert np.abs(densities[0,2] - 0.05399) < 10.**-5
     assert np.abs(densities[0,3] - 0.00443185) < 10.**-5
+
+
+def testSigma2():
+    X=[1,1,1,1]
+    Y=[1,1,1,5]
+    expect=(5-1)*len(Y)
+    assert sigma2(X,Y)==expect
+
+
+def testTwoSample():
+    X=[1,1,1,1]
+    Y=[1,1,1,5]
+    assert twoSample(X,Y) == kSample(X,Y)
 
