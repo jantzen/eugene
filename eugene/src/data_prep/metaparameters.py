@@ -263,7 +263,7 @@ def apply_offsets(offsets, data):
  
     print('Clipping all data to length {}...'.format(min_series_len))
     for key in sorted(offset_data.keys()):
-        data = offset_data[key][:min_series_len]
+        data = offset_data[key][:, :min_series_len]
         offset_data[key] = data
  
     return offset_data
