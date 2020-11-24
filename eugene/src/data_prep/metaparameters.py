@@ -133,10 +133,9 @@ def tune_ic_selection(
 
     return best_params, min_cost
 
-
 def tune_offsets(
         series,     # a dictionary of timeseries as d x p np-arrays
-        num_frags,      # number of fragments into which to divide each timeseries
+        num_frags,      # approximate number of fragments into which to divide each timeseries
         reps,       # the number of replicates to select for each timeseries
         alpha=0.5,
         beta=0.2,
@@ -149,11 +148,19 @@ def tune_offsets(
         import warnings
         warnings.simplefilter("ignore")
 
+    # determine the best fragment length 
+    lengths = []
+    for key in sorted(series.keys()):
+        ll = series[key].shape[1]
+        lengths.append(ll)
+    min_len = min(lengths)
+    frag_length = int(np.ceil(min_len / num_frags))
+
     # construct the set of fragments for each time series
     series_list = []
     for key in sorted(series.keys()):
         series_list.append(series[key])
-    frags = eu.fragment_timeseries.split_timeseries(series_list, num_frags)
+    frags = eu.fragment_timeseries.fixed_length_frags(series_list, frag_length)
 
     # construct the set of initials for each time series
     series_initials = dict([])
@@ -178,14 +185,16 @@ def tune_offsets(
                     gd_keys = [key1, key2]
     
     # loop to fix offset for the first pair of sets
-    frag_length = frags[gd[0]][0].shape[1]
+#    frag_length = frags[gd[0]][0].shape[1]
     print("Frag length: {}".format(frag_length))
     best_offset = 0
     min_cost = np.inf
     for offset in range(frag_length):
         data2 = series[gd_keys[1]][:,offset:]
         data1 = series[gd_keys[0]][:,:data2.shape[1]]
-        tmp = eu.fragment_timeseries.split_timeseries([data1, data2], num_frags)
+        tmp = eu.fragment_timeseries.fixed_length_frags([data1, data2],
+                frag_length)
+        tmp = eu.fragment_timeseries.trim(tmp)
         untrans, trans, error = eu.initial_conditions.choose_untrans_trans(
             tmp, reps, alpha=alpha, beta=beta, mu_spec=mu_spec, report=True)
         ll = cost(error)
@@ -222,7 +231,9 @@ def tune_offsets(
                     min_len = series_len
             for ii, td in enumerate(tmp_data):
                 tmp_data[ii] = td[:, :min_len]
-            tmp = eu.fragment_timeseries.split_timeseries(tmp_data, num_frags)
+            tmp = eu.fragment_timeseries.fixed_length_frags(tmp_data,
+                    frag_length)
+            tmp = eu.fragment_timeseries.trim(tmp)
             untrans, trans, error = eu.initial_conditions.choose_untrans_trans(
                 tmp, reps, alpha=alpha, beta=beta, mu_spec=mu_spec, report=True)
             ll = cost(error)
@@ -233,7 +244,7 @@ def tune_offsets(
         costs[key] = min_cost
         data.append(series[key][:,offsets[key]:])
   
-    return offsets, costs
+    return offsets, costs, frag_length
 
 
 def apply_offsets(offsets, data):
@@ -252,7 +263,7 @@ def apply_offsets(offsets, data):
  
     print('Clipping all data to length {}...'.format(min_series_len))
     for key in sorted(offset_data.keys()):
-        data = offset_data[key][:min_series_len]
+        data = offset_data[key][:, :min_series_len]
         offset_data[key] = data
  
     return offset_data
