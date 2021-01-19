@@ -307,3 +307,39 @@ def nd_gaussian_pdf(mu, cov, points):
     return out
 
 
+def significant(X, Y, D, n, alpha = 0.05):
+    """
+    Implements the bootstrap hypothesis test described
+    in Szekely and Rizzo 2004
+
+    Inputs:
+        X, Y: each is a s x d np-array, where d is the dimension of X and Y
+        (assumed to be the same) and s is the number of samples
+        D: energy distance obtained with EnergyDistance method
+        n: how big each bootstrap sample should be
+        alpha: desired significance level
+
+    Output:
+        True/False: True if D was significant (reject the null hypothesis
+        that X and Y are from the same distribution); False if not
+    """
+    # Make pooled sample
+    W = np.concatenate((X, Y), axis=1)
+    rows, cols = W.shape
+    B = 1000.0 # Number of bootstrap samples
+    
+    while not ((B+1) * alpha).is_integer():
+        B+=1
+    
+    Sigma = 0
+    for i in range(int(B)):
+        sub = W[np.random.choice(rows, size=n*2, replace=False), :]
+        W1 = sub[:n]
+        W2 = sub[n:]
+        D_B = EnergyDistance(W1, W2)
+        if D > D_B: 
+            Sigma+=1
+            if Sigma/B > 1-alpha:
+                return True
+
+    return False
