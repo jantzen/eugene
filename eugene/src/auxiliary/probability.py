@@ -5,6 +5,8 @@ import numpy as np
 from scipy.integrate import quad, dblquad
 import warnings
 import imp
+from itertools import combinations
+from functools import reduce
 
 ################################################################################
 # Functions:
@@ -285,6 +287,21 @@ def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
         return D
 
 
+def kSample(*args):
+    """k-sample energy distance.
+
+    Input:
+        At least two samples (X, Y, ...)
+
+    Output: 
+        Computes energy distance for every pair of samples from args;
+        returns the sum
+    """
+    pairs = combinations(args,2)
+    return reduce(lambda a,b: a+b, [(EnergyDistance(tup[0],tup[1])) \
+            for tup in pairs])
+
+
 def nd_gaussian_pdf(mu, cov, points):
     """ Returns the value of the pdf of a multivariate Gaussian distribution
     with mean mu (of dimension vars x 1) and covariance cov (vars x vars) at the
@@ -325,7 +342,6 @@ def significant(X, Y, D, n, alpha = 0.05):
     """
     # Make pooled sample
     W = np.concatenate((X, Y), axis=0)
-    print("W******", W)
     rows, cols = W.shape
     B = 1000.0 # Number of bootstrap samples
     
