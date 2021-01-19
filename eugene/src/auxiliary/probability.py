@@ -324,7 +324,8 @@ def significant(X, Y, D, n, alpha = 0.05):
         that X and Y are from the same distribution); False if not
     """
     # Make pooled sample
-    W = np.concatenate((X, Y), axis=1)
+    W = np.concatenate((X, Y), axis=0)
+    print("W******", W)
     rows, cols = W.shape
     B = 1000.0 # Number of bootstrap samples
     
