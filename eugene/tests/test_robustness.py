@@ -12,8 +12,8 @@ from os.path import join, isfile
 import sys
 import copy
 # a hack to import from AutomatedDiscovery and VolcanoData
-sys.path.insert(0, '../../../AutomatedDiscovery/DADS2018/')
-import approximate_kinds
+#sys.path.insert(0, '../../../AutomatedDiscovery/DADS2018/')
+#import approximate_kinds
 import clipping
 
 
