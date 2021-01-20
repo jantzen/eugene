@@ -1,8 +1,8 @@
 from eugene.src.auxiliary.probability import *
 import numpy as np
 
-a = '../src/auxiliary/durations_70_removed_sample.csv'
-b = '../src/auxiliary/durations_no_filter.csv'
+a = './durations_70_removed_sample.csv'
+b = './durations_no_filter.csv'
 
 def test_SAIDI_site_removal():
 
