@@ -316,28 +316,7 @@ def simData2OD(params, max_time, num_times, overlay, range_cover=False):
                 transformed version of the system. params[n][5] is an array-like
                 of species ~growth velocities~. params[n][6] is a scalar that
                 dictates how strong the second order effects of the system is.
-            params1 -- an array of species growth rates "r", an array of
-                species carrying capacities "k", interaction
-                matrices "alpha", and growth velocities "y"; where r[i] is the
-                growth rate of species i, k[i] is the carrying capacity of
-                species i, alpha[i,j] is the effect of species j on the
-                population of species i, and y[i] is the growth velocity of
-                species i. Item params1[0] shall be the first simulation's
-                array of growth rates, params1[1] shall be the first
-                simulation's carrying capacity, params1[2] shall be the first
-                simulation's interaction matrix, and params1[3] shall be the
-                first simulation's initial populations and params1[4] shall be
-                the first simulation's growth velocity.
-            params2 -- an array of species growth rates "r", an array of
-                species carrying capacities "k", and interaction
-                matrices "alpha"; where r[i] is the growth rate of species i,
-                k[i] is the carrying capacity of species i,
-                and alpha[i,j] is the effect of species j on the population of
-                species i. Item params2[0] shall be the second simulation's
-                array of growth rates, params2[1] shall be the second
-                simulation's carrying capacity, params2[2] shall be the second
-                simulation's interaction matrix, and params2[3] shall be the
-                first populations's initial popoulations.
+
             max_time -- the highest time value to sample the system at.
             num_times -- the number of times to sample the system between t=0
                 and t=max_time.
@@ -372,7 +351,6 @@ def simData2OD(params, max_time, num_times, overlay, range_cover=False):
         xs.append(sys.check_xs(times[i]))
     for i, sys in enumerate(lv_trans):
         xs_trans.append(sys.check_xs(times[i]))
-
     raw_data = []
     for i in range(len(lv)):
         f = overlay(xs[i])
