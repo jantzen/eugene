@@ -5,7 +5,7 @@ import multiprocessing
 from sklearn.manifold import MDS
 
 
-def dmat_to_color_map(dmat, embedding_dim=3, map_dims=None, free_cores=2):
+def dmat_to_color_map(dmat, embedding_dim=3, map_dims=None, order='C', free_cores=2):
     """ Converts a distance matrix to a colored map of parameter space. To do
     so, the distance matrix is mapped to a set of coordinates in n-dimensional
     space (where n = embedding_dim) using the multidimensional scaling (MDS) 
@@ -44,23 +44,18 @@ def dmat_to_color_map(dmat, embedding_dim=3, map_dims=None, free_cores=2):
         else:
             raise ValueError("Cannot determine dimensions of coordinate map. Please provide a value for the map_dims arguments.")
 
-    #  compute the MDS embedding
+    # compute the MDS embedding
     cpus = max(multiprocessing.cpu_count() - free_cores, 1)
     m = MDS(n_components=embedding_dim, dissimilarity='precomputed', n_jobs=cpus)
     reduced_coords = m.fit_transform(dmat)
 
-    # build a matrix of color-values corresponding to parameter space
-    row = 0
-    cspace_map = np.zeros((map_dims[0], map_dims[1], embedding_dim))
-    for ii, cell in enumerate(reduced_coords):
-        col = ii % map_dims[1]
-        if ii > 0 and ii % map_dims[1] == 0:
-            row = row + 1
-        cspace_map[row, col, :] = cell
+    # scale to interpret as colors
+    reduced_coords -= reduced_coords.min()
+    reduced_coords *= 1.0 / reduced_coords.max()
 
-    # scale to the range 0-1
-    cspace_map[:,:,:] = cspace_map[:,:,:] - np.min(cspace_map[:,:,:])
-    cspace_map[:,:,:] = cspace_map[:,:,:] / np.max(cspace_map[:,:,:])
+    # build a matrix of color-values corresponding to parameter space
+    cspace_map = reduced_coords.reshape(map_dims[0], map_dims[1],
+            embedding_dim, order=order)
 
     return cspace_map
         
