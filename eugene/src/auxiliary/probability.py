@@ -5,6 +5,8 @@ import numpy as np
 from scipy.integrate import quad, dblquad
 import warnings
 import imp
+from itertools import combinations
+from functools import reduce
 
 ################################################################################
 # Functions:
@@ -285,6 +287,21 @@ def EnergyDistance(X, Y, tol=10**(-12), gpu=False):
         return D
 
 
+def kSample(*args):
+    """k-sample energy distance.
+
+    Input:
+        At least two samples (X, Y, ...)
+
+    Output: 
+        Computes energy distance for every pair of samples from args;
+        returns the sum
+    """
+    pairs = combinations(args,2)
+    return reduce(lambda a,b: a+b, [(EnergyDistance(tup[0],tup[1])) \
+            for tup in pairs])
+
+
 def nd_gaussian_pdf(mu, cov, points):
     """ Returns the value of the pdf of a multivariate Gaussian distribution
     with mean mu (of dimension vars x 1) and covariance cov (vars x vars) at the
@@ -307,3 +324,39 @@ def nd_gaussian_pdf(mu, cov, points):
     return out
 
 
+def significant(X, Y, D, n, B=1000.0, alpha = 0.05):
+    """
+    Implements the bootstrap hypothesis test described
+    in Szekely and Rizzo 2004
+
+    Inputs:
+        X, Y: each is a s x d np-array, where d is the dimension of X and Y
+        (assumed to be the same) and s is the number of samples
+        D: energy distance obtained with EnergyDistance method
+        n: how big each bootstrap sample should be
+        B: number of bootstrap samples
+        alpha: desired significance level
+
+    Output:
+        True/False: True if D was significant (reject the null hypothesis
+        that X and Y are from the same distribution); False if not
+    """
+    # Make pooled sample
+    W = np.concatenate((X, Y), axis=0)
+    rows, cols = W.shape
+    
+    while not ((B+1) * alpha).is_integer():
+        B+=1
+    
+    Sigma = 0
+    for i in range(int(B)):
+        sub = W[np.random.choice(rows, size=n*2, replace=False), :]
+        W1 = sub[:n]
+        W2 = sub[n:]
+        D_B = EnergyDistance(W1, W2)
+        if D > D_B: 
+            Sigma+=1
+            if Sigma/B > 1-alpha:
+                return True
+
+    return False

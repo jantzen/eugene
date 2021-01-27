@@ -54,6 +54,7 @@ The following people have contributed ideas or code to this, or earlier versions
 - JP Gazewood
 - Jack Parker
 - Alex Karvelis
+- Molly G Hickman
 
 The PI would also like to thank Teddy Seidenfeld for helpful suggestions regarding the comparison algorithm. While any errors or deficiencies in the algorithm are solely those of the EUGENE team, Teddy's suggestions greatly influenced the final design.
 
