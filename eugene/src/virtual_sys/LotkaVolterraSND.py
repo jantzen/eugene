@@ -92,7 +92,7 @@ class LotkaVolterraSND( object ):
                 noise = np.random.normal()
                 
                 dX[i] = self._r[i] * X[i] * (1. - (np.sum(self._alpha[i] *
-                X)/self._k[i]) ) + (self._sigma[i] * X[i] * noise / (2. *
+                X)/self._k[i]) ) + (self._sigma[i] * X[i] * noise / (
                 np.sqrt(delta) ) ) + (self._sigma[i]**2 / 2.) * (X[i]
                 * (noise**2 - 1.))
 

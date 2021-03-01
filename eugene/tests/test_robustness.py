@@ -239,9 +239,12 @@ def stochastic_generation_loop_times(test_name, params, max_time, n_time,
 
 
 def stochastic_generation_loop_reps(test_name, params, max_time, n_time,
-                                    overlay, reps, clip=True):
+                                    overlay, reps, clip=True, overlay_flag=False):
     data_name = test_name + str(reps)
-    data_path = join("test_data", data_name + ".npy")
+    if overlay_flag:
+        data_path = join("test_data", data_name + ".npy")
+    else:
+        data_path = join("test_data", data_name + ".npy")
     data = None
     if isfile(data_path):
         data = np.load(data_path)
