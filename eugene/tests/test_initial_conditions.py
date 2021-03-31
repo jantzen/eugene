@@ -41,7 +41,10 @@ def test_choose_untrans_trans():
         untrans, transm, error_flag = eu.initial_conditions.choose_untrans_trans(data, 100,
                 report=True)
 
-    assert len(w) == 2
+    print("Number of warnings captured = " + str(len(w)))
+    for warn in w:
+        print(warn.message)
+    assert len(w) == 3
     assert error_flag[0,1] == 3
 
     # test 3-D
@@ -88,6 +91,9 @@ def test_choose_untrans_trans():
         untrans, trans, error_flag = eu.initial_conditions.choose_untrans_trans(data, 100, 
                 report=True)
 
-    assert len(w) == 2
+    print("Number of warnings captured = " + str(len(w)))
+    for warn in w:
+        print(warn.message)
+    assert len(w) == 3
     assert error_flag[0,1] == 3
 

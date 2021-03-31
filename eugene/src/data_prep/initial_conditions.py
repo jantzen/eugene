@@ -39,7 +39,8 @@ def _choose_untrans_trans_1D(
         mu_untrans = mu_spec[0]
         mu_trans = mu_spec[1]
     else:
-        print("Using auto-selected means for untrans and trans distirbutions.")
+        errmsg = "Using auto-selected means for untrans and trans distributions."
+        warnings.warn(errmsg)
         mu_untrans = mu - alpha * np.sqrt(var)
         mu_trans = mu + alpha * np.sqrt(var)
     var = beta * var 
@@ -133,7 +134,7 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, r
     if data[0][0].ndim == 1 or min(data[0][0].shape)==1:
         print("Choosing untrans and trans segments for 1-D data...")
         return _choose_untrans_trans_1D(data_in, num_reps, alpha=alpha,
-                beta=beta, report=report)
+                beta=beta, mu_spec=mu_spec, report=report)
 
     # check the segments for proper format
     for j, subset in enumerate(data):
@@ -184,7 +185,7 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, r
         mu_untrans = mu_spec[0]
         mu_trans = mu_spec[1]
     else:
-        errmsg = "Using auto-selected means for untrans and trans distirbutions."
+        errmsg = "Using auto-selected means for untrans and trans distributions."
         warnings.warn(errmsg)
         mu_untrans = mu - alpha * w_max * e_vec
         mu_trans = mu + alpha * w_max * e_vec
@@ -242,7 +243,7 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, r
         for jj in range(ii, nn):
             result = stats.ks_2samp(untrans_scores[ii], untrans_scores[jj])
             if result.pvalue < 0.005:
-                errmsg = """Warning: the trans initial conditions for
+                errmsg = """Warning: the untrans initial conditions for
                 conditions {} and {} do not match (p < 0.005).""".format(ii, jj)
                 warnings.warn(errmsg)
                 if report:

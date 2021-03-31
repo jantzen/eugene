@@ -9,6 +9,8 @@ from joblib import Parallel, delayed
 import numpy as np
 from colorama import Fore, Style
 import copy
+import sys
+import traceback
 import pdb
 
 
@@ -73,17 +75,17 @@ class DiffScanner( Scanner ):
         self._data = timeseries
 
         if window_width is None:
-            self._window_width = int(max(self._data.shape)/10)
+            self._window_width = int(max(self._data.shape) / 10.)
         else:
             self._window_width = int(window_width)
         
         if lag is None:
-            self._lag = int(self._window_width / 10)
+            self._lag = int(self._window_width / 10.)
         else:
             self._lag = int(lag)
         
         self._step_size = step_size
-        self._steps = 10
+        self._steps = int(steps)
 
     def start_scan(self, frags=100, reps=10, alpha=1., free_cores=1, verbose=25):
         length = self._data.shape[1]
@@ -122,15 +124,27 @@ def _distance(untrans, trans, steps):
 def _scan_loop(i, w, c, reps, alpha, data, baseline, steps):
     segment = data
 
+    reps = int(reps)
+
     # split into trans and untrans components
     split_data = split_timeseries([baseline, segment], 2*c)
 
     try:
         untrans, trans = choose_untrans_trans(split_data, reps,
                 alpha=alpha)
+
+    except Exception as inst:
+        print("Error choosing trans, untrans: ") 
+        print(inst)
+        exc_info = sys.exc_info()
+        traceback.print_exception(*exc_info)
+        d = np.nan
+
+    try:
         d = _distance(untrans, trans, steps)
 
     except Exception as inst:
+        print("Error computing distance: ")
         print(inst)
         d = np.nan
 

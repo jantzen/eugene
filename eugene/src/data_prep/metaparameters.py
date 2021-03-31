@@ -91,13 +91,13 @@ def tune_ic_selection(
 
     # set up ranges
     if max_len is None:
-        max_len = 2 * min_len
+        max_len = int(2 * min_len)
     if num_frags_range is None:
         lo = int(min_series_len / max_len) 
         hi = int(min_series_len /  min_len)  
         num_frags_range = [lo, hi]
     if max_reps  is None:
-        max_reps = num_frags_range[1] / 10
+        max_reps = int(num_frags_range[1] / 10)
     print("num_frags_range = {}".format(num_frags_range))
     print("min reps = {}".format(min_reps))
     print("max reps = {}".format(max_reps))
