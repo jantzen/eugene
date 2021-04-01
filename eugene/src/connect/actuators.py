@@ -76,3 +76,14 @@ class LotkaVolterra2DActuator(VABSensor):
     def set(self, sys, value):
         exec('sys._x' + str(self._variable) + ' = value')
         sys._time = sys._init_t
+
+
+class LotkaVolterraNDActuator(VABSensor):
+    def __init__(self, variable, dynamic_range):
+        self._variable = variable
+        self._range = dynamic_range
+ 
+    def set(self, sys, value):
+        sys._x[self._variable-1] = value
+#        exec('sys._x' + str(self._variable) + ' = value')
+        sys._time = sys._init_t

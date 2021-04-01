@@ -50,12 +50,14 @@ The project PI and principal code author is `Dr. Benjamin C. Jantzen <mailto:bja
 The following people have contributed ideas or code to this, or earlier versions of the EUGENE Project software:
 
 - Colin Shea-Blymyer
+- Dr. Subhradeep Roy
+- Molly G Hickman
 - Joseph Mehr
 - JP Gazewood
 - Jack Parker
 - Alex Karvelis
 
-The PI would also like to thank Teddy Seidenfeld for helpful suggestions regarding the comparison algorithm. While any errors or deficiencies in the algorithm are solely those of the EUGENE team, Teddy's suggestions greatly influenced the final design.
+The PI would also like to thank Teddy Seidenfeld for helpful suggestions regarding the comparison algorithm for deterministic systems. While any errors or deficiencies in the algorithm are solely those of the EUGENE team, Teddy's suggestions greatly influenced the final design.
 
 Funding and Support
 ====================

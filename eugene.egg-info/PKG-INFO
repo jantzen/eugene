@@ -1,12 +1,14 @@
-Metadata-Version: 1.1
+Metadata-Version: 1.2
 Name: eugene
-Version: 0.1.0
+Version: 0.2.0
 Summary: Tools for automated scientific discovery
-Home-page: http://www.ratiocination.org/
+Home-page: https://github.com/jantzen/eugene
 Author: Benjamin C. Jantzen
 Author-email: bjantzen@vt.edu
+Maintainer: Benjamin C. Jantzen
+Maintainer-email: bjantzen@vt.edu
 License: MIT
-Download-URL: https://github.com/jantzen/eugene
+Project-URL: Lab Page, https://www.ratiocination.org/
 Description: ====================
         The EUGENE Project
         ====================
@@ -59,12 +61,14 @@ Description: ====================
         The following people have contributed ideas or code to this, or earlier versions of the EUGENE Project software:
         
         - Colin Shea-Blymyer
+        - Dr. Subhradeep Roy
+        - Molly G Hickman
         - Joseph Mehr
         - JP Gazewood
         - Jack Parker
         - Alex Karvelis
         
-        The PI would also like to thank Teddy Seidenfeld for helpful suggestions regarding the comparison algorithm. While any errors or deficiencies in the algorithm are solely those of the EUGENE team, Teddy's suggestions greatly influenced the final design.
+        The PI would also like to thank Teddy Seidenfeld for helpful suggestions regarding the comparison algorithm for deterministic systems. While any errors or deficiencies in the algorithm are solely those of the EUGENE team, Teddy's suggestions greatly influenced the final design.
         
         Funding and Support
         ====================
@@ -86,9 +90,5 @@ Classifier: Development Status :: 3 - Alpha
 Classifier: Intended Audience :: Science/Research
 Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
 Classifier: License :: OSI Approved :: MIT License
-Classifier: Programming Language :: Python :: 2
-Classifier: Programming Language :: Python :: 2.7
 Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.3
-Classifier: Programming Language :: Python :: 3.4
-Classifier: Programming Language :: Python :: 3.5
+Requires-Python: >=3.3
