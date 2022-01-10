@@ -89,24 +89,80 @@ def test_nd_gaussian_pdf():
 
 
 def test_significant():
-    # test with 3-D data
-    mean1 = np.ones(3)
-    mean2 = 2. * mean1 
+    with warnings.catch_warnings(record=True) as w:
+        # test with 3-D data
+        mean1 = np.ones(3)
+        mean2 = 2. * mean1 
+    
+        cov1 = np.array([[1., 0.2, 0.3],[0.2, 1., 0.8],[0.3, 0.8, 1.]])
+        cov2 = np.array([[2., 0.4, 0.1],[0.4, 2., 0.2],[0.1, 0.2, 2.]])
+    
+        sample1 = np.random.multivariate_normal(mean1, cov1, size = 1000)
+        sample2 = np.random.multivariate_normal(mean1, cov1, size = 1000)
+        sample3 = np.random.multivariate_normal(mean2, cov1, size = 1000)
+        sample4 = np.random.multivariate_normal(mean1, cov2, size = 1000)
+    
+        assert not significant(sample1, sample2, 
+    	    EnergyDistance(sample1, sample2))
+        assert significant(sample1, sample3, 
+    	    EnergyDistance(sample1, sample3))
+        assert significant(sample1, sample4, 
+    	    EnergyDistance(sample1, sample4))
+    
+        # test with 1-D data
+        mean1 = 1.
+        mean2 = 2.
+    
+        sigma1 = 0.5
+        sigma2 = 0.25
+    
+        sample1 = np.random.normal(mean1, sigma1, size = 1000).reshape(-1,1)
+        sample2 = np.random.normal(mean1, sigma1, size = 1000).reshape(-1,1)
+        sample3 = np.random.normal(mean2, sigma1, size = 1000).reshape(-1,1)
+        sample4 = np.random.normal(mean1, sigma2, size = 1000).reshape(-1,1)
+    
+        assert not significant(sample1, sample2, 
+    	    EnergyDistance(sample1, sample2))
+        assert significant(sample1, sample3, 
+    	    EnergyDistance(sample1, sample3))
+        assert significant(sample1, sample4, 
+    	    EnergyDistance(sample1, sample4))
+    
+        sample1 = np.random.rayleigh(1., size = 1000).reshape(-1,1)
+        sample2 = np.random.rayleigh(1., size = 1000).reshape(-1,1)
+        sample3 = np.random.rayleigh(2., size = 1000).reshape(-1,1)
+        sample4 = np.random.rayleigh(1., size = 10000).reshape(-1,1)
+        sample5 = np.random.rayleigh(1.3, size = 10000).reshape(-1,1)
+    
+        assert not significant(sample1, sample2, 
+    	    EnergyDistance(sample1, sample2))
+        assert significant(sample1, sample3, 
+    	    EnergyDistance(sample1, sample3))
+        assert significant(sample4, sample5, 
+    	    EnergyDistance(sample4, sample5), n=1000)
+    
+        sample1 = np.random.triangular(0., 1., 2., size = 1000).reshape(-1,1)
+        sample2 = np.random.triangular(0., 1., 2., size = 1000).reshape(-1,1)
+        sample3 = np.random.triangular(1., 2., 3., size = 1000).reshape(-1,1)
+        sample4 = np.random.triangular(-1., 1., 3., size = 1000).reshape(-1,1)
+    
+        assert not significant(sample1, sample2, 
+    	    EnergyDistance(sample1, sample2))
+        assert significant(sample1, sample3, 
+    	    EnergyDistance(sample1, sample3))
+        assert significant(sample1, sample4, 
+    	    EnergyDistance(sample1, sample4))
+    
+        sample1 = np.random.normal(mean1, sigma1, size = 10000).reshape(-1,1)
+        sample2 = np.random.rayleigh(1., size = 10000).reshape(-1,1)
+        sample3 = np.random.triangular(0., 1., 2., size = 10000).reshape(-1,1)
+    
+        assert significant(sample1, sample2, 
+    	    EnergyDistance(sample1, sample2), n=1000)
+        assert significant(sample1, sample3, 
+    	    EnergyDistance(sample1, sample3), n=1000)
+        assert significant(sample3, sample2, 
+    	    EnergyDistance(sample3, sample2), n=1000)
 
-    cov1 = np.array([[1., 0.2, 0.3],[0.2, 1., 0.8],[0.3, 0.8, 1.]])
-    cov2 = np.array([[2., 0.4, 0.1],[0.4, 2., 0.2],[0.1, 0.2, 2.]])
-
-    sample1 = np.random.multivariate_normal(mean1, cov1, size = 1000)
-    sample2 = np.random.multivariate_normal(mean1, cov1, size = 1000)
-    sample3 = np.random.multivariate_normal(mean2, cov1, size = 1000)
-    sample4 = np.random.multivariate_normal(mean1, cov2, size = 1000)
-
-    assert not significant(sample1, sample2, 
-	    EnergyDistance(sample1, sample2), 100)
-    assert significant(sample1, sample3, 
-	    EnergyDistance(sample1, sample3), 100)
-    assert significant(sample1, sample4, 
-	    EnergyDistance(sample1, sample4), 100)
-
-
-
+    for warn in w:
+        print(warn.message)

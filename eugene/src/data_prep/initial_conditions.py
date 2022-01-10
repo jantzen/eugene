@@ -2,7 +2,7 @@ import copy
 import numpy as np
 import scipy.stats as stats
 import warnings
-from eugene.src.auxiliary.probability import EnergyDistance, nd_gaussian_pdf
+from eugene.src.auxiliary.probability import *
 
 
 def _choose_untrans_trans_1D(
@@ -48,46 +48,52 @@ def _choose_untrans_trans_1D(
     untrans = []
     trans = []
 
-    untrans_scores = []
-    trans_scores = []
+    selected_untrans_inits = []
+    selected_trans_inits = []
 
     for pool in pools:
         densities = []
+        tmp_initials = []
         for segment in pool:
             densities.append(nd_gaussian_pdf(mu_untrans, var,
                 segment[0])[0][0])
         densities = np.array(densities)
-        untrans_scores.append(np.sort(densities)[-num_reps:])
         indices = np.argsort(densities)[-num_reps:]
         tmp = []
         for index in indices:
             tmp.append(pool[index])
+            tmp_initials.append(pool[index][0])
         for index in sorted(indices, reverse=True):
             del pool[index]
         untrans.append(tmp)
+        selected_untrans_inits.append(np.array(tmp_initials).reshape(-1,1))
 
     for pool in pools:
         densities = []
+        tmp_initials = []
         for segment in pool:
             densities.append(nd_gaussian_pdf(mu_trans, var,
                 segment[0])[0][0])
         densities = np.array(densities)
-        trans_scores.append(np.sort(densities)[-num_reps:])
         indices = np.argsort(densities)[-num_reps:]
         tmp = []
         for index in indices:
             tmp.append(pool[index])
+            tmp_initials.append(pool[index][0])
         trans.append(tmp)
-
-    # REPLACE THIS WITH HIGH-DIMENSIONAL TWO-SAMPLE TEST FOR DIFFERENCE OF MEANS
+        selected_trans_inits.append(np.array(tmp_initials).reshape(-1,1))
 
     # test quality of sampled distributions
+    p = 0.005
     # test untrans
-    nn = len(untrans_scores)
+    nn = len(selected_untrans_inits)
     for ii in range(nn):
         for jj in range(ii, nn):
-            result = stats.ks_2samp(untrans_scores[ii], untrans_scores[jj])
-            if result.pvalue < 0.005:
+            X = selected_untrans_inits[ii]
+            Y = selected_untrans_inits[jj]
+            D = EnergyDistance(X, Y)
+            result = significant(X, Y, D, alpha=p)
+            if result:
                 errmsg = """Warning: the untrans initial conditions for
                 conditions {} and {} do not match (p < 0.005).""".format(ii, jj)
                 warnings.warn(errmsg)
@@ -96,11 +102,14 @@ def _choose_untrans_trans_1D(
                     error_flag[jj,ii] += 1
 
     # test trans
-    nn = len(trans_scores)
+    nn = len(selected_trans_inits)
     for ii in range(nn):
         for jj in range(ii, nn):
-            result = stats.ks_2samp(trans_scores[ii], trans_scores[jj])
-            if result.pvalue < 0.005:
+            X = selected_trans_inits[ii]
+            Y = selected_trans_inits[jj]
+            D = EnergyDistance(X, Y, D)
+            result = significant(X, Y, D, alpha=p)
+            if result:
                 errmsg = """Warning: the trans initial conditions for
                 conditions {} and {} do not match (p < 0.005).""".format(ii, jj)
                 warnings.warn(errmsg)
@@ -199,50 +208,56 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, r
     untrans = []
     trans = []
 
-    untrans_scores = []
-    trans_scores = []
+    selected_untrans_inits = []
+    selected_trans_inits = []
 
     for pool in pools:
         densities = []
+        tmp_initials = []
         for segment in pool:
             densities.append(nd_gaussian_pdf(mu_untrans, cov_t,
                 segment[:,0].reshape(-1,1))[0][0])
         densities = np.array(densities)
-        untrans_scores.append(np.sort(densities)[-num_reps:])
         indices = np.argsort(densities)[-num_reps:]
         tmp = []
         for index in indices:
             tmp.append(pool[index])
+            tmp_initials.append(pool[index][:,0].reshape(1,-1))
         for index in sorted(indices, reverse=True):
             del pool[index]
         untrans.append(tmp)
+        selected_untrans_inits.append(np.concatenate(tmp_initials, axis=0))
 
     for pool in pools:
         densities = []
+        tmp_initials = []
         for segment in pool:
             densities.append(nd_gaussian_pdf(mu_trans, cov_t,
                 segment[:,0].reshape(-1,1))[0][0])
         densities = np.array(densities)
-        trans_scores.append(np.sort(densities)[-num_reps:])
         indices = np.argsort(densities)[-num_reps:]
         tmp = []
         for index in indices:
             tmp.append(pool[index])
+            tmp_initials.append(pool[index][:,0].reshape(1,-1))
         trans.append(tmp)
+        selected_trans_inits.append(np.concatenate(tmp_initials, axis=0))
 
     # test the quality of the overlap between treatments in both untrans and
     # trans pools (in other words, how indistinguishable are the initial
     # distributions)
 
-    # REPLACE THIS WITH HIGH-DIMENSIONAL TWO-SAMPLE TEST FOR DIFFERENCE OF MEANS
-
     # test quality of sampled distributions
+    p = 0.005
     # test untrans
-    nn = len(untrans_scores)
+    nn = len(selected_untrans_inits)
     for ii in range(nn):
         for jj in range(ii, nn):
-            result = stats.ks_2samp(untrans_scores[ii], untrans_scores[jj])
-            if result.pvalue < 0.005:
+            X = selected_untrans_inits[ii]
+            Y = selected_untrans_inits[jj]
+            D = EnergyDistance(X, Y)
+            result = significant(X, Y, D, alpha=p)
+            if result:
                 errmsg = """Warning: the untrans initial conditions for
                 conditions {} and {} do not match (p < 0.005).""".format(ii, jj)
                 warnings.warn(errmsg)
@@ -251,11 +266,14 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, r
                     error_flag[jj,ii] += 1
 
     # test trans
-    nn = len(trans_scores)
+    nn = len(selected_trans_inits)
     for ii in range(nn):
         for jj in range(ii, nn):
-            result = stats.ks_2samp(trans_scores[ii], trans_scores[jj])
-            if result.pvalue < 0.005:
+            X = selected_untrans_inits[ii]
+            Y = selected_untrans_inits[jj]
+            D = EnergyDistance(X, Y)
+            result = significant(X, Y, D, alpha=p)
+            if result:
                 errmsg = """Warning: the trans initial conditions for
                 conditions {} and {} do not match (p < 0.005).""".format(ii, jj)
                 warnings.warn(errmsg)
@@ -267,5 +285,4 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, r
         return untrans, trans, error_flag
     else:
         return untrans, trans
-
 

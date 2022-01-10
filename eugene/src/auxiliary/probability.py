@@ -324,7 +324,7 @@ def nd_gaussian_pdf(mu, cov, points):
     return out
 
 
-def significant(X, Y, D, n, B=1000.0, alpha = 0.05):
+def significant(X, Y, D, n=int(100), B=1000.0, alpha=0.05):
     """
     Implements the bootstrap hypothesis test described
     in Szekely and Rizzo 2004
@@ -341,6 +341,10 @@ def significant(X, Y, D, n, B=1000.0, alpha = 0.05):
         True/False: True if D was significant (reject the null hypothesis
         that X and Y are from the same distribution); False if not
     """
+    # choose bootstrap sample size
+    if n > X.shape[0]/2:
+        n = int(X.shape[0]/2)
+
     # Make pooled sample
     W = np.concatenate((X, Y), axis=0)
     rows, cols = W.shape
