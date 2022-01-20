@@ -11,6 +11,7 @@ def _choose_untrans_trans_1D(
         alpha=0.5, 
         beta=0.2,
         mu_spec=None, # user-specified means for untrans, trans (2-element list)
+        p = 0.05, # significance level for tests of distribution similarity
         report=False):
     data = copy.deepcopy(data_in)
 
@@ -84,7 +85,7 @@ def _choose_untrans_trans_1D(
         selected_trans_inits.append(np.array(tmp_initials).reshape(-1,1))
 
     # test quality of sampled distributions
-    p = 0.005
+#    p = 0.005
     # test untrans
     nn = len(selected_untrans_inits)
     for ii in range(nn):
@@ -123,7 +124,8 @@ def _choose_untrans_trans_1D(
         return untrans, trans
 
 
-def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, report=False):
+def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None,
+        report=False, p=0.05):
     """ Input:
         data: A list of lists of numpy ndarrays, one for each condition. They are expected to 
         be dim x p where dim is the dimension and p the number of samples.
@@ -131,7 +133,9 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, r
             in each group
         alpha:
         beta:
-        mu: a list of arrays, each of dim x 1 dimensions
+        mu_spec: a list of arrays, each of dim x 1 dimensions
+        report:
+        p:
         Output:
         untrans: a list of lists (one for each condition)
         trans: a list of lists (one for each condition)
@@ -248,7 +252,7 @@ def choose_untrans_trans(data_in, num_reps, alpha=0.5, beta=0.2, mu_spec=None, r
     # distributions)
 
     # test quality of sampled distributions
-    p = 0.005
+#    p = 0.005
     # test untrans
     nn = len(selected_untrans_inits)
     for ii in range(nn):

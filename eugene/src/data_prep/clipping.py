@@ -3,6 +3,7 @@
 import numpy as np
 from eugene.src.auxiliary.probability import EnergyDistance
 import copy
+import warnings
 
 #Classes:
 #   none
@@ -64,7 +65,10 @@ def clip_segments_1d(A, B, minimum_length, steps=10):
         B_slices[ii] = np.array(B_slices[ii])
 
     # adjust number of steps and determine step size
-    if steps > A_len - minimum_length:
+    if A_len <= minimum_length:
+        warnings.warn("Fragments to be clipped are at or below minimum length.")
+        return A, B
+    elif steps > A_len - minimum_length:
         steps = A_len - minimum_length
     elif steps < 2:
         steps = 2
@@ -177,7 +181,10 @@ def clip_segments(A, B, minimum_length, steps=10):
         B_slices[ii] = np.concatenate(B_slices[ii], axis=0)
 
     # adjust number of steps and determine step size
-    if steps > A_len - minimum_length:
+    if A_len <= minimum_length:
+        warnings.warn("Fragments to be clipped are at or below minimum length.")
+        return A, B
+    elif steps > A_len - minimum_length:
         steps = A_len - minimum_length
     elif steps < 2:
         steps = 2

@@ -7,6 +7,7 @@ from joblib import Parallel, delayed
 from operator import itemgetter
 import copy
 import pdb
+from tqdm import tqdm
 
 
 def cost(error_matrix):
@@ -140,7 +141,7 @@ def tune_offsets(
         alpha=0.5,
         beta=0.2,
         mu_spec=None,
-        warnings=True # indicates whether or not to display warnings
+        warnings=True, # indicates whether or not to display warnings
         ):
 
     # deal with warnings
@@ -189,7 +190,8 @@ def tune_offsets(
     print("Frag length: {}".format(frag_length))
     best_offset = 0
     min_cost = np.inf
-    for offset in range(frag_length):
+    print("Finding optimal offset for first pair...")
+    for offset in tqdm(range(frag_length)):
         data2 = series[gd_keys[1]][:,offset:]
         data1 = series[gd_keys[0]][:,:data2.shape[1]]
         tmp = eu.fragment_timeseries.fixed_length_frags([data1, data2],
@@ -217,10 +219,11 @@ def tune_offsets(
     data = []
     data.append(series[gd_keys[0]][:,offsets[gd_keys[0]]:])
     data.append(series[gd_keys[1]][:,offsets[gd_keys[1]]:])
-    for key in remaining_keys:
+    print("Finding remaining offsets...")
+    for key in tqdm(remaining_keys):
         best_offset = 0
         min_cost = np.inf
-        for offset in range(frag_length):
+        for offset in tqdm(range(frag_length)):
             tmp_data = copy.deepcopy(data)
             tmp_data.append(series[key][:,offset:])
             # trim all of the data to the same length

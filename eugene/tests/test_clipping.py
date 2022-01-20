@@ -1,5 +1,6 @@
 import eugene as eu
 import numpy as np
+import warnings
 
 def test_clip_segments_1d():
     # generate some data
@@ -18,6 +19,21 @@ def test_clip_segments_1d():
     for seg in B:
         assert seg.shape == B[0].shape
 
+    # verify that it handles problematic cases correctly
+    t = np.linspace(0.,10.,10)
+    x = np.exp(0.1 * t)
+    y = np.exp(0.2 * t)
+    A = [x] * 10
+    B = [y] * 10
+    with warnings.catch_warnings(record=True) as w:
+        A_clipped, B_clipped = eu.clipping.clip_segments(A, B, 10)
+        assert np.all(A_clipped[0] == A[0])
+        assert np.all(B_clipped[0] == B[0])
+    assert len(w) == 1
+    print("Collected warnings:")
+    for warn in w:
+        print(warn.message)
+
 
 def test_clip_segments():
     # generate some data
@@ -35,6 +51,21 @@ def test_clip_segments():
         assert seg.shape == A[0].shape
     for seg in B:
         assert seg.shape == B[0].shape
+    
+    # verify that it handles problematic cases correctly
+    t = np.linspace(0.,10.,10).reshape(1, -1) * np.ones((5, 10))
+    x = np.exp(0.1 * t)
+    y = np.exp(0.2 * t)
+    A = [x] * 10
+    B = [y] * 10
+    with warnings.catch_warnings(record=True) as w:
+        A_clipped, B_clipped = eu.clipping.clip_segments(A, B, 10)
+        assert np.all(A_clipped[0] == A[0])
+        assert np.all(B_clipped[0] == B[0])
+    assert len(w) == 1
+    print("Collected warnings:")
+    for warn in w:
+        print(warn.message)
 
 
 def test_clip_to_match():
