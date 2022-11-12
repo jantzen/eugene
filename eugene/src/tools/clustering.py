@@ -43,7 +43,7 @@ def matrix_to_orderings(distance_matrix, row_labels=None):
                     tmp.append(row_labels[rank])
                 rankings.append(tmp)
             else:
-                old_row_ranking = row_ranking
+                old_row_ranking = copy.deepcopy(row_ranking)
 
     return(rankings)
 
@@ -105,7 +105,7 @@ def check_if_cluster(candidate, ordered_lists):
                 if (((not ol[ii] in candidate) and (ol[ii-1] in candidate)) or
                     ((ol[ii] in candidate) and (not ol[ii-1] in candidate))):
                     switch += 1
-            if switch == 2:
+            if switch > 1:
                 is_cluster = False 
 
     return is_cluster
@@ -116,13 +116,13 @@ def qualitative_cluster(point_list, ordered_lists):
     another than to any system outside the cluster on the basis of purely
     qualitative orderings.
     """
-#    pdb.set_trace()
     clusters_found = []
 
     # loop over cluster sizes
     for size in range(2, len(point_list)):
         # loop over potential clusters
-        for cluster in combinations(point_list, size):
+        potential_clusters = combinations(point_list, size)
+        for cluster in potential_clusters:
             # determine whether this is a genuine cluster with respect to the
             # given set of ordered_lists
             if check_if_cluster(cluster, ordered_lists):
