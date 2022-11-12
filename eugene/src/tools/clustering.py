@@ -19,7 +19,7 @@ def matrix_to_orderings(distance_matrix, row_labels=None):
         row_labels = []
         for ii in range(nn):
             row_labels.append('r' + str(ii))
-    elif len(row_labels != nn):
+    elif len(row_labels) != nn:
         raise ValueError("Row labels list length does not match distance matrix shape.")
 
     rankings = []
@@ -53,7 +53,7 @@ def combinations(items, size):
         items : a list of DISTINCT items from which to extact combinations of size = size
         size : how many items to choose
         Output:
-        combos : a list of lists consistuting the set of all combinations of size = size
+        combos : a list of tuples consistuting the set of all combinations of size = size
     """
 #    pdb.set_trace()
 
@@ -62,7 +62,10 @@ def combinations(items, size):
 
     # base case
     if size == 1:
-        return items
+        tmp = []
+        for it in items:
+            tmp.append((it,))
+        return tmp
 
     # recursive step
     else:
@@ -71,7 +74,9 @@ def combinations(items, size):
             remaining_items = copy.deepcopy(items)
             remaining_items.remove(it)
             for completion in combinations(remaining_items, size-1):
-                tmp = [it, completion]
+#                tmp = [it, completion]
+                tmp = [it]
+                tmp.extend(list(completion))
                 tmp.sort()
                 combos.append(tmp)
         # remove the duplicates
@@ -83,20 +88,44 @@ def combinations(items, size):
     return combos
     
 
+def check_if_cluster(candidate, ordered_lists):
+    """ The condition can be expressed as follows: For any distance ranking (ordered
+    list) that begins with a member of the candidate cluster, each successive
+    item in the ranking must belong to the candidate set until all members have
+    been accounted for.
+    """
+    is_cluster = True
+    for ol in ordered_lists:
+        if ol[0] in candidate: 
+        # ignore unless the ranking starts with a member
+        # the candidate set
+            switch = 0
+            # run through the whole ranking
+            for ii in range(1, len(ol)):
+                if (((not ol[ii] in candidate) and (ol[ii-1] in candidate)) or
+                    ((ol[ii] in candidate) and (not ol[ii-1] in candidate))):
+                    switch += 1
+            if switch == 2:
+                is_cluster = False 
+
+    return is_cluster
+
 
 def qualitative_cluster(point_list, ordered_lists):
     """ Finds clusters of systems for which each member is more similar to one
     another than to any system outside the cluster on the basis of purely
     qualitative orderings.
     """
-    # determine the largest possible cluster size of interest
-    max_cluster_size = len(point_list) - 1
-
-    potential_clusters = dict([])
+#    pdb.set_trace()
+    clusters_found = []
 
     # loop over cluster sizes
-    for size in range(max_cluster_size):
-        potential_clusters[size] = combinations(point_list, size)
-
-
-
+    for size in range(2, len(point_list)):
+        # loop over potential clusters
+        for cluster in combinations(point_list, size):
+            # determine whether this is a genuine cluster with respect to the
+            # given set of ordered_lists
+            if check_if_cluster(cluster, ordered_lists):
+                clusters_found.append(cluster)
+    
+    return clusters_found
