@@ -8,7 +8,7 @@ import copy
 distance matrices.
 """
 
-def matrix_to_orderings(distance_matrix, row_labels=None):
+def matrix_to_orderings(distance_matrix, row_labels=None, epsilon=0.):
     """ Converts a distance matrix into a list of ordered lists.
         distance_matrix: a 2D numpy array
     """
@@ -35,13 +35,37 @@ def matrix_to_orderings(distance_matrix, row_labels=None):
                     tmp = row_ranking[jj+1]
                     row_ranking[jj+1] = row_ranking[jj]
                     row_ranking[jj] = tmp
+
             if row_ranking == old_row_ranking:
                 keep_sorting = False
                 # convert ranks to labels
-                tmp = []
-                for rank in row_ranking:
-                    tmp.append(row_labels[rank])
-                rankings.append(tmp)
+                # strick ranking
+                if epsilon == 0.:
+                    tmp = []
+                    for rank in row_ranking:
+                        tmp.append(row_labels[rank])
+                    rankings.append(tmp)
+                # soft ranking
+                else:
+                    tmp = []
+                    for kk in range(len(row_ranking)):
+                        if kk ==0:
+                            tmp.append([row_labels[row_ranking[kk]]])
+
+                        elif dm[ii, row_ranking[kk]] > dm[ii, row_ranking[kk-1]] + epsilon:
+                            for it in tmp:
+                                it.append(row_labels[row_ranking[kk]])
+
+                        else:
+                            tmp2 = copy.deepcopy(tmp)
+                            for it in tmp:
+                                it.append(row_labels[row_ranking[kk-1]])
+                            for it2 in tmp2:
+                                it2[-1] = row_labels[row_ranking[kk]]
+                                it2.append(row_labels[row_ranking[kk]])
+                            tmp.extend(tmp2)
+                    rankings.extend(tmp)
+
             else:
                 old_row_ranking = copy.deepcopy(row_ranking)
 
