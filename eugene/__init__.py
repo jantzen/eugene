@@ -17,3 +17,4 @@ from .src.data_prep import clipping
 from .src.data_prep import initial_conditions
 from .src.data_prep import fragment_timeseries
 from .src.data_prep import metaparameters
+from .src.tools import clustering
