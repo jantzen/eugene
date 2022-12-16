@@ -134,6 +134,33 @@ def check_if_cluster(candidate, ordered_lists):
 
     return is_cluster
 
+def remove_inconsistencies(putative_clusters):
+    """ Removes clusters that overlap but are not nested. This is necessary only
+    for soft-margin clustering and should change nothing for strict clustering.
+    """
+    clusters = copy.deepcopy(putative_clusters)
+    if len(clusters) < 2:
+        return clusters
+    else:
+        discards = []
+        for ii, cluster in enumerate(clusters):
+            for alternate in clusters[ii+1:]:
+                clu = set(cluster)
+                alt = set(alternate)
+                # see if the sets intersect
+                if len(clu & alt) > 0:
+                    # make sure that one cluster is a subset of the
+                    # other; otherwise, flag both for removal
+                    if (not clu.issubset(alt) and not
+                            alt.issubset(clu)):
+                        if not cluster in discards:
+                            discards.append(cluster)
+                        if not alternate in discards:
+                            discards.append(alternate)
+        for dd in discards:
+            clusters.remove(dd)
+        return clusters
+ 
 
 def qualitative_cluster(point_list, ordered_lists):
     """ Finds clusters of systems for which each member is more similar to one
@@ -152,4 +179,10 @@ def qualitative_cluster(point_list, ordered_lists):
             if check_if_cluster(cluster, ordered_lists):
                 clusters_found.append(cluster)
     
+    # eliminate putative clusters if inconsistent
+    # this step is necessary for soft-margin clustering but should be
+    # superfluous for strict clustering
+    clusters_found = remove_inconsistencies(clusters_found)
+
+   
     return clusters_found

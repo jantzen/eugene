@@ -95,5 +95,31 @@ class TestClustering(unittest.TestCase):
         assert ('a', 'b') in out
         assert ('a', 'b', 'c') in out
 
+    def test_remove_inconsistencies(self):
+        clusters_found = [('a','b','c'), ('a','d','c'), ('c','b','a'),
+                ('a','b','c','d')]
+        clusters_found = remove_inconsistencies(clusters_found)
+        assert clusters_found == [('a','b','c','d')]
+
+        clusters_found = [('d','b'), ('a','e','c'), ('c','b','d'),
+                ('a','b','c','d')]
+        clusters_found = remove_inconsistencies(clusters_found)
+        assert clusters_found == [('d','b')]
+
+    def test_soft_qualitative_cluster(self):
+        # soft clustering hierarchical example
+        dm = np.array([[0., 1., 2.5, 6.], [1., 0., 0.1, 4.], [2.5, 0.1, 0., 5.],
+            [6., 4., 5., 0.]])
+        r = matrix_to_orderings(dm, ['a', 'b', 'c', 'd'], epsilon=0.5)
+        out = qualitative_cluster(['a', 'b', 'c', 'd'], r)
+        assert out == [('a', 'b', 'c')]
+
+        # soft clustering large margin
+        dm = np.array([[0., 1., 2.], [1., 0., 3.], [2., 3., 0.]])
+        r = matrix_to_orderings(dm, ['a', 'b', 'c'], epsilon=10.)
+        out = qualitative_cluster(['a', 'b', 'c'], r)
+        assert out == []
+        
+
 if __name__ == '__main__': 
     unittest.main() 
