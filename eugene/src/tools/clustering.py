@@ -7,69 +7,32 @@ import copy
 """ Provides a variety of methods for clustering on the basis of dynamical
 distance matrices.
 """
+class DistanceMatrix( object ):
+    def __init__(self, matrix, labels, sort_labels=True):
+        """ Input:
+                matrix : A 2d numpy array representing an n x n distance matrix
+                labels : A list of labels for each row of the matrix. By
+                default, this is sorted.
+        """
+        self.matrix = matrix
+        if len(set(labels)) < len(labels):
+            raise ValueError("Labels must be unique.")
 
-def matrix_to_orderings(distance_matrix, row_labels=None, epsilon=0.):
-    """ Converts a distance matrix into a list of ordered lists.
-        distance_matrix: a 2D numpy array
-    """
-    dm = distance_matrix
-    nn = dm.shape[0]
+        if not len(labels) == matrix.shape[0]:
+            raise ValueError("Number of labels must match matrix dimensions.")
 
-    if row_labels is None:
-        row_labels = []
-        for ii in range(nn):
-            row_labels.append('r' + str(ii))
-    elif len(row_labels) != nn:
-        raise ValueError("Row labels list length does not match distance matrix shape.")
+        if sort_labels:
+            self.labels = labels
+            self.labels.sort()
+        else:
+            self.labels = labels
 
-    rankings = []
-    for ii in range(nn):
-        # bubble sort the row
-        row_ranking = list(range(nn))
-        old_row_ranking = list(range(nn))
-        keep_sorting = True
-        while keep_sorting:
-            for jj in range(len(row_ranking)-1):
-                if dm[ii, row_ranking[jj]] > dm[ii, row_ranking[jj+1]]:
-                    # swap elements in the ranking
-                    tmp = row_ranking[jj+1]
-                    row_ranking[jj+1] = row_ranking[jj]
-                    row_ranking[jj] = tmp
-
-            if row_ranking == old_row_ranking:
-                keep_sorting = False
-                # convert ranks to labels
-                # strick ranking
-                if epsilon == 0.:
-                    tmp = []
-                    for rank in row_ranking:
-                        tmp.append(row_labels[rank])
-                    rankings.append(tmp)
-                # soft ranking
-                else:
-                    tmp = []
-                    for kk in range(len(row_ranking)):
-                        if kk ==0:
-                            tmp.append([row_labels[row_ranking[kk]]])
-
-                        elif dm[ii, row_ranking[kk]] > dm[ii, row_ranking[kk-1]] + epsilon:
-                            for it in tmp:
-                                it.append(row_labels[row_ranking[kk]])
-
-                        else:
-                            tmp2 = copy.deepcopy(tmp)
-                            for it in tmp:
-                                it.append(row_labels[row_ranking[kk-1]])
-                            for it2 in tmp2:
-                                it2[-1] = row_labels[row_ranking[kk]]
-                                it2.append(row_labels[row_ranking[kk]])
-                            tmp.extend(tmp2)
-                    rankings.extend(tmp)
-
-            else:
-                old_row_ranking = copy.deepcopy(row_ranking)
-
-    return(rankings)
+    def distance(self, label1, label2):
+        if not (label1 in self.labels and label2 in self.labels):
+            raise ValueError("Given row labels not associated with this distance matrix.")
+        index1 = self.labels.index(label1)
+        index2 = self.labels.index(label2)
+        return self.matrix[index1, index2]
 
 
 def combinations(items, size):
@@ -79,7 +42,6 @@ def combinations(items, size):
         Output:
         combos : a list of tuples consistuting the set of all combinations of size = size
     """
-#    pdb.set_trace()
 
     if size > len(items):
         raise ValueError("Number of items chosen cannot exceed total number of items.")
@@ -98,7 +60,6 @@ def combinations(items, size):
             remaining_items = copy.deepcopy(items)
             remaining_items.remove(it)
             for completion in combinations(remaining_items, size-1):
-#                tmp = [it, completion]
                 tmp = [it]
                 tmp.extend(list(completion))
                 tmp.sort()
@@ -112,57 +73,50 @@ def combinations(items, size):
     return combos
     
 
-def check_if_cluster(candidate, ordered_lists):
-    """ The condition can be expressed as follows: For any distance ranking (ordered
-    list) that begins with a member of the candidate cluster, each successive
-    item in the ranking must belong to the candidate set until all members have
-    been accounted for.
+def find_greatest_separation(distance_matrix, candidate_cluster):
+    greatest_sep = 0.
+    for element1 in candidate_cluster:
+        for element2 in candidate_cluster:
+            if (element1 in distance_matrix.labels and 
+                    element2 in distance_matrix.labels):
+                dist = distance_matrix.distance(element1, element2)
+                if dist > greatest_sep:
+                    greatest_sep = dist
+    return greatest_sep
+
+
+def check_if_cluster(candidate, distance_matrices, labels, epsilon=0.,
+        relative_epsilon=False):
+    """ 
+    Input:
+        candidate : a list or tuple of labels constituting the putative cluster
+        distance_matrices : a list of DistanceMatrix objects with labels from labels
+        labels : a list of tags for each system in the entire set considered
     """
     is_cluster = True
-    for ol in ordered_lists:
-        if ol[0] in candidate: 
-        # ignore unless the ranking starts with a member
-        # the candidate set
-            switch = 0
-            # run through the whole ranking
-            for ii in range(1, len(ol)):
-                if (((not ol[ii] in candidate) and (ol[ii-1] in candidate)) or
-                    ((ol[ii] in candidate) and (not ol[ii-1] in candidate))):
-                    switch += 1
-            if switch > 1:
-                is_cluster = False 
-
+    candidate = set(candidate)
+    complement = set(labels) - candidate
+    # find the greatest separation between elements of the candidate cluster
+    gs = 0.
+    for dm in distance_matrices:
+        tmp = find_greatest_separation(dm, candidate)
+        if tmp > gs:
+            gs = tmp
+    # check whether each element of the complement is more than gs + epsilon away from
+    # every element of the candidate
+    for dm in distance_matrices:
+        if relative_epsilon:
+            epsilon = epsilon * np.std(dm.matrix)
+        for label1 in complement:
+            for label2 in candidate:
+                if (label1 in dm.labels and 
+                        label2 in dm.labels and
+                        dm.distance(label1, label2) < gs + epsilon):
+                    is_cluster = False
     return is_cluster
 
-def remove_inconsistencies(putative_clusters):
-    """ Removes clusters that overlap but are not nested. This is necessary only
-    for soft-margin clustering and should change nothing for strict clustering.
-    """
-    clusters = copy.deepcopy(putative_clusters)
-    if len(clusters) < 2:
-        return clusters
-    else:
-        discards = []
-        for ii, cluster in enumerate(clusters):
-            for alternate in clusters[ii+1:]:
-                clu = set(cluster)
-                alt = set(alternate)
-                # see if the sets intersect
-                if len(clu & alt) > 0:
-                    # make sure that one cluster is a subset of the
-                    # other; otherwise, flag both for removal
-                    if (not clu.issubset(alt) and not
-                            alt.issubset(clu)):
-                        if not cluster in discards:
-                            discards.append(cluster)
-                        if not alternate in discards:
-                            discards.append(alternate)
-        for dd in discards:
-            clusters.remove(dd)
-        return clusters
- 
 
-def qualitative_cluster(point_list, ordered_lists):
+def qualitative_cluster(distance_matrices, labels, epsilon=0., relative_epsilon=False):
     """ Finds clusters of systems for which each member is more similar to one
     another than to any system outside the cluster on the basis of purely
     qualitative orderings.
@@ -170,19 +124,14 @@ def qualitative_cluster(point_list, ordered_lists):
     clusters_found = []
 
     # loop over cluster sizes
-    for size in range(2, len(point_list)):
+    for size in range(2, len(labels)):
         # loop over potential clusters
-        potential_clusters = combinations(point_list, size)
+        potential_clusters = combinations(labels, size)
         for cluster in potential_clusters:
             # determine whether this is a genuine cluster with respect to the
             # given set of ordered_lists
-            if check_if_cluster(cluster, ordered_lists):
+            if check_if_cluster(cluster, distance_matrices, labels,
+                    epsilon=epsilon, relative_epsilon=relative_epsilon):
                 clusters_found.append(cluster)
     
-    # eliminate putative clusters if inconsistent
-    # this step is necessary for soft-margin clustering but should be
-    # superfluous for strict clustering
-    clusters_found = remove_inconsistencies(clusters_found)
-
-   
     return clusters_found
