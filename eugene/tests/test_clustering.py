@@ -11,21 +11,6 @@ class TestClustering(unittest.TestCase):
         pass
 
 
-#    def test_matrix_to_orderings(self):
-#        dm = np.array([[0., 2., 1.5], [2., 0., 1.], [1.5, 2.,0.]])
-#        rankings = matrix_to_orderings(dm) 
-#        assert rankings == [['r0', 'r2', 'r1'], ['r1', 'r2', 'r0'], ['r2', 'r0',
-#            'r1']]
-#        # test soft ranking
-#        dm = np.array([[0., 2., 2.1], [2., 0., 1.], [2.1, 2.,0.]])
-#        rankings = matrix_to_orderings(dm, epsilon=0.2)
-#        assert ['r0', 'r1', 'r1'] in rankings
-#        assert ['r0', 'r2', 'r2'] in rankings
-#        assert ['r1', 'r2', 'r0'] in rankings
-#        assert ['r2', 'r0', 'r0'] in rankings
-#        assert ['r2', 'r1', 'r1'] in rankings
-        
-
     def test_combinations(self):
         items = ['a', 'b', 'c', 'd']
         out = combinations(items, 1)
@@ -97,6 +82,18 @@ class TestClustering(unittest.TestCase):
         matrix1 = np.array([[0., 1., 2.], [1., 0., 3.], [2., 3., 0.]])
         matrix2 = np.array([[0., 1., 3.], [1., 0., 2.], [3., 2., 0.]])
         matrix3 = np.array([[0., 2., 3.], [2., 0., 1.], [3., 1., 0.]])
+        matrix4 = np.array([[0., 3., 2.], [3., 0., 1.], [2., 1., 0.]])
+        dm1 = DistanceMatrix(matrix1, ['a', 'b', 'c'])
+        dm2 = DistanceMatrix(matrix2, ['a', 'b', 'd'])
+        dm3 = DistanceMatrix(matrix3, ['a', 'c', 'd'])
+        dm4 = DistanceMatrix(matrix4, ['b', 'c', 'd'])
+        out = qualitative_cluster([dm1, dm2, dm3, dm4], ['a', 'b', 'c', 'd'])
+        assert ('a', 'b') in out and ('c', 'd') in out
+
+        # two-cluster example with different scales for each dm
+        matrix1 = np.array([[0., 1., 2.], [1., 0., 3.], [2., 3., 0.]])
+        matrix2 = np.array([[0., 0.1, 0.3], [0.1, 0., 0.2], [0.3, 0.2, 0.]])
+        matrix3 = np.array([[0., 4., 6.], [4., 0., 2.], [6., 2., 0.]])
         matrix4 = np.array([[0., 3., 2.], [3., 0., 1.], [2., 1., 0.]])
         dm1 = DistanceMatrix(matrix1, ['a', 'b', 'c'])
         dm2 = DistanceMatrix(matrix2, ['a', 'b', 'd'])

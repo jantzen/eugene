@@ -7,7 +7,12 @@ import copy
 """ Provides a variety of methods for clustering on the basis of dynamical
 distance matrices.
 """
+
 class DistanceMatrix( object ):
+    """ Provides for distance matrix objects that collect matrices, their
+    associated row labels, and methds for extracting matrix entries from ro
+    labels.
+    """
     def __init__(self, matrix, labels, sort_labels=True):
         """ Input:
                 matrix : A 2d numpy array representing an n x n distance matrix
@@ -96,15 +101,16 @@ def check_if_cluster(candidate, distance_matrices, labels, epsilon=0.,
     is_cluster = True
     candidate = set(candidate)
     complement = set(labels) - candidate
-    # find the greatest separation between elements of the candidate cluster
-    gs = 0.
-    for dm in distance_matrices:
-        tmp = find_greatest_separation(dm, candidate)
-        if tmp > gs:
-            gs = tmp
+#    # find the greatest separation between elements of the candidate cluster
+#    gs = 0.
+#    for dm in distance_matrices:
+#        tmp = find_greatest_separation(dm, candidate)
+#        if tmp > gs:
+#            gs = tmp
     # check whether each element of the complement is more than gs + epsilon away from
-    # every element of the candidate
+    # every element of the candidate _in every distance matrix_
     for dm in distance_matrices:
+        gs = find_greatest_separation(dm, candidate)
         if relative_epsilon:
             epsilon = epsilon * np.std(dm.matrix)
         for label1 in complement:
@@ -125,6 +131,7 @@ def qualitative_cluster(distance_matrices, labels, epsilon=0., relative_epsilon=
 
     # loop over cluster sizes
     for size in range(2, len(labels)):
+        pdb.set_trace()
         # loop over potential clusters
         potential_clusters = combinations(labels, size)
         for cluster in potential_clusters:
